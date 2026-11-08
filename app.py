@@ -25,6 +25,7 @@ HISTORY_DIR = pathlib.Path(__file__).parent / "history"
 HISTORY_FILE = HISTORY_DIR / "recent.json"
 HISTORY_DIR.mkdir(parents=True, exist_ok=True)
 LOGO_PATH = pathlib.Path(__file__).parent / "logo.png"
+SKULL_CLEAN_PATH = pathlib.Path(__file__).parent / "skull_clean.png"
 
 
 @app.get("/logo.png")
@@ -32,6 +33,13 @@ def get_app_logo():
     if LOGO_PATH.is_file():
         return FileResponse(str(LOGO_PATH), media_type="image/png")
     raise HTTPException(status_code=404, detail="Logo not found")
+
+
+@app.get("/skull_clean.png")
+def get_skull_clean():
+    if SKULL_CLEAN_PATH.is_file():
+        return FileResponse(str(SKULL_CLEAN_PATH), media_type="image/png")
+    raise HTTPException(status_code=404, detail="Skull image not found")
 
 
 class HistoryItem(BaseModel):
@@ -362,20 +370,8 @@ def api_clear_history():
 
 @app.get("/", response_class=HTMLResponse)
 def index_page():
-    try:
-        with open(__file__, "r", encoding="utf-8") as f:
-            code = f.read()
-        marker = 'HTML_CONTENT = """'
-        start = code.find(marker)
-        if start != -1:
-            end = code.rfind('"""')
-            content = code[start + len(marker):end]
-        else:
-            content = HTML_CONTENT
-    except Exception:
-        content = HTML_CONTENT
     return HTMLResponse(
-        content=content,
+        content=HTML_CONTENT,
         headers={
             "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
             "Pragma": "no-cache",
@@ -780,124 +776,22 @@ HTML_CONTENT = """<!DOCTYPE html>
           <i class="fa-solid fa-backward-step"></i>
         </button>
 
-        <!-- WHITE SKULL PLAY / PAUSE BUTTON WITH DEFINED BORDER & BEAT FLAME -->
+        <!-- WHITE SKULL PLAY / PAUSE BUTTON WITH HIGH-VARIABILITY BEAT FLAMES -->
         <div class="relative z-10 flex items-center justify-center">
-          <!-- Rising spark particles canvas -->
-          <canvas id="flameCanvas" width="160" height="90" class="pointer-events-none absolute -top-14 left-1/2 -translate-x-1/2 z-0"></canvas>
+          <!-- Multi-Tongue Beat Flame Visualizer Canvas wrapping around skull head -->
+          <canvas id="flameCanvas" width="220" height="150" class="pointer-events-none absolute -top-[84px] left-1/2 -translate-x-1/2 z-0 overflow-visible"></canvas>
 
           <!-- Flame Aura Glow behind skull -->
           <div id="playBtnAura" class="absolute inset-0 rounded-full bg-[#00e5ff]/35 blur-xl pointer-events-none transition-transform duration-75"></div>
 
-          <!-- White Skull Play/Pause Button with Defined Head Border and Fire -->
+          <!-- White Skull Play/Pause Button with Defined Cranium and Black Icon -->
           <button onclick="togglePlayPause()" id="playerPlayBtn" title="Play / Pause"
-            class="relative z-10 w-12 h-14 sm:w-14 sm:h-16 hover:scale-105 active:scale-95 flex items-center justify-center transition duration-150 select-none focus:outline-none drop-shadow-[0_0_14px_rgba(0,229,255,0.7)]">
-            <svg viewBox="0 0 100 115" class="w-full h-full pointer-events-none select-none overflow-visible">
-              <defs>
-                <!-- Deep Electric Cyan/Blue Flame Gradient -->
-                <linearGradient id="skullFlameGrad" x1="0%" y1="100%" x2="0%" y2="0%">
-                  <stop offset="0%" stop-color="#00e5ff" stop-opacity="0.95" />
-                  <stop offset="35%" stop-color="#00b0ff" />
-                  <stop offset="75%" stop-color="#0033ff" />
-                  <stop offset="100%" stop-color="#00e5ff" />
-                </linearGradient>
-                <!-- White-Hot Core Flame Gradient -->
-                <linearGradient id="skullFlameCore" x1="0%" y1="100%" x2="0%" y2="0%">
-                  <stop offset="0%" stop-color="#ffffff" />
-                  <stop offset="60%" stop-color="#00e5ff" />
-                  <stop offset="100%" stop-color="transparent" />
-                </linearGradient>
-                <!-- 3D Shaded Skull Bone Gradient -->
-                <linearGradient id="skullBoneGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stop-color="#ffffff" />
-                  <stop offset="35%" stop-color="#f8fafc" />
-                  <stop offset="70%" stop-color="#e2e8f0" />
-                  <stop offset="100%" stop-color="#cbd5e1" />
-                </linearGradient>
-                <radialGradient id="craniumHighlight" cx="50%" cy="40%" r="45%">
-                  <stop offset="0%" stop-color="#ffffff" />
-                  <stop offset="65%" stop-color="#f8fafc" stop-opacity="0.9" />
-                  <stop offset="100%" stop-color="#e2e8f0" stop-opacity="0" />
-                </radialGradient>
-                <filter id="flameGlow" x="-30%" y="-30%" width="160%" height="160%">
-                  <feDropShadow dx="0" dy="0" stdDeviation="3.5" flood-color="#00e5ff" flood-opacity="0.85" />
-                </filter>
-              </defs>
-
-              <!-- 1. FLAME AROUND THE SKULL HEAD (Rooted on defined skull head border) -->
-              <g id="svgFlameGroup" filter="url(#flameGlow)" style="transform-origin: 50px 32px; transition: transform 0.08s ease-out;">
-                <!-- Outer Cyan/Blue Fire Silhouette wrapping around cranium -->
-                <path d="M 10,50 
-                         C 6,42 10,34 16,30 
-                         C 19,28 22,34 25,23 
-                         C 28,15 34,10 37,10 
-                         C 41,14 43,18 46,6 
-                         C 49,2 51,2 54,4 
-                         C 57,8 59,15 63,11 
-                         C 67,8 72,14 75,18 
-                         C 78,23 81,28 84,30 
-                         C 90,34 94,42 90,50 
-                         C 80,39 68,32 50,30 
-                         C 32,32 20,39 10,50 Z" 
-                      fill="url(#skullFlameGrad)" />
-
-                <!-- Inner Electric Cyan / White Flame Licks -->
-                <path d="M 22,38 
-                         C 27,27 34,20 37,18 
-                         C 39,22 43,24 47,10 
-                         C 49,6 51,6 53,8 
-                         C 55,14 58,18 61,16 
-                         C 66,15 71,24 78,38 
-                         C 68,34 59,32 50,32 
-                         C 41,32 32,34 22,38 Z" 
-                      fill="url(#skullFlameCore)" opacity="0.9" />
-              </g>
-
-              <!-- 2. DEFINED SKULL HEAD & BODY -->
-              <!-- Skull Body Fill with defined outline -->
-              <path d="M 10,50 
-                       C 20,39 32,32 50,30 
-                       C 68,32 80,39 90,50 
-                       C 90,66 85,76 77,81 
-                       C 74,83 73,87 72,91 
-                       C 70,96 66,98 62,98 
-                       L 38,98 
-                       C 34,98 30,96 28,91 
-                       C 27,87 26,83 23,81 
-                       C 15,76 10,66 10,50 Z" 
-                    fill="url(#skullBoneGrad)" 
-                    stroke="#0d111a" 
-                    stroke-width="1.6" />
-
-              <!-- 3D Cranium Highlight -->
-              <ellipse cx="50" cy="48" rx="30" ry="18" fill="url(#craniumHighlight)" />
-
-              <!-- EXPLICIT DEFINED BORDER OF SKULL HEAD (Cranium Rim separating bone from flame) -->
-              <path id="skullHeadBorder" 
-                    d="M 10,50 C 20,39 32,32 50,30 C 68,32 80,39 90,50" 
-                    stroke="#00e5ff" 
-                    stroke-width="2.5" 
-                    stroke-linecap="round" 
-                    fill="none" />
-              <path d="M 10,50 C 20,39 32,32 50,30 C 68,32 80,39 90,50" 
-                    stroke="#0d111a" 
-                    stroke-width="1" 
-                    stroke-linecap="round" 
-                    fill="none" />
-
-              <!-- Cheekbone subtle contour lines -->
-              <path d="M 18,73 Q 24,69 26,62" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.6" />
-              <path d="M 82,73 Q 76,69 74,62" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.6" />
-
-              <!-- Teeth Ridges on jaw (NO NOSE!) -->
-              <line x1="39" y1="87" x2="39" y2="97" stroke="#07090e" stroke-width="2" stroke-linecap="round" />
-              <line x1="46" y1="86" x2="46" y2="98" stroke="#07090e" stroke-width="2" stroke-linecap="round" />
-              <line x1="54" y1="86" x2="54" y2="98" stroke="#07090e" stroke-width="2" stroke-linecap="round" />
-              <line x1="61" y1="87" x2="61" y2="97" stroke="#07090e" stroke-width="2" stroke-linecap="round" />
-            </svg>
-
+            class="relative z-10 w-12 h-14 sm:w-14 sm:h-16 hover:scale-105 active:scale-95 flex items-center justify-center transition duration-150 select-none focus:outline-none drop-shadow-[0_0_14px_rgba(0,229,255,0.75)]">
+            <img id="skullImg" src="/skull_clean.png" alt="Skull Play/Pause" class="w-full h-full object-contain pointer-events-none select-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+            
             <!-- Centered Black Play / Pause Icon -->
-            <div class="absolute inset-0 flex items-center justify-center pt-2.5 pointer-events-none">
-              <i id="playerPlayIcon" class="fa-solid fa-play text-black text-xs sm:text-sm ml-0.5" style="color: #000000 !important;"></i>
+            <div class="absolute inset-0 flex items-center justify-center pt-2 pointer-events-none">
+              <i id="playerPlayIcon" class="fa-solid fa-play text-black text-sm sm:text-base font-black transition-transform duration-100" style="color: #000000 !important; filter: drop-shadow(0 0 1px rgba(255,255,255,0.4));"></i>
             </div>
           </button>
         </div>
@@ -1301,45 +1195,44 @@ HTML_CONTENT = """<!DOCTYPE html>
       }
     }
 
-    // BEAT FLAME VISUALIZER ENGINE
-    // Modulates SVG flame hair attached to skull head border and animates rising embers
+    // HIGH-VARIABILITY MULTI-TONGUE BEAT FLAME VISUALIZER ENGINE
+    // Surges 5x up and down to the beat of the song wrapping around the skull head dome
     function initBeatFlameEngine() {
       const canvas = document.getElementById('flameCanvas');
       const ctx = canvas ? canvas.getContext('2d') : null;
       const aura = document.getElementById('playBtnAura');
       const playBtn = document.getElementById('playerPlayBtn');
-      const svgFlame = document.getElementById('svgFlameGroup');
 
-      let flameEnergy = 0.12;
+      let flameEnergy = 0.15;
       const particles = [];
-      const MAX_PARTICLES = 32;
+      const MAX_PARTICLES = 36;
 
-      class FlameParticle {
+      class FlameSpark {
         constructor(x, y, isBurst) {
           this.reset(x, y, isBurst);
         }
         reset(x, y, isBurst) {
-          const mul = isBurst ? 2.2 : 1.0;
-          this.x = x + (Math.random() - 0.5) * 36;
-          this.y = y - Math.random() * 10;
-          this.vx = (Math.random() - 0.5) * 1.5;
-          this.vy = -(1.6 + Math.random() * 2.4) * mul;
-          this.size = 2.0 + Math.random() * 2.8;
+          const mul = isBurst ? 2.4 : 1.0;
+          this.x = x + (Math.random() - 0.5) * 48;
+          this.y = y - Math.random() * 12;
+          this.vx = (Math.random() - 0.5) * 1.8;
+          this.vy = -(2.2 + Math.random() * 3.2) * mul;
+          this.size = 1.8 + Math.random() * 2.5;
           this.life = 0;
-          this.maxLife = 22 + Math.random() * 28;
+          this.maxLife = 20 + Math.random() * 26;
           this.color = Math.random() > 0.4 ? '#00e5ff' : (Math.random() > 0.5 ? '#ffffff' : '#00b0ff');
         }
         update() {
-          this.vy -= 0.04;
-          this.x += this.vx + Math.sin(this.life * 0.22) * 0.4;
+          this.vy -= 0.03;
+          this.x += this.vx + Math.sin(this.life * 0.25) * 0.5;
           this.y += this.vy;
-          this.size = Math.max(0.3, this.size * 0.95);
+          this.size = Math.max(0.2, this.size * 0.94);
           this.life++;
         }
         draw(c) {
-          const alpha = Math.max(0, 1 - (this.life / this.maxLife));
+          const a = Math.max(0, 1 - (this.life / this.maxLife));
           c.save();
-          c.globalAlpha = alpha;
+          c.globalAlpha = a;
           c.fillStyle = this.color;
           c.shadowColor = '#00e5ff';
           c.shadowBlur = 8;
@@ -1350,75 +1243,171 @@ HTML_CONTENT = """<!DOCTYPE html>
         }
       }
 
+      function drawFlameTongue(c, baseX, baseY, tipX, tipY, width, colGrad, glowCol, blur) {
+        c.save();
+        c.shadowColor = glowCol;
+        c.shadowBlur = blur;
+        c.fillStyle = colGrad;
+        c.beginPath();
+        c.moveTo(baseX - width * 0.5, baseY);
+        const cp1x = baseX - width * 0.6 + (tipX - baseX) * 0.2;
+        const cp1y = baseY - (baseY - tipY) * 0.55;
+        const cp2x = tipX - width * 0.15;
+        const cp2y = tipY + (baseY - tipY) * 0.25;
+        c.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, tipX, tipY);
+        const cp3x = tipX + width * 0.15;
+        const cp3y = tipY + (baseY - tipY) * 0.25;
+        const cp4x = baseX + width * 0.6 + (tipX - baseX) * 0.2;
+        const cp4y = baseY - (baseY - tipY) * 0.55;
+        c.bezierCurveTo(cp3x, cp3y, cp4x, cp4y, baseX + width * 0.5, baseY);
+        c.closePath();
+        c.fill();
+        c.restore();
+      }
+
       function animateFlames() {
         requestAnimationFrame(animateFlames);
-        if (ctx && canvas) {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-        }
+        if (!ctx || !canvas) return;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         const isPlaying = (audio && !audio.paused && !audio.ended && audio.currentTime > 0);
         const t = (audio && audio.currentTime > 0) ? audio.currentTime : (Date.now() / 1000);
 
         let targetEnergy = 0.12;
         if (isPlaying) {
-          const kick  = Math.pow(Math.max(0, Math.sin(t * Math.PI * 2.133)), 4);
-          const snare = Math.pow(Math.max(0, Math.sin((t + 0.12) * Math.PI * 4.266)), 3);
+          // Sharp exponential kick hits for huge dynamic beat jumps
+          const kick = Math.pow(Math.max(0, Math.sin(t * Math.PI * 2.22)), 5);
+          const snare = Math.pow(Math.max(0, Math.sin((t + 0.115) * Math.PI * 4.44)), 3.5);
+          const subBass = Math.pow(Math.max(0, Math.sin(t * Math.PI * 1.11)), 3) * 0.35;
           const jitter = (Math.sin(t * 32) + Math.cos(t * 47)) * 0.08;
           const vol = (audio.volume !== undefined ? audio.volume : 1);
-          targetEnergy = Math.min(1.0, (0.32 + kick * 0.58 + snare * 0.2 + jitter) * vol);
-        }
-        flameEnergy += (targetEnergy - flameEnergy) * (targetEnergy > flameEnergy ? 0.35 : 0.16);
-
-        // 1. Modulate SVG Flame directly attached to the defined skull head border
-        if (svgFlame) {
-          const flameScaleY = 1.0 + flameEnergy * 0.32;
-          const flameScaleX = 1.0 + flameEnergy * 0.12;
-          svgFlame.style.transform = `scale(${flameScaleX.toFixed(3)}, ${flameScaleY.toFixed(3)})`;
+          // High dynamic range: surges between 0.16 and 1.0!
+          targetEnergy = Math.min(1.0, (0.16 + kick * 0.72 + snare * 0.24 + subBass + jitter) * vol);
         }
 
-        // 2. Modulate Skull cyan contour glow
+        // Fast rise (0.45) on kicks, snappy decay (0.16) for clear beat separation
+        flameEnergy += (targetEnergy - flameEnergy) * (targetEnergy > flameEnergy ? 0.45 : 0.16);
+
+        const cx = canvas.width / 2; // 110
+        const skullTopY = canvas.height - 48; // Cranium top baseline in canvas
+
+        // Dynamic flame height: surges from 22px at rest up to 105px on beat drops (5x variation!)
+        const maxH = 22 + flameEnergy * 86;
+
+        // Defined cranium dome curvature: fire wraps around the head of the skull!
+        function getDomeBaseY(x) {
+          const dx = (x - cx) / 30.0;
+          return skullTopY + (dx * dx) * 14.0;
+        }
+
+        // 7 distinct flame tongues matching the PYROBEAT brand logo
+        const tongues = [
+          // Center roaring flame tongue
+          { rx: 0,   h: 1.0,  w: 24, f: 8.5, ph: 0,   curl: 1.2 },
+          // Mid-left tongue
+          { rx: -15, h: 0.82, w: 18, f: 9.2, ph: 1.8, curl: -0.9 },
+          // Mid-right tongue
+          { rx: 15,  h: 0.86, w: 19, f: 8.8, ph: 2.6, curl: 1.0 },
+          // Outer left sweeping horn (curling around temple/side of skull)
+          { rx: -30, h: 0.65, w: 15, f: 9.8, ph: 3.4, curl: -1.7 },
+          // Outer right sweeping horn (curling around temple/side of skull)
+          { rx: 30,  h: 0.68, w: 15, f: 9.5, ph: 4.2, curl: 1.6 },
+          // Inner filler tongues
+          { rx: -7,  h: 0.72, w: 13, f: 11.0, ph: 5.1, curl: 0.4 },
+          { rx: 7,   h: 0.75, w: 13, f: 10.5, ph: 5.9, curl: -0.5 }
+        ];
+
+        // Pass 1: Outer Electric Blue Fire
+        tongues.forEach(tg => {
+          const bx = cx + tg.rx;
+          const by = getDomeBaseY(bx);
+          const th = maxH * tg.h * (0.88 + 0.12 * Math.sin(t * tg.f + tg.ph));
+          const sway = Math.sin(t * (tg.f * 0.9) + tg.ph) * (6 + flameEnergy * 14) + tg.curl * (4 + flameEnergy * 8);
+          const tx = bx + sway;
+          const ty = by - th;
+
+          const grad = ctx.createLinearGradient(0, by, 0, ty);
+          grad.addColorStop(0, '#00e5ff');
+          grad.addColorStop(0.35, '#0099ff');
+          grad.addColorStop(0.75, '#0033ff');
+          grad.addColorStop(1, '#0011bb');
+
+          drawFlameTongue(ctx, bx, by, tx, ty, tg.w * (0.9 + flameEnergy * 0.25), grad, '#0055ff', 16 + flameEnergy * 18);
+        });
+
+        // Pass 2: Mid Neon Cyan Hot Layer
+        tongues.forEach(tg => {
+          const bx = cx + tg.rx * 0.85;
+          const by = getDomeBaseY(bx);
+          const th = maxH * tg.h * 0.78 * (0.9 + 0.1 * Math.sin(t * tg.f + tg.ph));
+          const sway = Math.sin(t * (tg.f * 0.9) + tg.ph) * (4 + flameEnergy * 9) + tg.curl * 3;
+          const tx = bx + sway;
+          const ty = by - th;
+
+          const grad = ctx.createLinearGradient(0, by, 0, ty);
+          grad.addColorStop(0, '#e0ffff');
+          grad.addColorStop(0.3, '#00e5ff');
+          grad.addColorStop(0.8, '#0088ff');
+          grad.addColorStop(1, '#0044ff');
+
+          drawFlameTongue(ctx, bx, by, tx, ty, tg.w * 0.62, grad, '#00e5ff', 10 + flameEnergy * 12);
+        });
+
+        // Pass 3: White-Hot Core Layer
+        [tongues[0], tongues[1], tongues[2]].forEach(tg => {
+          const bx = cx + tg.rx * 0.7;
+          const by = getDomeBaseY(bx);
+          const th = maxH * tg.h * 0.52 * (0.92 + 0.08 * Math.sin(t * tg.f + tg.ph));
+          const tx = bx + Math.sin(t * tg.f + tg.ph) * (2 + flameEnergy * 4);
+          const ty = by - th;
+
+          const grad = ctx.createLinearGradient(0, by, 0, ty);
+          grad.addColorStop(0, '#ffffff');
+          grad.addColorStop(0.6, '#bbf7ff');
+          grad.addColorStop(1, '#00e5ff');
+
+          drawFlameTongue(ctx, bx, by, tx, ty, tg.w * 0.32, grad, '#ffffff', 8);
+        });
+
+        // Pass 4: Rising Sparks & Embers
+        if (isPlaying && (flameEnergy > 0.35 || Math.random() < 0.3) && particles.length < MAX_PARTICLES) {
+          const isBurst = flameEnergy > 0.72;
+          particles.push(new FlameSpark(cx, skullTopY, isBurst));
+          if (isBurst && particles.length < MAX_PARTICLES) {
+            particles.push(new FlameSpark(cx, skullTopY, true));
+          }
+        }
+
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          p.update();
+          p.draw(ctx);
+          if (p.life >= p.maxLife || p.y < 0) {
+            particles.splice(i, 1);
+          }
+        }
+
+        // Pass 5: Dynamic Skull Aura and Button Glow
         if (playBtn) {
           if (isPlaying) {
-            const gs = Math.round(12 + flameEnergy * 24);
-            const ga = (0.65 + flameEnergy * 0.35).toFixed(2);
-            playBtn.style.filter = `drop-shadow(0 0 ${gs}px rgba(0, 229, 255, ${ga}))`;
+            const glowSize = Math.round(12 + flameEnergy * 26);
+            const glowAlpha = (0.65 + flameEnergy * 0.35).toFixed(2);
+            playBtn.style.filter = `drop-shadow(0 0 ${glowSize}px rgba(0, 229, 255, ${glowAlpha}))`;
           } else {
             playBtn.style.filter = 'drop-shadow(0 0 10px rgba(0, 229, 255, 0.45))';
           }
         }
 
-        // 3. Modulate play button aura
         if (aura) {
           if (isPlaying) {
-            const scale = 1.0 + flameEnergy * 0.45;
+            const scale = 1.0 + flameEnergy * 0.6;
             const op = 0.25 + flameEnergy * 0.65;
             aura.style.transform = `scale(${scale.toFixed(2)})`;
             aura.style.opacity = op.toFixed(2);
           } else {
             aura.style.transform = 'scale(1)';
             aura.style.opacity = '0.12';
-          }
-        }
-
-        // 4. Floating sparks rising above skull cranium
-        if (ctx && canvas) {
-          if (isPlaying && flameEnergy > 0.42 && particles.length < MAX_PARTICLES) {
-            const burst = flameEnergy > 0.7;
-            const spawnX = canvas.width / 2;
-            const spawnY = canvas.height - 8;
-            particles.push(new FlameParticle(spawnX, spawnY, burst));
-            if (burst && particles.length < MAX_PARTICLES) {
-              particles.push(new FlameParticle(spawnX, spawnY, true));
-            }
-          }
-
-          for (let i = particles.length - 1; i >= 0; i--) {
-            const p = particles[i];
-            p.update();
-            p.draw(ctx);
-            if (p.life >= p.maxLife || p.y < 0) {
-              particles.splice(i, 1);
-            }
           }
         }
       }
@@ -2483,18 +2472,31 @@ HTML_CONTENT = """<!DOCTYPE html>
       }
     }
 
-    async function importPlaylistFromUrl(url, emoji = '🎵', color = '#1db954') {
+    async function importPlaylistFromUrl(url, emoji = null, color = null) {
       if (!url) return;
+      const isSpotify = url.toLowerCase().includes('spotify');
+      const platformName = isSpotify ? 'Spotify' : 'YouTube';
+      const defaultEmoji = isSpotify ? '🟢' : '🎵';
+      const defaultColor = isSpotify ? '#1db954' : '#00e5ff';
+
       switchTab('search');
-      document.getElementById('searchResultsTitle').innerText = 'Importing YouTube Playlist...';
+      document.getElementById('searchResultsTitle').innerText = `Importing ${platformName} Library...`;
       const grid = document.getElementById('searchResultsGrid');
-      grid.innerHTML = '<div class="col-span-full text-center text-neutral-400 py-16"><i class="fa-solid fa-circle-notch fa-spin text-2xl mb-3 text-pink-500"></i><br>Fetching playlist tracks from YouTube...</div>';
+      grid.innerHTML = `
+        <div class="col-span-full text-center text-neutral-400 py-20">
+          <i class="fa-solid fa-circle-notch fa-spin text-3xl mb-4 ${isSpotify ? 'text-emerald-400' : 'text-[#00e5ff]'}"></i>
+          <h3 class="text-base font-bold text-white mb-1.5">Importing ${platformName} Library</h3>
+          <p class="text-xs text-neutral-400 max-w-sm mx-auto leading-relaxed">
+            ${isSpotify ? 'Extracting Spotify tracks and matching pure audio streams... This takes just a few seconds.' : 'Fetching playlist tracks from YouTube...'}
+          </p>
+        </div>
+      `;
 
       try {
         const res = await fetch(`/api/playlist?url_or_id=${encodeURIComponent(url)}`);
         const data = await res.json();
         if (data.tracks && data.tracks.length > 0) {
-          let baseName = data.title || 'YouTube Playlist';
+          let baseName = data.title || `${platformName} Playlist`;
           let finalName = baseName;
           let counter = 1;
           while (userPlaylists[finalName]) {
@@ -2502,14 +2504,14 @@ HTML_CONTENT = """<!DOCTYPE html>
           }
           userPlaylists[finalName] = {
             songs: data.tracks,
-            emoji: emoji || '🎵',
-            color: color || '#1db954'
+            emoji: emoji || defaultEmoji,
+            color: color || defaultColor
           };
           saveUserPlaylists();
           data.tracks.forEach(t => { if (t && t.videoId) trackCache[t.videoId] = t; });
           viewSpecificPlaylist(finalName);
         } else {
-          grid.innerHTML = '<div class="col-span-full text-center text-red-400 py-16">No tracks found in playlist URL.</div>';
+          grid.innerHTML = `<div class="col-span-full text-center text-red-400 py-16">${data.detail || 'No tracks found in playlist URL.'}</div>`;
         }
       } catch (e) {
         grid.innerHTML = `<div class="col-span-full text-center text-red-400 py-16">Import failed: ${e.message}</div>`;
