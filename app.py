@@ -101,9 +101,105 @@ def api_artist_page(artist: str = Query(...)):
     }
 
 
-@app.get("/api/playlist")
-def api_get_playlist(url_or_id: str = Query(...)):
-    """Fetches track metadata for any playlist without downloading audio."""
+def extract_spotify_metadata(url_or_uri: str) -> Dict[str, Any]:
+    """Extracts Spotify playlist, album, or track metadata and resolves tracks to pure audio streams."""
+    import re, urllib.request, urllib.parse, json, concurrent.futures
+
+    raw = url_or_uri.strip()
+    m = re.search(r"(playlist|album|track)[/:]([a-zA-Z0-9]+)", raw)
+    if not m:
+        raise HTTPException(status_code=400, detail="Invalid Spotify link format. Provide open.spotify.com/playlist/... or album/...")
+
+    entity_type = m.group(1)
+    entity_id = m.group(2)
+    embed_target = f"https://open.spotify.com/embed/{entity_type}/{entity_id}"
+
+    html = ""
+    # 1. Try direct with short timeout
+    try:
+        req = urllib.request.Request(embed_target, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
+        with urllib.request.urlopen(req, timeout=3) as resp:
+            html = resp.read().decode("utf-8", errors="ignore")
+    except Exception:
+        html = ""
+
+    # 2. Proxy fallback via Google Translate proxy
+    if not html or ("trackList" not in html and "__NEXT_DATA__" not in html):
+        try:
+            proxy_url = f"https://translate.google.com/translate?sl=auto&tl=en&u={urllib.parse.quote(embed_target)}"
+            req2 = urllib.request.Request(proxy_url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
+            with urllib.request.urlopen(req2, timeout=10) as resp2:
+                html = resp2.read().decode("utf-8", errors="ignore")
+        except Exception as pe:
+            raise HTTPException(status_code=502, detail=f"Failed to fetch Spotify embed data: {pe}")
+
+    title = "Spotify Playlist" if entity_type == "playlist" else ("Spotify Album" if entity_type == "album" else "Spotify Track")
+    items = []
+
+    m_data = re.search(r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>', html)
+    if m_data:
+        try:
+            data = json.loads(m_data.group(1))
+            entity = data.get("props", {}).get("pageProps", {}).get("state", {}).get("data", {}).get("entity", {})
+            title = entity.get("name") or entity.get("title") or title
+            track_list = entity.get("trackList", [])
+            for t in track_list:
+                t_name = t.get("title") or ""
+                t_sub = t.get("subtitle") or ""
+                if t_name:
+                    items.append({"title": t_name, "artist": t_sub})
+            if not items and entity_type == "track":
+                t_name = entity.get("name") or entity.get("title")
+                artists_list = entity.get("artists") or []
+                if isinstance(artists_list, list) and artists_list:
+                    a_name = artists_list[0].get("name", "")
+                else:
+                    a_name = str(entity.get("subtitle", ""))
+                if t_name:
+                    items.append({"title": t_name, "artist": a_name})
+        except Exception:
+            pass
+
+    if not items:
+        m_regex = re.search(r'"trackList":\s*(\[.*?\])\s*,\s*"', html)
+        if m_regex:
+            try:
+                for t in json.loads(m_regex.group(1)):
+                    items.append({"title": t.get("title", ""), "artist": t.get("subtitle", "")})
+            except Exception:
+                pass
+
+    if not items:
+        raise HTTPException(status_code=404, detail="No tracks found in Spotify link. Ensure the playlist is public.")
+
+    def match_song(item):
+        q = f"{item['title']} {item['artist']}".strip()
+        found = search_music(q, limit=1)
+        if found:
+            return found[0]
+        return None
+
+    target_items = items[:80]
+    resolved_tracks = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+        results = list(executor.map(match_song, target_items))
+        for r in results:
+            if r:
+                resolved_tracks.append(r)
+
+    if not resolved_tracks:
+        raise HTTPException(status_code=404, detail="Could not match Spotify tracks to audio streams.")
+
+    return {
+        "title": title,
+        "count": len(resolved_tracks),
+        "tracks": resolved_tracks,
+        "source": "spotify"
+    }
+
+
+def extract_youtube_playlist(url_or_id: str) -> Dict[str, Any]:
+    """Fetches track metadata for YouTube or YouTube Music playlist."""
     clean_id = url_or_id.strip()
     if "list=" in clean_id:
         import urllib.parse
@@ -145,12 +241,23 @@ def api_get_playlist(url_or_id: str = Query(...)):
                     "is_music": True
                 })
             return {
-                "title": data.get("title") or "Imported Playlist",
+                "title": data.get("title") or "Imported YouTube Playlist",
                 "count": len(tracks),
-                "tracks": tracks
+                "tracks": tracks,
+                "source": "youtube"
             }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Playlist import failed: {e}")
+
+
+@app.get("/api/playlist")
+def api_get_playlist(url_or_id: str = Query(..., description="Spotify or YouTube playlist link")):
+    """Fetches track metadata for any Spotify or YouTube playlist without downloading audio."""
+    clean = url_or_id.strip()
+    if "spotify.com" in clean or clean.startswith("spotify:"):
+        return extract_spotify_metadata(clean)
+    else:
+        return extract_youtube_playlist(clean)
 
 
 @app.get("/api/stream/{video_id}")
@@ -255,8 +362,20 @@ def api_clear_history():
 
 @app.get("/", response_class=HTMLResponse)
 def index_page():
+    try:
+        with open(__file__, "r", encoding="utf-8") as f:
+            code = f.read()
+        marker = 'HTML_CONTENT = """'
+        start = code.find(marker)
+        if start != -1:
+            end = code.rfind('"""')
+            content = code[start + len(marker):end]
+        else:
+            content = HTML_CONTENT
+    except Exception:
+        content = HTML_CONTENT
     return HTMLResponse(
-        content=HTML_CONTENT,
+        content=content,
         headers={
             "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
             "Pragma": "no-cache",
@@ -442,8 +561,10 @@ HTML_CONTENT = """<!DOCTYPE html>
 
         <!-- Right: 3-dot Menu & Profile -->
         <div class="flex items-center space-x-3 flex-shrink-0">
-          <button onclick="toggleImportModal()" title="Import Playlist" class="text-neutral-400 hover:text-white text-xs hidden sm:inline-block px-3 py-1.5 rounded-full border border-white/10 hover:border-white/20 transition">
-            Import URL
+          <button onclick="toggleImportModal()" title="Import Spotify or YouTube Library" class="text-neutral-300 hover:text-white text-xs hidden sm:inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full border border-white/10 hover:border-[#00e5ff]/50 bg-white/5 hover:bg-[#00e5ff]/10 transition shadow-sm">
+            <i class="fa-brands fa-spotify text-emerald-400"></i>
+            <i class="fa-brands fa-youtube text-red-500 text-[11px]"></i>
+            <span class="font-semibold">Import</span>
           </button>
           <button onclick="openCreatePlaylistModal()" title="Create Playlist" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-xs transition">
             <i class="fa-solid fa-plus"></i>
@@ -886,7 +1007,7 @@ HTML_CONTENT = """<!DOCTYPE html>
       
       <div>
         <label class="text-[11px] text-neutral-400 uppercase font-semibold block mb-1">Name / URL</label>
-        <input id="playlistNameInput" type="text" oninput="updateModalPreviewTitle(this.value)" placeholder="Playlist name OR https://www.youtube.com/playlist?list=..." class="w-full px-3.5 py-2 bg-[#121212] border border-white/10 rounded-lg text-xs text-white placeholder-neutral-500 focus:outline-none focus:ring-1 focus:ring-white">
+        <input id="playlistNameInput" type="text" oninput="updateModalPreviewTitle(this.value)" placeholder="Playlist name OR Spotify / YouTube playlist link..." class="w-full px-3.5 py-2 bg-[#121212] border border-white/10 rounded-lg text-xs text-white placeholder-neutral-500 focus:outline-none focus:ring-1 focus:ring-white">
       </div>
 
       <!-- Color Selection Swatches with Auto-Contrast Detection -->
@@ -935,16 +1056,43 @@ HTML_CONTENT = """<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- IMPORT PLAYLIST MODAL -->
+  <!-- IMPORT PLAYLIST MODAL (SPOTIFY & YOUTUBE) -->
   <div id="importModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-[#242424] max-w-md w-full rounded-2xl p-6 border border-white/10 shadow-2xl">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="text-base font-bold text-white">Import YouTube Playlist</h3>
-        <button onclick="toggleImportModal()" class="text-neutral-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+    <div class="bg-[#1c2230] max-w-md w-full rounded-2xl p-6 border border-white/10 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-sm space-x-1">
+            <i class="fa-brands fa-spotify text-emerald-400"></i>
+            <i class="fa-brands fa-youtube text-red-500 text-xs"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white leading-tight">Import Library</h3>
+            <p class="text-[10px] text-neutral-400">Spotify & YouTube Supported</p>
+          </div>
+        </div>
+        <button onclick="toggleImportModal()" class="text-neutral-400 hover:text-white transition"><i class="fa-solid fa-xmark"></i></button>
       </div>
-      <p class="text-xs text-neutral-400 mb-4">Paste any YouTube playlist URL. Tracks load into your streaming library without downloading media.</p>
-      <input id="playlistUrlInput" type="text" placeholder="https://www.youtube.com/playlist?list=..." class="w-full px-4 py-3 bg-[#121212] border border-white/10 rounded-lg text-xs text-white placeholder-neutral-500 focus:outline-none focus:ring-1 focus:ring-white mb-4">
-      <button onclick="importPlaylistAction()" class="w-full py-2.5 bg-white text-black rounded-lg text-xs font-bold hover:scale-105 transition">Import Tracks</button>
+
+      <div class="bg-black/30 p-3.5 rounded-xl border border-white/5 space-y-2">
+        <div class="flex items-center space-x-2 text-emerald-400 font-semibold text-xs">
+          <i class="fa-brands fa-spotify text-sm"></i>
+          <span>Spotify Playlist, Album or Track</span>
+        </div>
+        <div class="flex items-center space-x-2 text-red-400 font-semibold text-xs">
+          <i class="fa-brands fa-youtube text-sm"></i>
+          <span>YouTube or YouTube Music Playlist</span>
+        </div>
+        <p class="text-[11px] text-neutral-400 pt-1 leading-relaxed">
+          Paste any link below. PYROBEAT matches tracks to pure audio streams with zero ads and saves them into your playlists!
+        </p>
+      </div>
+
+      <input id="playlistUrlInput" type="text" placeholder="https://open.spotify.com/playlist/... or https://youtube.com/..." class="w-full px-4 py-3 bg-[#0d111a] border border-white/10 rounded-xl text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-[#00e5ff] focus:ring-1 focus:ring-[#00e5ff] transition">
+      
+      <button onclick="importPlaylistAction()" class="w-full py-3 bg-[#00e5ff] text-black font-bold rounded-xl text-xs hover:scale-[1.02] active:scale-95 transition shadow-[0_0_15px_rgba(0,229,255,0.35)] flex items-center justify-center space-x-2">
+        <i class="fa-solid fa-cloud-arrow-down"></i>
+        <span>Import Library</span>
+      </button>
     </div>
   </div>
 
@@ -1339,7 +1487,17 @@ HTML_CONTENT = """<!DOCTYPE html>
     function isPlaylistUrl(str) {
       if (!str || typeof str !== 'string') return false;
       const s = str.trim().toLowerCase();
-      return (s.startsWith('http://') || s.startsWith('https://')) && (s.includes('list=') || s.includes('playlist'));
+      const isHttp = s.startsWith('http://') || s.startsWith('https://') || s.startsWith('spotify:');
+      return isHttp && (
+        s.includes('spotify.com/playlist') ||
+        s.includes('spotify.com/album') ||
+        s.includes('spotify.com/track') ||
+        s.startsWith('spotify:') ||
+        s.includes('youtube.com/playlist') ||
+        s.includes('music.youtube.com/playlist') ||
+        s.includes('list=') ||
+        s.includes('playlist')
+      );
     }
 
     // Debounced Search as user types or pastes YouTube playlist URL
