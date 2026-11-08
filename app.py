@@ -346,6 +346,9 @@ HTML_CONTENT = """<!DOCTYPE html>
       line-height: 1;
       filter: grayscale(100%) brightness(0);
     }
+    #playerPlayIcon {
+      color: #000000 !important;
+    }
   </style>
 </head>
 <body class="h-screen w-screen flex flex-col p-2 gap-2 select-none">
@@ -642,13 +645,8 @@ HTML_CONTENT = """<!DOCTYPE html>
 
     <!-- 5. BOTTOM BAR CENTER: CONTROLS (Panel 5) -->
     <div class="flex flex-col items-center w-2/4 max-w-xl px-2 relative">
-      <!-- Buttons row: Shuffle, Prev, Play/Pause with Flame, Next, Repeat -->
+      <!-- Buttons row: Shuffle, Prev, White Skull Play/Pause with Flame on Top, Next, Repeat -->
       <div class="relative flex items-center space-x-5 mb-1.5">
-
-        <!-- DYNAMIC BEAT FLAME CANVAS: Grows up and down with music beats -->
-        <div id="flameContainer" class="absolute -top-16 left-1/2 -translate-x-1/2 pointer-events-none w-48 h-24 overflow-visible flex items-end justify-center z-0">
-          <canvas id="flameCanvas" width="192" height="96" class="pointer-events-none"></canvas>
-        </div>
 
         <!-- Shuffle -->
         <button onclick="toggleShuffle()" id="playerShuffleBtn" title="Shuffle" class="text-neutral-400 hover:text-white text-sm transition relative z-10">
@@ -661,11 +659,69 @@ HTML_CONTENT = """<!DOCTYPE html>
           <i class="fa-solid fa-backward-step"></i>
         </button>
 
-        <!-- Big Play / Pause Circle with Reactive Beat Flame Aura -->
+        <!-- WHITE SKULL PLAY / PAUSE BUTTON WITH DYNAMIC BEAT FLAME DIRECTLY ON TOP -->
         <div class="relative z-10 flex items-center justify-center">
-          <div id="playBtnAura" class="absolute inset-0 rounded-full bg-[#00e5ff]/30 blur-md pointer-events-none transition-transform duration-75"></div>
-          <button onclick="togglePlayPause()" id="playerPlayBtn" title="Play / Pause" class="relative z-10 w-10 h-10 rounded-full bg-[#00e5ff] text-black shadow-[0_0_15px_rgba(0,229,255,0.55)] hover:scale-105 active:scale-95 flex items-center justify-center text-sm transition font-bold">
-            <i id="playerPlayIcon" class="fa-solid fa-play ml-0.5"></i>
+          <!-- Dynamic Beat Flame Canvas: positioned directly on the skull cranium -->
+          <div id="flameContainer" class="absolute -top-14 left-1/2 -translate-x-1/2 pointer-events-none w-40 h-24 overflow-visible flex items-end justify-center z-0">
+            <canvas id="flameCanvas" width="160" height="96" class="pointer-events-none"></canvas>
+          </div>
+
+          <!-- Flame Aura Glow behind skull -->
+          <div id="playBtnAura" class="absolute inset-0 rounded-full bg-[#00e5ff]/35 blur-xl pointer-events-none transition-transform duration-75"></div>
+
+          <!-- White Skull Play/Pause Button -->
+          <button onclick="togglePlayPause()" id="playerPlayBtn" title="Play / Pause" class="relative z-10 w-11 h-13 sm:w-12 sm:h-14 hover:scale-110 active:scale-95 flex items-center justify-center transition-transform duration-100 select-none focus:outline-none drop-shadow-[0_0_12px_rgba(0,229,255,0.65)]">
+            <!-- White Skull SVG -->
+            <svg viewBox="0 0 100 115" class="w-full h-full pointer-events-none select-none">
+              <defs>
+                <linearGradient id="skullBoneGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stop-color="#ffffff" />
+                  <stop offset="30%" stop-color="#f8fafc" />
+                  <stop offset="70%" stop-color="#e2e8f0" />
+                  <stop offset="100%" stop-color="#cbd5e1" />
+                </linearGradient>
+                <radialGradient id="craniumHighlight" cx="50%" cy="28%" r="48%">
+                  <stop offset="0%" stop-color="#ffffff" />
+                  <stop offset="60%" stop-color="#f8fafc" stop-opacity="0.9" />
+                  <stop offset="100%" stop-color="#e2e8f0" stop-opacity="0" />
+                </radialGradient>
+              </defs>
+              <!-- Cranium & Jaw Outline -->
+              <path d="M 50,8 
+                       C 36,8 24,13 18,22 
+                       C 11,31 7,42 7,50 
+                       C 7,61 10,70 12,75 
+                       C 15,80 23,82 25,85 
+                       C 26,87 26,92 27,95 
+                       C 29,101 34,103 38,103 
+                       L 62,103 
+                       C 66,103 71,101 73,95 
+                       C 74,92 74,87 75,85 
+                       C 77,82 85,80 88,75 
+                       C 90,70 93,61 93,50 
+                       C 93,42 89,31 82,22 
+                       C 76,13 64,8 50,8 Z" 
+                    fill="url(#skullBoneGrad)" 
+                    stroke="#ffffff" 
+                    stroke-width="1.6" />
+              <!-- Top Highlight -->
+              <ellipse cx="50" cy="35" rx="34" ry="24" fill="url(#craniumHighlight)" />
+              <!-- Cheekbone Contour Lines -->
+              <path d="M 17,73 Q 23,69 25,62" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.6" />
+              <path d="M 83,73 Q 77,69 75,62" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.6" />
+              <!-- Inverted Heart Nasal Cavity -->
+              <path d="M 50,71 C 48,67 44,68 44,72 C 44,75 48,79 50,82 C 52,79 56,75 56,72 C 56,68 52,67 50,71 Z" fill="#07090e" />
+              <!-- Teeth Ridges -->
+              <line x1="39" y1="91" x2="39" y2="102" stroke="#07090e" stroke-width="2.2" stroke-linecap="round" />
+              <line x1="46" y1="90" x2="46" y2="103" stroke="#07090e" stroke-width="2.2" stroke-linecap="round" />
+              <line x1="54" y1="90" x2="54" y2="103" stroke="#07090e" stroke-width="2.2" stroke-linecap="round" />
+              <line x1="61" y1="91" x2="61" y2="102" stroke="#07090e" stroke-width="2.2" stroke-linecap="round" />
+            </svg>
+
+            <!-- Centered Black Play / Pause Icon (One symbol instead of two eyes) -->
+            <div class="absolute inset-0 flex items-center justify-center pb-2.5 pointer-events-none">
+              <i id="playerPlayIcon" class="fa-solid fa-play text-black text-xs sm:text-sm ml-0.5" style="color: #000000 !important;"></i>
+            </div>
           </button>
         </div>
 
@@ -1142,22 +1198,22 @@ HTML_CONTENT = """<!DOCTYPE html>
           const wobble2 = Math.cos(Date.now() / 130) * 5;
 
           // Outer deep blue flame
-          const outerHeight = 18 + flameEnergy * 60;
-          drawFlameTongue(ctx, centerX, baseY, outerHeight, 36, wobble * 0.6, '#00b0ff', '#0033ff');
+          const outerHeight = 22 + flameEnergy * 64;
+          drawFlameTongue(ctx, centerX, baseY, outerHeight, 40, wobble * 0.6, '#00b0ff', '#0033ff');
 
           // Left secondary flame lick
-          drawFlameTongue(ctx, centerX - 12, baseY, outerHeight * 0.76, 22, -wobble2 * 0.7, '#00e5ff', '#0066ff');
+          drawFlameTongue(ctx, centerX - 14, baseY, outerHeight * 0.78, 25, -wobble2 * 0.7, '#00e5ff', '#0066ff');
 
           // Right secondary flame lick
-          drawFlameTongue(ctx, centerX + 12, baseY, outerHeight * 0.73, 22, wobble2 * 0.7, '#00e5ff', '#0066ff');
+          drawFlameTongue(ctx, centerX + 14, baseY, outerHeight * 0.75, 25, wobble2 * 0.7, '#00e5ff', '#0066ff');
 
           // Core electric cyan flame
-          const coreHeight = 14 + flameEnergy * 46;
-          drawFlameTongue(ctx, centerX, baseY, coreHeight, 24, wobble * 0.4, '#00e5ff', '#00d2ff');
+          const coreHeight = 16 + flameEnergy * 50;
+          drawFlameTongue(ctx, centerX, baseY, coreHeight, 28, wobble * 0.4, '#00e5ff', '#00d2ff');
 
           // White-hot inner core
-          const whiteHeight = 8 + flameEnergy * 24;
-          drawFlameTongue(ctx, centerX, baseY, whiteHeight, 14, 0, '#ffffff', '#aef8ff');
+          const whiteHeight = 10 + flameEnergy * 28;
+          drawFlameTongue(ctx, centerX, baseY, whiteHeight, 16, 0, '#ffffff', '#aef8ff');
         }
 
         // Spawn spark particles on beat peaks
@@ -1194,11 +1250,11 @@ HTML_CONTENT = """<!DOCTYPE html>
 
         if (playBtn) {
           if (isPlaying) {
-            const glowSpread = Math.round(14 + flameEnergy * 26);
+            const glowSpread = Math.round(10 + flameEnergy * 20);
             const glowAlpha = (0.55 + flameEnergy * 0.4).toFixed(2);
-            playBtn.style.boxShadow = `0 0 ${glowSpread}px rgba(0, 229, 255, ${glowAlpha})`;
+            playBtn.style.filter = `drop-shadow(0 0 ${glowSpread}px rgba(0, 229, 255, ${glowAlpha}))`;
           } else {
-            playBtn.style.boxShadow = '0 0 15px rgba(0, 229, 255, 0.45)';
+            playBtn.style.filter = 'drop-shadow(0 0 10px rgba(0, 229, 255, 0.45))';
           }
         }
       }
