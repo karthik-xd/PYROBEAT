@@ -378,7 +378,7 @@ HTML_CONTENT = """<!DOCTYPE html>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>PYROBEAT - Pure Audio Experience</title>
-  <link rel="icon" type="image/png" href="/logo.png">
+  <link rel="icon" type="image/png" href="/logo.png?v=4">
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
   <style>
@@ -469,7 +469,7 @@ HTML_CONTENT = """<!DOCTYPE html>
     <aside class="w-64 sm:w-72 spotify-panel flex flex-col p-4 flex-shrink-0 overflow-hidden">
       <!-- PYROBEAT BRAND HEADER (Logo + Electric Name) -->
       <div class="flex items-center space-x-3 mb-5 px-1 py-1 cursor-pointer group" onclick="switchTab('home')">
-        <img src="/logo.png" alt="PYROBEAT" class="w-10 h-10 object-contain drop-shadow-[0_0_12px_rgba(0,229,255,0.7)] group-hover:scale-110 transition-transform">
+        <img src="/logo.png?v=4" alt="PYROBEAT" class="w-10 h-10 object-contain drop-shadow-[0_0_12px_rgba(0,229,255,0.7)] group-hover:scale-110 transition-transform">
         <div>
           <h1 class="text-lg font-black tracking-wider text-white font-mono flex items-center leading-none">
             <span class="text-[#00e5ff] drop-shadow-[0_0_10px_rgba(0,229,255,0.7)]">PYRO</span><span>BEAT</span>
@@ -768,10 +768,68 @@ HTML_CONTENT = """<!DOCTYPE html>
           <i class="fa-solid fa-backward-step"></i>
         </button>
 
-        <!-- Standard Play / Pause Button -->
-        <button onclick="togglePlayPause()" id="playerPlayBtn" title="Play / Pause" class="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white text-black hover:bg-[#00e5ff] shadow-md hover:scale-105 active:scale-95 flex items-center justify-center transition duration-150 select-none font-bold focus:outline-none">
-          <i id="playerPlayIcon" class="fa-solid fa-play ml-0.5 text-sm sm:text-base text-black"></i>
-        </button>
+        <!-- WHITE SKULL PLAY / PAUSE BUTTON (NO FIRE ON SKULL, BEAT FLAME BEHIND) -->
+        <div class="relative z-10 flex items-center justify-center">
+          <!-- Rising spark particles canvas -->
+          <canvas id="flameCanvas" width="160" height="90" class="pointer-events-none absolute -top-14 left-1/2 -translate-x-1/2 z-0"></canvas>
+
+          <!-- Flame Aura Glow behind skull -->
+          <div id="playBtnAura" class="absolute inset-0 rounded-full bg-[#00e5ff]/35 blur-xl pointer-events-none transition-transform duration-75"></div>
+
+          <!-- White Skull Play/Pause Button with Defined Head Border -->
+          <button onclick="togglePlayPause()" id="playerPlayBtn" title="Play / Pause"
+            class="relative z-10 w-12 h-14 sm:w-14 sm:h-16 hover:scale-105 active:scale-95 flex items-center justify-center transition duration-150 select-none focus:outline-none drop-shadow-[0_0_14px_rgba(0,229,255,0.7)]">
+            <svg viewBox="0 0 100 115" class="w-full h-full pointer-events-none select-none overflow-visible">
+              <defs>
+                <!-- 3D Shaded Skull Bone Gradient -->
+                <linearGradient id="skullBoneGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stop-color="#ffffff" />
+                  <stop offset="35%" stop-color="#f8fafc" />
+                  <stop offset="70%" stop-color="#e2e8f0" />
+                  <stop offset="100%" stop-color="#cbd5e1" />
+                </linearGradient>
+                <radialGradient id="craniumHighlight" cx="50%" cy="36%" r="48%">
+                  <stop offset="0%" stop-color="#ffffff" />
+                  <stop offset="55%" stop-color="#f8fafc" stop-opacity="0.9" />
+                  <stop offset="100%" stop-color="#cbd5e1" stop-opacity="0" />
+                </radialGradient>
+              </defs>
+
+              <!-- DEFINED SKULL HEAD & BODY (WITHOUT FIRE ON SKULL) -->
+              <path d="M 12,50 
+                       C 12,30 26,14 50,14 
+                       C 74,14 88,30 88,50 
+                       C 88,66 83,75 76,80 
+                       C 73,82 72,86 71,90 
+                       C 69,95 65,97 61,97 
+                       L 39,97 
+                       C 35,97 31,95 29,90 
+                       C 28,86 27,82 24,80 
+                       C 17,75 12,66 12,50 Z" 
+                    fill="url(#skullBoneGrad)" 
+                    stroke="#00e5ff" 
+                    stroke-width="1.8" />
+
+              <!-- 3D Cranium Highlight -->
+              <ellipse cx="50" cy="42" rx="33" ry="24" fill="url(#craniumHighlight)" />
+
+              <!-- Cheekbone subtle contour lines -->
+              <path d="M 19,72 Q 25,68 27,61" stroke="#94a3b8" stroke-width="2.2" stroke-linecap="round" fill="none" opacity="0.65" />
+              <path d="M 81,72 Q 75,68 73,61" stroke="#94a3b8" stroke-width="2.2" stroke-linecap="round" fill="none" opacity="0.65" />
+
+              <!-- Teeth Ridges on jaw (NO NOSE!) -->
+              <line x1="39" y1="86" x2="39" y2="96" stroke="#07090e" stroke-width="2.4" stroke-linecap="round" />
+              <line x1="46" y1="85" x2="46" y2="97" stroke="#07090e" stroke-width="2.4" stroke-linecap="round" />
+              <line x1="54" y1="85" x2="54" y2="97" stroke="#07090e" stroke-width="2.4" stroke-linecap="round" />
+              <line x1="61" y1="86" x2="61" y2="96" stroke="#07090e" stroke-width="2.4" stroke-linecap="round" />
+            </svg>
+
+            <!-- Centered Black Play / Pause Icon -->
+            <div class="absolute inset-0 flex items-center justify-center pt-2 pointer-events-none">
+              <i id="playerPlayIcon" class="fa-solid fa-play text-black text-sm sm:text-base font-black ml-0.5" style="color: #07090e !important;"></i>
+            </div>
+          </button>
+        </div>
 
         <!-- Next -->
         <button onclick="playNextTrack()" title="Next" class="text-neutral-400 hover:text-white text-base transition relative z-10">
@@ -1183,7 +1241,124 @@ HTML_CONTENT = """<!DOCTYPE html>
       setupAudioListeners();
       setupKeyboard();
       restoreLastPlayback();
+      initBeatFlameEngine();
     });
+
+    // Dynamic Beat Flame Visualizer & Glowing Skull Aura Engine
+    function initBeatFlameEngine() {
+      const canvas = document.getElementById('flameCanvas');
+      const ctx = canvas ? canvas.getContext('2d') : null;
+      const aura = document.getElementById('playBtnAura');
+      const playBtn = document.getElementById('playerPlayBtn');
+
+      let flameEnergy = 0.12;
+      const particles = [];
+      const MAX_PARTICLES = 36;
+
+      class FlameParticle {
+        constructor(x, y, isBurst) {
+          this.reset(x, y, isBurst);
+        }
+        reset(x, y, isBurst) {
+          const mul = isBurst ? 2.4 : 1.0;
+          this.x = x + (Math.random() - 0.5) * 44;
+          this.y = y - Math.random() * 10;
+          this.vx = (Math.random() - 0.5) * 1.6;
+          this.vy = -(1.8 + Math.random() * 2.6) * mul;
+          this.size = 2.2 + Math.random() * 3.0;
+          this.life = 0;
+          this.maxLife = 22 + Math.random() * 26;
+          this.color = Math.random() > 0.4 ? '#00e5ff' : (Math.random() > 0.5 ? '#ffffff' : '#00b0ff');
+        }
+        update() {
+          this.vy -= 0.04;
+          this.x += this.vx + Math.sin(this.life * 0.22) * 0.4;
+          this.y += this.vy;
+          this.size = Math.max(0.3, this.size * 0.95);
+          this.life++;
+        }
+        draw(c) {
+          const alpha = Math.max(0, 1 - (this.life / this.maxLife));
+          c.save();
+          c.globalAlpha = alpha;
+          c.fillStyle = this.color;
+          c.shadowColor = '#00e5ff';
+          c.shadowBlur = 10;
+          c.beginPath();
+          c.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+          c.fill();
+          c.restore();
+        }
+      }
+
+      function animateFlames() {
+        requestAnimationFrame(animateFlames);
+        if (ctx && canvas) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        const isPlaying = (audio && !audio.paused && !audio.ended && audio.currentTime > 0);
+        const t = (audio && audio.currentTime > 0) ? audio.currentTime : (Date.now() / 1000);
+
+        let targetEnergy = 0.12;
+        if (isPlaying) {
+          const kick  = Math.pow(Math.max(0, Math.sin(t * Math.PI * 2.133)), 4);
+          const snare = Math.pow(Math.max(0, Math.sin((t + 0.12) * Math.PI * 4.266)), 3);
+          const jitter = (Math.sin(t * 32) + Math.cos(t * 47)) * 0.08;
+          const vol = (audio.volume !== undefined ? audio.volume : 1);
+          targetEnergy = Math.min(1.0, (0.35 + kick * 0.55 + snare * 0.2 + jitter) * vol);
+        }
+        flameEnergy += (targetEnergy - flameEnergy) * (targetEnergy > flameEnergy ? 0.35 : 0.16);
+
+        // Modulate Skull cyan contour glow
+        if (playBtn) {
+          if (isPlaying) {
+            const gs = Math.round(12 + flameEnergy * 24);
+            const ga = (0.65 + flameEnergy * 0.35).toFixed(2);
+            playBtn.style.filter = `drop-shadow(0 0 ${gs}px rgba(0, 229, 255, ${ga}))`;
+          } else {
+            playBtn.style.filter = 'drop-shadow(0 0 10px rgba(0, 229, 255, 0.45))';
+          }
+        }
+
+        // Modulate play button aura
+        if (aura) {
+          if (isPlaying) {
+            const scale = 1.0 + flameEnergy * 0.5;
+            const op = 0.25 + flameEnergy * 0.65;
+            aura.style.transform = `scale(${scale.toFixed(2)})`;
+            aura.style.opacity = op.toFixed(2);
+          } else {
+            aura.style.transform = 'scale(1.0)';
+            aura.style.opacity = '0.35';
+          }
+        }
+
+        // Floating flame spark particles rising above skull cranium
+        if (ctx && canvas) {
+          if (isPlaying && flameEnergy > 0.42 && particles.length < MAX_PARTICLES) {
+            const burst = flameEnergy > 0.7;
+            const spawnX = canvas.width / 2;
+            const spawnY = canvas.height - 8;
+            particles.push(new FlameParticle(spawnX, spawnY, burst));
+            if (burst && particles.length < MAX_PARTICLES) {
+              particles.push(new FlameParticle(spawnX, spawnY, true));
+            }
+          }
+
+          for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            p.update();
+            p.draw(ctx);
+            if (p.life >= p.maxLife || p.y < 0) {
+              particles.splice(i, 1);
+            }
+          }
+        }
+      }
+
+      animateFlames();
+    }
 
     function setGreeting() {
       const hour = new Date().getHours();
