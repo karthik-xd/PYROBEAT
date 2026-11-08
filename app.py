@@ -42,6 +42,14 @@ class HistoryItem(BaseModel):
     duration: str = "--:--"
 
 
+class CsvImportRequest(BaseModel):
+    filename: Optional[str] = "Imported Playlist"
+    content: str
+    playlist_name: Optional[str] = None
+    emoji: Optional[str] = "🎵"
+    color: Optional[str] = "#3D8BFF"
+
+
 def search_music(query: str, limit: int = 24) -> List[Dict[str, Any]]:
     """Searches YouTube Music for verified music tracks."""
     results = []
@@ -364,6 +372,145 @@ def api_clear_history():
         except Exception:
             pass
     return {"status": "success"}
+
+
+LIBRARY_FILE = HISTORY_DIR / "user_library.json"
+
+
+@app.get("/api/user_library")
+def api_get_user_library():
+    """Returns persistent user playlists and favorites (strictly stored locally, gitignored)."""
+    if not LIBRARY_FILE.is_file():
+        return {"playlists": {}, "favorites": []}
+    try:
+        with open(LIBRARY_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        return {"playlists": {}, "favorites": [], "error": str(e)}
+
+
+@app.post("/api/user_library")
+def api_save_user_library(data: Dict[str, Any]):
+    """Saves user playlists and favorites locally to history/user_library.json."""
+    HISTORY_DIR.mkdir(parents=True, exist_ok=True)
+    try:
+        with open(LIBRARY_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        return {"status": "ok"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/resolve_track")
+def api_resolve_track(q: str = Query(..., description="Song title and artist query")):
+    """Resolves a pending track to a real YouTube video audio stream."""
+    try:
+        results = search_music(q.strip(), limit=1)
+        if results:
+            return results[0]
+        raise HTTPException(status_code=404, detail="Track audio not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/import_csv")
+def api_import_csv(req: CsvImportRequest):
+    """Imports songs from a Spotify Exportify CSV into user_library.json."""
+    import csv, io, hashlib, concurrent.futures
+    try:
+        reader = csv.DictReader(io.StringIO(req.content))
+        tracks = []
+        for idx, row in enumerate(reader):
+            title = ""
+            artist = ""
+            album = ""
+            duration_ms = 0
+            for k, v in row.items():
+                if not k:
+                    continue
+                k_clean = k.strip().lower()
+                if "track name" in k_clean:
+                    title = v.strip()
+                elif "artist name" in k_clean:
+                    artist = v.strip().replace(";", ", ")
+                elif "album name" in k_clean:
+                    album = v.strip()
+                elif "duration (ms)" in k_clean:
+                    try:
+                        duration_ms = int(v.strip())
+                    except Exception:
+                        duration_ms = 0
+
+            if not title:
+                continue
+
+            mins = duration_ms // 60000
+            secs = (duration_ms % 60000) // 1000
+            duration_str = f"{mins}:{secs:02d}" if duration_ms > 0 else "3:30"
+            fake_hash = hashlib.md5(f"{title}_{artist}_{idx}".encode()).hexdigest()[:11]
+
+            tracks.append({
+                "videoId": f"pending_{fake_hash}",
+                "title": title,
+                "channel": artist or "Unknown Artist",
+                "artist": artist or "Unknown Artist",
+                "album": album or "Imported",
+                "duration": duration_str,
+                "thumbnail": "/logo.png"
+            })
+
+        if not tracks:
+            raise HTTPException(status_code=400, detail="No valid tracks found in CSV.")
+
+        name = req.playlist_name
+        if not name and req.filename:
+            name = req.filename.replace(".csv", "").replace("_", " ").title()
+        if not name:
+            name = "Imported Playlist"
+
+        # Pre-resolve top 5 tracks concurrently for immediate playback
+        def _res(t):
+            try:
+                r = search_music(f"{t['title']} {t['artist']}".strip(), limit=1)
+                if r:
+                    t["videoId"] = r[0]["videoId"]
+                    t["thumbnail"] = r[0].get("thumbnail") or t["thumbnail"]
+                    t["channel"] = r[0].get("channel") or t["channel"]
+            except Exception:
+                pass
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as ex:
+            list(ex.map(_res, tracks[:5]))
+
+        # Read existing user library
+        lib = {"playlists": {}, "favorites": []}
+        if LIBRARY_FILE.is_file():
+            try:
+                with open(LIBRARY_FILE, "r", encoding="utf-8") as f:
+                    lib = json.load(f)
+            except Exception:
+                pass
+
+        lib.setdefault("playlists", {})
+        lib["playlists"][name] = {
+            "songs": tracks,
+            "emoji": req.emoji or "🎵",
+            "color": req.color or "#3D8BFF"
+        }
+        if "liked" in name.lower() or "favorite" in name.lower():
+            lib["favorites"] = tracks
+
+        with open(LIBRARY_FILE, "w", encoding="utf-8") as f:
+            json.dump(lib, f, ensure_ascii=False, indent=2)
+
+        return {
+            "status": "success",
+            "playlist_name": name,
+            "count": len(tracks),
+            "playlist": lib["playlists"][name]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -1087,6 +1234,19 @@ HTML_CONTENT = """<!DOCTYPE html>
         <i class="fa-solid fa-cloud-arrow-down"></i>
         <span>Import Library</span>
       </button>
+
+      <!-- Or Import CSV File -->
+      <div class="relative flex py-1 items-center">
+        <div class="flex-grow border-t border-white/10"></div>
+        <span class="flex-shrink mx-3 text-[10px] uppercase font-bold tracking-wider text-[#7F8BB0]">or upload csv</span>
+        <div class="flex-grow border-t border-white/10"></div>
+      </div>
+
+      <input type="file" id="csvFileInput" accept=".csv" class="hidden" onchange="handleCsvFileSelected(this)">
+      <button onclick="document.getElementById('csvFileInput').click()" class="w-full py-2.5 bg-[#172044] hover:bg-[#1e2a56] border border-[#3D8BFF]/30 text-bone text-xs font-semibold rounded-xl flex items-center justify-center space-x-2 transition shadow-sm hover:scale-[1.01] active:scale-95">
+        <i class="fa-solid fa-file-csv text-[#00D4FF] text-base"></i>
+        <span>Upload Spotify CSV (Exportify / Liked Songs)</span>
+      </button>
     </div>
   </div>
 
@@ -1638,7 +1798,56 @@ HTML_CONTENT = """<!DOCTYPE html>
 
     // Playback Engine - Continuous, gapless, no-pause auto-advance
     async function playTrack(track, origin = 'SKULLBEAT', isAutoPlay = false) {
-      if (!track || !track.videoId) return;
+      if (!track) return;
+
+      // Handle on-demand resolution for tracks imported from Spotify CSV
+      if (!track.videoId || track.videoId.startsWith('pending_')) {
+        setPlayerPlayIcon('spin');
+        document.getElementById('playerTitle').innerText = track.title;
+        document.getElementById('playerArtist').innerText = (track.channel || track.artist || 'Resolving audio stream...');
+        document.getElementById('playerCover').src = track.thumbnail || '/logo.png';
+        try {
+          const q = `${track.title} ${track.channel || track.artist || ''}`.trim();
+          const rRes = await fetch(`/api/resolve_track?q=${encodeURIComponent(q)}`);
+          if (rRes.ok) {
+            const matched = await rRes.json();
+            if (matched && matched.videoId) {
+              const oldId = track.videoId;
+              track.videoId = matched.videoId;
+              track.thumbnail = matched.thumbnail || track.thumbnail;
+              track.channel = matched.channel || track.channel;
+              track.duration = matched.duration || track.duration;
+              trackCache[track.videoId] = track;
+              for (const pl of Object.values(userPlaylists)) {
+                if (pl && pl.songs) {
+                  const s = pl.songs.find(x => x.videoId === oldId);
+                  if (s) {
+                    s.videoId = matched.videoId;
+                    s.thumbnail = matched.thumbnail;
+                    s.duration = matched.duration;
+                  }
+                }
+              }
+              const fav = favorites.find(x => x.videoId === oldId);
+              if (fav) {
+                fav.videoId = matched.videoId;
+                fav.thumbnail = matched.thumbnail;
+                fav.duration = matched.duration;
+              }
+              saveUserPlaylists();
+            }
+          }
+        } catch(e) {
+          console.warn('Audio stream resolution error:', e);
+        }
+      }
+
+      if (!track.videoId || track.videoId.startsWith('pending_')) {
+        setPlayerPlayIcon('play');
+        alert(`Could not find audio stream for "${track.title}".`);
+        return;
+      }
+
       trackCache[track.videoId] = track;
       currentTrack = track;
       document.getElementById('playerTitle').innerText = track.title;
@@ -2234,7 +2443,7 @@ HTML_CONTENT = """<!DOCTYPE html>
       return pl.color || '#1db954';
     }
 
-    function loadUserPlaylists() {
+    async function loadUserPlaylists() {
       try {
         userPlaylists = JSON.parse(localStorage.getItem('audiotube_user_playlists')) || {
           "Favorites": { songs: favorites, emoji: "🖤", color: "#ec4899" }
@@ -2251,8 +2460,37 @@ HTML_CONTENT = """<!DOCTYPE html>
           userPlaylists[k] = { songs: v, emoji: "🎵", color: "#1db954" };
         }
       }
-      localStorage.setItem('audiotube_user_playlists', JSON.stringify(userPlaylists));
       renderSidebarUserPlaylists();
+
+      // Async sync from local persistent storage (history/user_library.json)
+      try {
+        const sRes = await fetch('/api/user_library');
+        if (sRes.ok) {
+          const sData = await sRes.json();
+          let updated = false;
+          if (sData.playlists) {
+            for (const [name, pl] of Object.entries(sData.playlists)) {
+              if (!userPlaylists[name] || !userPlaylists[name].songs || userPlaylists[name].songs.length < pl.songs.length) {
+                userPlaylists[name] = pl;
+                updated = true;
+              }
+            }
+          }
+          if (sData.favorites && sData.favorites.length > 0) {
+            if (!favorites || favorites.length < sData.favorites.length) {
+              favorites = sData.favorites;
+              localStorage.setItem('audiotube_favs', JSON.stringify(favorites));
+              updated = true;
+            }
+          }
+          if (updated) {
+            localStorage.setItem('audiotube_user_playlists', JSON.stringify(userPlaylists));
+            renderSidebarUserPlaylists();
+          }
+        }
+      } catch(e) {
+        console.warn('Sync user library notice:', e);
+      }
     }
 
     function updateAddButtonsState(videoId) {
@@ -2274,6 +2512,62 @@ HTML_CONTENT = """<!DOCTYPE html>
           if (m && m[1]) updateAddButtonsState(m[1]);
         });
       }
+      try {
+        fetch('/api/user_library', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ playlists: userPlaylists, favorites: favorites })
+        }).catch(() => {});
+      } catch(e) {}
+    }
+
+    async function handleCsvFileSelected(input) {
+      if (!input.files || input.files.length === 0) return;
+      const file = input.files[0];
+      const filename = file.name;
+      const cleanName = filename.replace(/[.][^.]+$/, "").replace(/_/g, " ").trim();
+
+      toggleImportModal();
+      switchTab('search');
+      document.getElementById('searchResultsTitle').innerText = `Importing "${cleanName}"...`;
+      const grid = document.getElementById('searchResultsGrid');
+      grid.innerHTML = `
+        <div class="col-span-full text-center text-neutral-400 py-20">
+          <i class="fa-solid fa-circle-notch fa-spin text-3xl mb-4 text-[#3D8BFF]"></i>
+          <h3 class="text-base font-bold text-white mb-1.5">Importing ${cleanName}</h3>
+          <p class="text-xs text-neutral-400 max-w-sm mx-auto leading-relaxed">
+            Parsing Spotify CSV tracklist and pre-resolving audio streams...
+          </p>
+        </div>
+      `;
+
+      try {
+        const text = await file.text();
+        const res = await fetch('/api/import_csv', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            filename: filename,
+            content: text,
+            playlist_name: cleanName
+          })
+        });
+        const data = await res.json();
+        if (data.status === 'success' && data.playlist) {
+          userPlaylists[data.playlist_name] = data.playlist;
+          if (cleanName.toLowerCase().includes('liked') || cleanName.toLowerCase().includes('favorite')) {
+            favorites = data.playlist.songs;
+            localStorage.setItem('audiotube_favs', JSON.stringify(favorites));
+          }
+          saveUserPlaylists();
+          viewSpecificPlaylist(data.playlist_name);
+        } else {
+          grid.innerHTML = `<div class="col-span-full text-center text-red-400 py-16">${data.detail || 'Import failed'}</div>`;
+        }
+      } catch(e) {
+        grid.innerHTML = `<div class="col-span-full text-center text-red-400 py-16">CSV Import error: ${e.message}</div>`;
+      }
+      input.value = '';
     }
 
     function renderSidebarUserPlaylists() {
@@ -2823,6 +3117,21 @@ HTML_CONTENT = """<!DOCTYPE html>
 
     async function downloadTrack(videoId) {
       try {
+        if (videoId && videoId.startsWith('pending_')) {
+          const t = trackCache[videoId];
+          if (t) {
+            const q = `${t.title} ${t.channel || t.artist || ''}`.trim();
+            const rRes = await fetch(`/api/resolve_track?q=${encodeURIComponent(q)}`);
+            if (rRes.ok) {
+              const matched = await rRes.json();
+              if (matched && matched.videoId) {
+                videoId = matched.videoId;
+                t.videoId = matched.videoId;
+                trackCache[videoId] = t;
+              }
+            }
+          }
+        }
         alert('Starting MP3 download to your Downloads folder...');
         const res = await fetch(`/api/download/${videoId}`);
         const data = await res.json();
