@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
+pc/__pycache__/
 
 # C extensions
 *.so
@@ -24,6 +25,7 @@ share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+*.zip
 
 # Virtual environments
 .env
@@ -41,6 +43,8 @@ oauth.json
 # Local user history & downloaded media
 history/*.json
 !history/.gitkeep
+pc/history/*.json
+!pc/history/.gitkeep
 *.mp3
 *.m4a
 *.webm
@@ -48,6 +52,10 @@ history/*.json
 *.wav
 *.m3u
 *.csv
+
+# APK handling (keep release apk in download_apk)
+*.apk
+!download_apk/*.apk
 
 # IDE & OS files
 .idea/
@@ -57,9 +65,11 @@ history/*.json
 .DS_Store
 Thumbs.db
 
-# Android build cache
+# Android build cache & secrets
 .gradle/
 android/.gradle/
 local.properties
 android/local.properties
 android/**/build/
+android/app/build/
+android/*.xml
