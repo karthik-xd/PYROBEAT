@@ -683,14 +683,14 @@ HTML_CONTENT = """<!DOCTYPE html>
 
     <!-- 1. LEFT SIDEBAR (Panel 1 in diagram) -->
     <aside class="w-64 sm:w-72 spotify-panel flex flex-col p-4 flex-shrink-0 overflow-hidden">
-      <!-- SKULLBEAT BRAND HEADER (Centered Logo + Beat-Reactive Normal Fire Name) -->
+      <!-- SKULLBEAT BRAND HEADER (Centered Logo + Beat-Reactive Tall Fire Name) -->
       <div class="flex items-center space-x-3 mb-6 px-1 py-1 cursor-pointer group" onclick="switchTab('home')">
-        <img src="/logo.png?v=10" alt="SKULLBEAT" class="w-11 h-11 object-contain drop-shadow-[0_0_16px_rgba(61,139,255,0.45)] group-hover:scale-110 transition-transform">
+        <img src="/logo.png?v=10" alt="SKULLBEAT" class="w-11 h-11 object-contain drop-shadow-[0_0_16px_rgba(61,139,255,0.45)] group-hover:scale-110 transition-transform flex-shrink-0">
         
-        <!-- ZERO BOX: Pure Normal Fire Tongues & Embers directly on brand text -->
+        <!-- ZERO BOX: Pure Organic Tall Fire on Brand Text -->
         <div class="relative inline-flex items-center select-none py-1">
-          <canvas id="brandWaveCanvas" width="210" height="58" class="pointer-events-none absolute -left-3 -top-3 w-[calc(100%+24px)] h-[calc(100%+16px)] z-0"></canvas>
-          <span class="relative z-10 font-brand text-[23px] tracking-[2.5px] leading-none text-bone" style="text-shadow: 0 0 10px #000, 0 2px 4px #000, 0 0 16px rgba(0,0,0,0.95);">
+          <canvas id="brandWaveCanvas" width="240" height="90" class="pointer-events-none absolute -left-5 -bottom-4 w-[calc(100%+40px)] h-[90px] z-0"></canvas>
+          <span class="relative z-10 font-brand text-[25px] tracking-[2px] leading-none text-bone" style="text-shadow: 0 0 10px #000, 0 2px 4px #000, 0 0 20px rgba(0,0,0,0.95);">
             SKULLBEAT
           </span>
         </div>
@@ -1469,9 +1469,9 @@ HTML_CONTENT = """<!DOCTYPE html>
       initBrandWaveEngine();
     });
 
-    // SKULLBEAT BEAT-REACTIVE NORMAL FIRE ENGINE
-    // ZERO BOX: Transparent canvas with organic flame tongues (Crimson Red, Fire Orange, Hot Gold)
-    // Flames surge up and down on music beats with floating fiery embers
+    // SKULLBEAT BEAT-REACTIVE TALL FIRE ENGINE
+    // ZERO BOX, ZERO FLAT BAR: Organic tall roaring flame tongues (Crimson Red, Fire Orange, Hot Gold)
+    // Flames grow long and surge high on music beats with floating fiery embers
     function initBrandWaveEngine() {
       const canvas = document.getElementById('brandWaveCanvas');
       if (!canvas) return;
@@ -1479,35 +1479,37 @@ HTML_CONTENT = """<!DOCTYPE html>
       const w = canvas.width;
       const h = canvas.height;
 
-      // 28 Flame Tongue Emitters along the word width
-      const tongues = [];
-      const numTongues = 28;
-      for (let i = 0; i < numTongues; i++) {
-        tongues.push({
-          baseX: 10 + (i / (numTongues - 1)) * (w - 20),
-          baseWidth: 10 + Math.random() * 8,
-          heightFactor: 0.6 + Math.random() * 0.5,
-          speed: 3.5 + Math.random() * 3.0,
+      // 36 Tall Flame Emitters along the word width
+      const flames = [];
+      const numFlames = 36;
+      for (let i = 0; i < numFlames; i++) {
+        flames.push({
+          x: 10 + Math.random() * (w - 20),
+          baseYOffset: (Math.random() - 0.5) * 12,
+          baseWidth: 14 + Math.random() * 16,
+          maxHeight: 45 + Math.random() * 35, // Grows long! Up to 80px!
+          minHeight: 25 + Math.random() * 20,
+          speed: 3.0 + Math.random() * 4.0,
           phase: Math.random() * Math.PI * 2,
-          swayAmp: 3 + Math.random() * 4
+          swayAmp: 4 + Math.random() * 6
         });
       }
 
       // Embers
       const embers = [];
-      for (let i = 0; i < 28; i++) {
+      for (let i = 0; i < 35; i++) {
         embers.push({
-          x: Math.random() * w,
+          x: 10 + Math.random() * (w - 20),
           y: h - Math.random() * h,
-          vx: (Math.random() - 0.5) * 0.6,
-          vy: -0.9 - Math.random() * 1.8,
-          size: 0.8 + Math.random() * 2.0,
-          color: Math.random() < 0.4 ? '#FFEE44' : (Math.random() < 0.75 ? '#FF7700' : '#FF2200'),
+          vx: (Math.random() - 0.5) * 0.7,
+          vy: -1.0 - Math.random() * 2.2,
+          size: 0.8 + Math.random() * 2.5,
+          color: Math.random() < 0.4 ? '#FFEE33' : (Math.random() < 0.75 ? '#FF7700' : '#FF2200'),
           life: Math.random()
         });
       }
 
-      let waveEnergy = 0.32;
+      let waveEnergy = 0.38;
 
       function renderFire() {
         requestAnimationFrame(renderFire);
@@ -1515,96 +1517,102 @@ HTML_CONTENT = """<!DOCTYPE html>
         const isPlaying = (audio && !audio.paused && !audio.ended && audio.currentTime > 0);
         const t = (audio && audio.currentTime > 0) ? audio.currentTime : (Date.now() / 1000);
 
-        let targetEnergy = 0.30;
+        let targetEnergy = 0.35;
         if (isPlaying) {
           const kick = Math.pow(Math.max(0, Math.sin(t * Math.PI * 2.22)), 4);
           const snare = Math.pow(Math.max(0, Math.sin((t + 0.115) * Math.PI * 4.44)), 3);
           const sub = Math.sin(t * 16) * 0.08;
           const vol = (audio.volume !== undefined ? audio.volume : 1);
-          targetEnergy = Math.min(1.0, (0.32 + kick * 0.58 + snare * 0.18 + sub) * vol);
+          targetEnergy = Math.min(1.0, (0.38 + kick * 0.52 + snare * 0.18 + sub) * vol);
         } else {
-          targetEnergy = 0.28 + 0.06 * Math.sin(t * 3);
+          targetEnergy = 0.34 + 0.08 * Math.sin(t * 3);
         }
 
         waveEnergy += (targetEnergy - waveEnergy) * (targetEnergy > waveEnergy ? 0.45 : 0.15);
 
-        // 100% TRANSPARENT CLEAR - ZERO BOX
+        // 100% TRANSPARENT CLEAR - ZERO BOX, ZERO FLAT BAR
         ctx.clearRect(0, 0, w, h);
         ctx.globalCompositeOperation = 'screen';
 
-        const baseY = h - 6;
+        const baseY = h - 14;
 
-        // 1. BACK CRIMSON RED FLAME TONGUES (#FF2200)
-        tongues.forEach((flame) => {
-          const sway = Math.sin(t * flame.speed + flame.phase) * flame.swayAmp;
-          const flameHeight = (18 + 26 * waveEnergy) * flame.heightFactor;
-          const tipX = flame.baseX + sway;
-          const tipY = Math.max(2, baseY - flameHeight);
+        // 1. BACK CRIMSON RED TALL FLAMES (#FF2200)
+        flames.forEach(f => {
+          const sway = Math.sin(t * f.speed + f.phase) * f.swayAmp;
+          const flameH = (f.minHeight + (f.maxHeight - f.minHeight) * waveEnergy) * 1.1;
+          const startY = baseY + f.baseYOffset;
+          const tipX = f.x + sway;
+          const tipY = Math.max(2, startY - flameH);
 
-          const grad = ctx.createLinearGradient(0, tipY, 0, baseY);
-          grad.addColorStop(0, 'rgba(255, 34, 0, 0.9)');
-          grad.addColorStop(0.5, 'rgba(255, 68, 0, 0.7)');
-          grad.addColorStop(1, 'rgba(180, 10, 0, 0.0)');
+          const grad = ctx.createLinearGradient(0, tipY, 0, startY);
+          grad.addColorStop(0, 'rgba(255, 34, 0, 0.85)');
+          grad.addColorStop(0.4, 'rgba(255, 68, 0, 0.65)');
+          grad.addColorStop(0.85, 'rgba(180, 10, 0, 0.3)');
+          grad.addColorStop(1.0, 'rgba(180, 10, 0, 0.0)');
 
           ctx.save();
           ctx.shadowColor = '#FF2200';
-          ctx.shadowBlur = 12;
+          ctx.shadowBlur = 14;
           ctx.fillStyle = grad;
           ctx.beginPath();
-          ctx.moveTo(flame.baseX - flame.baseWidth * 0.7, baseY);
-          ctx.quadraticCurveTo(flame.baseX - flame.baseWidth * 0.4 + sway * 0.5, baseY - flameHeight * 0.5, tipX, tipY);
-          ctx.quadraticCurveTo(flame.baseX + flame.baseWidth * 0.4 + sway * 0.5, baseY - flameHeight * 0.5, flame.baseX + flame.baseWidth * 0.7, baseY);
+          ctx.moveTo(f.x - f.baseWidth * 0.6, startY);
+          ctx.quadraticCurveTo(f.x - f.baseWidth * 0.3 + sway * 0.5, startY - flameH * 0.5, tipX, tipY);
+          ctx.quadraticCurveTo(f.x + f.baseWidth * 0.3 + sway * 0.5, startY - flameH * 0.5, f.x + f.baseWidth * 0.6, startY);
           ctx.closePath();
           ctx.fill();
           ctx.restore();
         });
 
-        // 2. MID VIBRANT ORANGE FLAME TONGUES (#FF7700)
-        tongues.forEach((flame) => {
-          const sway = Math.sin(t * (flame.speed * 1.2) + flame.phase + 1) * (flame.swayAmp * 0.8);
-          const flameHeight = (14 + 20 * waveEnergy) * flame.heightFactor;
-          const tipX = flame.baseX + sway;
-          const tipY = Math.max(4, baseY - flameHeight);
+        // 2. MID VIBRANT FIRE ORANGE FLAMES (#FF7700)
+        flames.forEach(f => {
+          const sway = Math.sin(t * (f.speed * 1.25) + f.phase + 1) * (f.swayAmp * 0.8);
+          const flameH = (f.minHeight + (f.maxHeight - f.minHeight) * waveEnergy) * 0.82;
+          const startY = baseY + f.baseYOffset;
+          const tipX = f.x + sway;
+          const tipY = Math.max(5, startY - flameH);
 
-          const grad = ctx.createLinearGradient(0, tipY, 0, baseY);
-          grad.addColorStop(0, 'rgba(255, 128, 0, 0.95)');
-          grad.addColorStop(0.5, 'rgba(255, 90, 0, 0.75)');
-          grad.addColorStop(1, 'rgba(255, 40, 0, 0.0)');
+          const grad = ctx.createLinearGradient(0, tipY, 0, startY);
+          grad.addColorStop(0, 'rgba(255, 136, 0, 0.95)');
+          grad.addColorStop(0.45, 'rgba(255, 95, 0, 0.75)');
+          grad.addColorStop(0.85, 'rgba(255, 50, 0, 0.25)');
+          grad.addColorStop(1.0, 'rgba(255, 50, 0, 0.0)');
 
           ctx.save();
           ctx.shadowColor = '#FF7700';
-          ctx.shadowBlur = 8;
+          ctx.shadowBlur = 10;
           ctx.fillStyle = grad;
           ctx.beginPath();
-          ctx.moveTo(flame.baseX - flame.baseWidth * 0.5, baseY);
-          ctx.quadraticCurveTo(flame.baseX - flame.baseWidth * 0.25 + sway * 0.5, baseY - flameHeight * 0.5, tipX, tipY);
-          ctx.quadraticCurveTo(flame.baseX + flame.baseWidth * 0.25 + sway * 0.5, baseY - flameHeight * 0.5, flame.baseX + flame.baseWidth * 0.5, baseY);
+          ctx.moveTo(f.x - f.baseWidth * 0.45, startY);
+          ctx.quadraticCurveTo(f.x - f.baseWidth * 0.2 + sway * 0.5, startY - flameH * 0.5, tipX, tipY);
+          ctx.quadraticCurveTo(f.x + f.baseWidth * 0.2 + sway * 0.5, startY - flameH * 0.5, f.x + f.baseWidth * 0.45, startY);
           ctx.closePath();
           ctx.fill();
           ctx.restore();
         });
 
-        // 3. INNER HOT GOLD/YELLOW FLAME CORES (#FFEE44)
-        tongues.forEach((flame, i) => {
+        // 3. INNER HOT GOLD/YELLOW CORE FLAMES (#FFEE44)
+        flames.forEach((f, i) => {
           if (i % 2 !== 0) return;
-          const sway = Math.sin(t * (flame.speed * 1.5) + flame.phase + 2) * (flame.swayAmp * 0.5);
-          const flameHeight = (8 + 12 * waveEnergy) * flame.heightFactor;
-          const tipX = flame.baseX + sway;
-          const tipY = Math.max(8, baseY - flameHeight);
+          const sway = Math.sin(t * (f.speed * 1.5) + f.phase + 2) * (f.swayAmp * 0.5);
+          const flameH = (f.minHeight + (f.maxHeight - f.minHeight) * waveEnergy) * 0.52;
+          const startY = baseY + f.baseYOffset;
+          const tipX = f.x + sway;
+          const tipY = Math.max(10, startY - flameH);
 
-          const grad = ctx.createLinearGradient(0, tipY, 0, baseY);
-          grad.addColorStop(0, 'rgba(255, 238, 68, 0.95)');
-          grad.addColorStop(0.6, 'rgba(255, 170, 0, 0.70)');
-          grad.addColorStop(1, 'rgba(255, 100, 0, 0.0)');
+          const grad = ctx.createLinearGradient(0, tipY, 0, startY);
+          grad.addColorStop(0, 'rgba(255, 245, 120, 0.98)');
+          grad.addColorStop(0.4, 'rgba(255, 200, 30, 0.85)');
+          grad.addColorStop(0.8, 'rgba(255, 120, 0, 0.2)');
+          grad.addColorStop(1.0, 'rgba(255, 120, 0, 0.0)');
 
           ctx.save();
-          ctx.shadowColor = '#FFDD00';
-          ctx.shadowBlur = 6;
+          ctx.shadowColor = '#FFEE33';
+          ctx.shadowBlur = 8;
           ctx.fillStyle = grad;
           ctx.beginPath();
-          ctx.moveTo(flame.baseX - flame.baseWidth * 0.3, baseY);
-          ctx.quadraticCurveTo(flame.baseX + sway * 0.4, baseY - flameHeight * 0.5, tipX, tipY);
-          ctx.quadraticCurveTo(flame.baseX + sway * 0.4, baseY - flameHeight * 0.5, flame.baseX + flame.baseWidth * 0.3, baseY);
+          ctx.moveTo(f.x - f.baseWidth * 0.3, startY);
+          ctx.quadraticCurveTo(f.x + sway * 0.4, startY - flameH * 0.5, tipX, tipY);
+          ctx.quadraticCurveTo(f.x + sway * 0.4, startY - flameH * 0.5, f.x + f.baseWidth * 0.3, startY);
           ctx.closePath();
           ctx.fill();
           ctx.restore();
@@ -1613,9 +1621,9 @@ HTML_CONTENT = """<!DOCTYPE html>
         // 4. FLOATING SPARKS & EMBERS
         ctx.globalCompositeOperation = 'lighter';
         embers.forEach(p => {
-          p.x += p.vx + Math.sin(t * 4 + p.y * 0.1) * 0.4;
-          p.y += p.vy * (0.8 + waveEnergy * 0.8);
-          p.life -= 0.025;
+          p.x += p.vx + Math.sin(t * 4 + p.y * 0.1) * 0.5;
+          p.y += p.vy * (0.8 + waveEnergy * 0.9);
+          p.life -= 0.02;
           if (p.life <= 0 || p.y < -5) {
             p.x = 10 + Math.random() * (w - 20);
             p.y = baseY;
