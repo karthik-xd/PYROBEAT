@@ -1,15 +1,33 @@
-# SKULLBEAT (AudioTube) 🎵
+# SKULLBEAT 💀🎵
 
-> High-fidelity, ad-free YouTube Music streamer and library filter with 80% bandwidth savings.
+> High-fidelity, ad-free YouTube & Spotify music streamer with 80% bandwidth savings.
 
-SKULLBEAT lets you filter your YouTube Music library, export playlists, and stream pure audio without downloading video streams or listening to advertisements. It includes both a modern FastAPI web interface and a comprehensive command-line tool.
+<p align="center">
+  <img src="logo.png" alt="SKULLBEAT Logo" width="160" />
+</p>
+
+SKULLBEAT lets you stream pure audio from YouTube and import libraries from Spotify with zero ads, gapless playback, and 80% bandwidth savings compared to video streams. It features a modern dark-navy player interface with an inverting beat fire wave engine and a comprehensive CLI.
+
+---
+
+## 🎨 Color Palette (60-25-10-5)
+
+| Role | Share | Hex | Description |
+| :--- | :--- | :--- | :--- |
+| **Background** | 60% | `#070B16` | Deep navy |
+| **Surfaces & Cards** | 25% | `#0F1830` | Dark blue panels and elevated cards |
+| **Primary Text & Icons** | 10% | `#EAF0FF` | Bone white text and headers |
+| **Secondary Text** | — | `#8A96B8` | Muted blue-gray for channels and timestamps |
+| **Accent** | 5% | `#2F7BFF` | Electric blue for active indicators, sliders, buttons |
 
 ---
 
 ## ✨ Features
 
 - **Ad-Free Pure Audio Streaming**: Direct audio extraction via `yt-dlp` saves up to 80% bandwidth.
-- **FastAPI Web Interface**: Spotify/Apple Music-grade UI for searching, streaming, artist discographies, and playback history.
+- **Spotify & YouTube Importer**: Paste any Spotify or YouTube playlist/album link to match and stream instantly.
+- **Inverting Beat Wave Engine**: Beat-reactive fire wave across Orbitron brand typography with pure monochrome color inversion.
+- **Centered Skull Play Button**: Custom bone white skull play/pause control with optical eye-level alignment.
 - **Library Filtering**: Search and filter liked songs, playlists, or library tracks by artist, title, or duration.
 - **Playlist Exporting**: Export filtered music lists to `M3U`, `CSV`, or `JSON`.
 - **Zero Video Overhead**: Instant playback without video rendering or video data overhead.
@@ -23,8 +41,8 @@ SKULLBEAT lets you filter your YouTube Music library, export playlists, and stre
 Clone repository and install dependencies:
 
 ```bash
-git clone https://github.com/karthik-xd/PYROBEAT.git
-cd PYROBEAT
+git clone https://github.com/karthik-xd/SkullBeat.git
+cd SkullBeat
 pip install -r requirements.txt
 ```
 
