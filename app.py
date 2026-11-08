@@ -632,17 +632,17 @@ HTML_CONTENT = """<!DOCTYPE html>
     .text-pink-500 {
       color: #FF3B5C !important;
     }
-    /* Main Gradient on Seek Slider (electric blue to cyan) */
+    /* Main Gradient on Seek Slider (Fiery Orange) */
     .seek-slider {
-      background: linear-gradient(90deg, #3D8BFF, #00D4FF) !important;
+      background: linear-gradient(90deg, #FF4500, #FF8800) !important;
     }
     .seek-slider::-webkit-slider-thumb {
       appearance: none;
       width: 12px;
       height: 12px;
       border-radius: 50%;
-      background: #00D4FF;
-      box-shadow: 0 0 10px #00D4FF, 0 0 4px #3D8BFF;
+      background: #FF8800;
+      box-shadow: 0 0 10px #FF8800, 0 0 4px #FF4500;
       cursor: pointer;
       opacity: 0;
       transition: opacity 0.15s ease, transform 0.15s ease;
@@ -650,6 +650,16 @@ HTML_CONTENT = """<!DOCTYPE html>
     .seek-slider:hover::-webkit-slider-thumb {
       opacity: 1;
       transform: scale(1.25);
+    }
+    /* Volume Slider Orange Thumb */
+    .volume-slider::-webkit-slider-thumb {
+      appearance: none;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #FF8800;
+      box-shadow: 0 0 8px #FF8800, 0 0 3px #FF4500;
+      cursor: pointer;
     }
     /* Scrollbars */
     ::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -682,14 +692,14 @@ HTML_CONTENT = """<!DOCTYPE html>
   <div class="flex-1 flex gap-2 min-h-0 overflow-hidden">
 
     <!-- 1. LEFT SIDEBAR (Panel 1 in diagram) -->
-    <aside class="w-64 sm:w-72 spotify-panel flex flex-col p-4 flex-shrink-0 overflow-hidden">
+    <aside class="w-64 sm:w-72 spotify-panel flex flex-col p-4 pt-6 flex-shrink-0 overflow-hidden">
       <!-- SKULLBEAT BRAND HEADER (Centered Logo + Beat-Reactive Tall Fire Name) -->
       <div class="flex items-center space-x-3 mb-6 px-1 py-1 cursor-pointer group" onclick="switchTab('home')">
-        <img src="/logo.png?v=10" alt="SKULLBEAT" class="w-11 h-11 object-contain drop-shadow-[0_0_16px_rgba(61,139,255,0.45)] group-hover:scale-110 transition-transform flex-shrink-0">
+        <img src="/logo.png?v=10" alt="SKULLBEAT" class="w-11 h-11 object-contain drop-shadow-[0_0_16px_rgba(255,100,0,0.5)] group-hover:scale-110 transition-transform flex-shrink-0">
         
-        <!-- ZERO BOX: Pure Organic Tall Fire on Brand Text -->
+        <!-- ZERO BOX: Pure Organic Tall Fire on Brand Text (Pic 2 Match) -->
         <div class="relative inline-flex items-center select-none py-1">
-          <canvas id="brandWaveCanvas" width="240" height="90" class="pointer-events-none absolute -left-5 -bottom-4 w-[calc(100%+40px)] h-[90px] z-0"></canvas>
+          <canvas id="brandWaveCanvas" width="280" height="130" class="pointer-events-none absolute -left-5 -top-[70px] w-[calc(100%+38px)] h-[130px] z-0"></canvas>
           <span class="relative z-10 font-brand text-[25px] tracking-[2px] leading-none text-bone" style="text-shadow: 0 0 10px #000, 0 2px 4px #000, 0 0 20px rgba(0,0,0,0.95);">
             SKULLBEAT
           </span>
@@ -979,7 +989,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         <!-- Shuffle -->
         <button onclick="toggleShuffle()" id="playerShuffleBtn" title="Shuffle" class="text-neutral-400 hover:text-white text-sm transition relative z-10">
           <i class="fa-solid fa-shuffle"></i>
-          <span id="playerShuffleDot" class="w-1.5 h-1.5 rounded-full bg-[#00D4FF] shadow-[0_0_8px_#3D8BFF] absolute -bottom-1.5 left-1/2 transform -translate-x-1/2 hidden"></span>
+          <span id="playerShuffleDot" class="w-1.5 h-1.5 rounded-full bg-[#FF7700] shadow-[0_0_8px_#FF4500] absolute -bottom-1.5 left-1/2 transform -translate-x-1/2 hidden"></span>
         </button>
 
         <!-- Previous -->
@@ -1036,9 +1046,9 @@ HTML_CONTENT = """<!DOCTYPE html>
               <line x1="61" y1="86" x2="61" y2="96" stroke="#05070F" stroke-width="2.4" stroke-linecap="round" />
             </svg>
 
-            <!-- Centered Electric-to-Cyan Gradient Play / Pause Icon -->
+            <!-- Centered Fiery Orange Gradient Play / Pause Icon -->
             <div class="absolute inset-0 flex items-center justify-center pointer-events-none" style="margin-top: -8px;">
-              <i id="playerPlayIcon" class="fa-solid fa-play text-sm sm:text-base font-black" style="background: linear-gradient(135deg, #3D8BFF 0%, #00D4FF 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; transform: translateX(1.5px);"></i>
+              <i id="playerPlayIcon" class="fa-solid fa-play text-sm sm:text-base font-black" style="background: linear-gradient(135deg, #FF4500 0%, #FFAA00 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; transform: translateX(1.5px);"></i>
             </div>
           </button>
         </div>
@@ -1051,7 +1061,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         <!-- Repeat -->
         <button onclick="toggleRepeat()" id="playerRepeatBtn" title="Repeat" class="text-neutral-400 hover:text-white text-sm transition relative z-10">
           <i id="repeatIcon" class="fa-solid fa-repeat"></i>
-          <span id="playerRepeatDot" class="w-1.5 h-1.5 rounded-full bg-[#00D4FF] shadow-[0_0_8px_#3D8BFF] absolute -bottom-1.5 left-1/2 transform -translate-x-1/2 hidden"></span>
+          <span id="playerRepeatDot" class="w-1.5 h-1.5 rounded-full bg-[#FF7700] shadow-[0_0_8px_#FF4500] absolute -bottom-1.5 left-1/2 transform -translate-x-1/2 hidden"></span>
         </button>
       </div>
 
@@ -1066,7 +1076,7 @@ HTML_CONTENT = """<!DOCTYPE html>
           value="0" 
           oninput="onSeekInput(this.value)" 
           onchange="onSeekChange(this.value)"
-          class="flex-1 h-1 bg-white/20 hover:bg-white/40 rounded-full appearance-none cursor-pointer seek-slider accent-[#00D4FF]"
+          class="flex-1 h-1 bg-white/20 hover:bg-white/40 rounded-full appearance-none cursor-pointer seek-slider accent-[#FF7700]"
         />
         <span id="playerTotalTime" class="w-8">0:00</span>
       </div>
@@ -1097,7 +1107,7 @@ HTML_CONTENT = """<!DOCTYPE html>
           step="0.05" 
           value="1" 
           oninput="changeVolume(this.value)" 
-          class="w-20 h-1 bg-white/20 hover:bg-white/40 rounded-full appearance-none cursor-pointer accent-[#00D4FF]"
+          class="w-20 h-1 bg-white/20 hover:bg-white/40 rounded-full appearance-none cursor-pointer volume-slider accent-[#FF7700]"
         />
       </div>
 
@@ -1469,9 +1479,9 @@ HTML_CONTENT = """<!DOCTYPE html>
       initBrandWaveEngine();
     });
 
-    // SKULLBEAT BEAT-REACTIVE TALL FIRE ENGINE
-    // ZERO BOX, ZERO FLAT BAR: Organic tall roaring flame tongues (Crimson Red, Fire Orange, Hot Gold)
-    // Flames grow long and surge high on music beats with floating fiery embers
+    // SKULLBEAT DENSE ANIME INFERNO FIRE ENGINE (Pic 2 Match)
+    // ZERO BOX, ZERO FLAT BAR: Solid roaring anime flame wall (Crimson Red, Solid Fire Orange, Golden Yellow Core)
+    // Flames surge high behind SKULLBEAT on music beats with floating teardrop wisps and embers
     function initBrandWaveEngine() {
       const canvas = document.getElementById('brandWaveCanvas');
       if (!canvas) return;
@@ -1479,37 +1489,54 @@ HTML_CONTENT = """<!DOCTYPE html>
       const w = canvas.width;
       const h = canvas.height;
 
-      // 36 Tall Flame Emitters along the word width
-      const flames = [];
-      const numFlames = 36;
-      for (let i = 0; i < numFlames; i++) {
-        flames.push({
-          x: 10 + Math.random() * (w - 20),
-          baseYOffset: (Math.random() - 0.5) * 12,
-          baseWidth: 14 + Math.random() * 16,
-          maxHeight: 45 + Math.random() * 35, // Grows long! Up to 80px!
-          minHeight: 25 + Math.random() * 20,
-          speed: 3.0 + Math.random() * 4.0,
+      // 24 Overlapping Anime Flame Lobes (Pic 2 structure)
+      const numTongues = 24;
+      const tongues = [];
+      for (let i = 0; i < numTongues; i++) {
+        const normX = i / (numTongues - 1);
+        const arch = Math.sin(normX * Math.PI);
+        tongues.push({
+          x: 16 + normX * (w - 32),
+          baseYOffset: (Math.random() - 0.5) * 10,
+          width: (32 + Math.random() * 16) * (0.68 + 0.32 * arch),
+          maxH: (78 + Math.random() * 40) * (0.65 + 0.45 * arch),
+          minH: (48 + Math.random() * 20) * (0.65 + 0.45 * arch),
+          speed: 3.2 + Math.random() * 3.8,
           phase: Math.random() * Math.PI * 2,
-          swayAmp: 4 + Math.random() * 6
+          swayAmp: 6 + Math.random() * 8,
+          curl: (Math.random() < 0.5 ? 1 : -1) * (10 + Math.random() * 14)
         });
       }
 
-      // Embers
-      const embers = [];
-      for (let i = 0; i < 35; i++) {
-        embers.push({
-          x: 10 + Math.random() * (w - 20),
-          y: h - Math.random() * h,
-          vx: (Math.random() - 0.5) * 0.7,
-          vy: -1.0 - Math.random() * 2.2,
-          size: 0.8 + Math.random() * 2.5,
-          color: Math.random() < 0.4 ? '#FFEE33' : (Math.random() < 0.75 ? '#FF7700' : '#FF2200'),
+      // Detached Anime Flame Wisps (Pic 2 curved teardrops rising)
+      const wisps = [];
+      for (let i = 0; i < 28; i++) {
+        wisps.push({
+          x: 18 + Math.random() * (w - 36),
+          y: h * 0.3 + Math.random() * (h * 0.45),
+          vy: -1.6 - Math.random() * 2.5,
+          vx: (Math.random() - 0.5) * 1.2,
+          r: 3 + Math.random() * 5.5,
+          color: Math.random() < 0.45 ? '#FF2000' : (Math.random() < 0.8 ? '#FF7A00' : '#FFD500'),
           life: Math.random()
         });
       }
 
-      let waveEnergy = 0.38;
+      // Glowing sparks / embers
+      const sparks = [];
+      for (let i = 0; i < 35; i++) {
+        sparks.push({
+          x: 15 + Math.random() * (w - 30),
+          y: h * 0.3 + Math.random() * (h * 0.5),
+          vx: (Math.random() - 0.5) * 0.8,
+          vy: -1.8 - Math.random() * 2.8,
+          size: 1 + Math.random() * 2.5,
+          color: Math.random() < 0.45 ? '#FFEE33' : '#FF6600',
+          life: Math.random()
+        });
+      }
+
+      let waveEnergy = 0.55;
 
       function renderFire() {
         requestAnimationFrame(renderFire);
@@ -1517,116 +1544,159 @@ HTML_CONTENT = """<!DOCTYPE html>
         const isPlaying = (audio && !audio.paused && !audio.ended && audio.currentTime > 0);
         const t = (audio && audio.currentTime > 0) ? audio.currentTime : (Date.now() / 1000);
 
-        let targetEnergy = 0.35;
+        let targetEnergy = 0.55;
         if (isPlaying) {
           const kick = Math.pow(Math.max(0, Math.sin(t * Math.PI * 2.22)), 4);
           const snare = Math.pow(Math.max(0, Math.sin((t + 0.115) * Math.PI * 4.44)), 3);
           const sub = Math.sin(t * 16) * 0.08;
           const vol = (audio.volume !== undefined ? audio.volume : 1);
-          targetEnergy = Math.min(1.0, (0.38 + kick * 0.52 + snare * 0.18 + sub) * vol);
+          targetEnergy = Math.min(1.0, (0.50 + kick * 0.42 + snare * 0.15 + sub) * vol);
         } else {
-          targetEnergy = 0.34 + 0.08 * Math.sin(t * 3);
+          targetEnergy = 0.50 + 0.12 * Math.sin(t * 3.2);
         }
 
         waveEnergy += (targetEnergy - waveEnergy) * (targetEnergy > waveEnergy ? 0.45 : 0.15);
 
-        // 100% TRANSPARENT CLEAR - ZERO BOX, ZERO FLAT BAR
+        // 100% Transparent Canvas Clear - ZERO BOX
         ctx.clearRect(0, 0, w, h);
-        ctx.globalCompositeOperation = 'screen';
 
-        const baseY = h - 14;
+        const baseY = 108;
 
-        // 1. BACK CRIMSON RED TALL FLAMES (#FF2200)
-        flames.forEach(f => {
-          const sway = Math.sin(t * f.speed + f.phase) * f.swayAmp;
-          const flameH = (f.minHeight + (f.maxHeight - f.minHeight) * waveEnergy) * 1.1;
-          const startY = baseY + f.baseYOffset;
-          const tipX = f.x + sway;
-          const tipY = Math.max(2, startY - flameH);
-
-          const grad = ctx.createLinearGradient(0, tipY, 0, startY);
-          grad.addColorStop(0, 'rgba(255, 34, 0, 0.85)');
-          grad.addColorStop(0.4, 'rgba(255, 68, 0, 0.65)');
-          grad.addColorStop(0.85, 'rgba(180, 10, 0, 0.3)');
-          grad.addColorStop(1.0, 'rgba(180, 10, 0, 0.0)');
-
-          ctx.save();
-          ctx.shadowColor = '#FF2200';
-          ctx.shadowBlur = 14;
+        // 0. SOLID BASE CONTOUR (fills internal gaps for dense anime fire wall)
+        function drawSolidBaseBody(scaleH, grad, speedMult, timeOffset) {
           ctx.fillStyle = grad;
           ctx.beginPath();
-          ctx.moveTo(f.x - f.baseWidth * 0.6, startY);
-          ctx.quadraticCurveTo(f.x - f.baseWidth * 0.3 + sway * 0.5, startY - flameH * 0.5, tipX, tipY);
-          ctx.quadraticCurveTo(f.x + f.baseWidth * 0.3 + sway * 0.5, startY - flameH * 0.5, f.x + f.baseWidth * 0.6, startY);
+          ctx.moveTo(15, baseY);
+          const segs = 30;
+          const dx = (w - 30) / segs;
+          for (let i = 0; i <= segs; i++) {
+            const x = 15 + i * dx;
+            const arch = Math.sin((i / segs) * Math.PI);
+            const n = Math.sin(i * 0.4 + t * (4 * speedMult) + timeOffset) * 0.35 +
+                      Math.cos(i * 0.8 - t * (5 * speedMult)) * 0.25;
+            const curH = (scaleH * (0.65 + n) * (0.6 + 0.4 * arch)) * waveEnergy;
+            const y = Math.max(10, baseY - curH);
+            if (i === 0) ctx.lineTo(x, y);
+            else {
+              const px = 15 + (i - 1) * dx;
+              ctx.quadraticCurveTo((px + x) * 0.5, y + (baseY - y) * 0.15, x, y);
+            }
+          }
+          ctx.quadraticCurveTo(w - 15, baseY + 4, w / 2, baseY + 6);
+          ctx.quadraticCurveTo(15, baseY + 4, 15, baseY);
           ctx.closePath();
           ctx.fill();
-          ctx.restore();
-        });
+        }
 
-        // 2. MID VIBRANT FIRE ORANGE FLAMES (#FF7700)
-        flames.forEach(f => {
-          const sway = Math.sin(t * (f.speed * 1.25) + f.phase + 1) * (f.swayAmp * 0.8);
-          const flameH = (f.minHeight + (f.maxHeight - f.minHeight) * waveEnergy) * 0.82;
-          const startY = baseY + f.baseYOffset;
-          const tipX = f.x + sway;
-          const tipY = Math.max(5, startY - flameH);
+        function drawFlameTongue(tg, scaleH, widthScale, grad, swayScale, speedMult, yShift = 0) {
+          const sway = Math.sin(t * (tg.speed * speedMult) + tg.phase) * (tg.swayAmp * swayScale);
+          const curH = (tg.minH + (tg.maxH - tg.minH) * waveEnergy) * scaleH;
+          const startY = baseY + tg.baseYOffset - yShift;
+          const tipX = tg.x + sway + tg.curl * 0.35;
+          const tipY = Math.max(8, startY - curH);
+          const halfW = (tg.width * widthScale) * 0.5;
 
-          const grad = ctx.createLinearGradient(0, tipY, 0, startY);
-          grad.addColorStop(0, 'rgba(255, 136, 0, 0.95)');
-          grad.addColorStop(0.45, 'rgba(255, 95, 0, 0.75)');
-          grad.addColorStop(0.85, 'rgba(255, 50, 0, 0.25)');
-          grad.addColorStop(1.0, 'rgba(255, 50, 0, 0.0)');
-
-          ctx.save();
-          ctx.shadowColor = '#FF7700';
-          ctx.shadowBlur = 10;
           ctx.fillStyle = grad;
           ctx.beginPath();
-          ctx.moveTo(f.x - f.baseWidth * 0.45, startY);
-          ctx.quadraticCurveTo(f.x - f.baseWidth * 0.2 + sway * 0.5, startY - flameH * 0.5, tipX, tipY);
-          ctx.quadraticCurveTo(f.x + f.baseWidth * 0.2 + sway * 0.5, startY - flameH * 0.5, f.x + f.baseWidth * 0.45, startY);
+          ctx.moveTo(tg.x - halfW, startY);
+
+          const cp1x = tg.x - halfW * 0.55 + sway * 0.5;
+          const cp1y = startY - curH * 0.45;
+          const cp2x = tipX - tg.curl * 0.3 + sway * 0.8;
+          const cp2y = startY - curH * 0.85;
+          ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, tipX, tipY);
+
+          const cp3x = tipX + tg.curl * 0.3 + sway * 0.8;
+          const cp3y = startY - curH * 0.82;
+          const cp4x = tg.x + halfW * 0.55 + sway * 0.5;
+          const cp4y = startY - curH * 0.45;
+          ctx.bezierCurveTo(cp3x, cp3y, cp4x, cp4y, tg.x + halfW, startY);
+
+          ctx.quadraticCurveTo(tg.x, startY + 4, tg.x - halfW, startY);
           ctx.closePath();
           ctx.fill();
-          ctx.restore();
+        }
+
+        // 1. LAYER 1: CRIMSON RED (TALLEST - #FF1800)
+        ctx.save();
+        ctx.shadowColor = '#FF2200';
+        ctx.shadowBlur = 20;
+        const redGrad = ctx.createLinearGradient(0, 8, 0, baseY);
+        redGrad.addColorStop(0.0, 'rgba(255, 26, 0, 0.98)');
+        redGrad.addColorStop(0.60, 'rgba(220, 18, 0, 0.95)');
+        redGrad.addColorStop(0.85, 'rgba(160, 10, 0, 0.35)');
+        redGrad.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
+
+        drawSolidBaseBody(64, redGrad, 1.0, 0);
+        tongues.forEach(tg => {
+          drawFlameTongue(tg, 1.05, 1.25, redGrad, 1.0, 1.0);
         });
+        ctx.restore();
 
-        // 3. INNER HOT GOLD/YELLOW CORE FLAMES (#FFEE44)
-        flames.forEach((f, i) => {
-          if (i % 2 !== 0) return;
-          const sway = Math.sin(t * (f.speed * 1.5) + f.phase + 2) * (f.swayAmp * 0.5);
-          const flameH = (f.minHeight + (f.maxHeight - f.minHeight) * waveEnergy) * 0.52;
-          const startY = baseY + f.baseYOffset;
-          const tipX = f.x + sway;
-          const tipY = Math.max(10, startY - flameH);
+        // 2. LAYER 2: SOLID VIBRANT FIRE ORANGE BODY (#FF7700)
+        ctx.save();
+        ctx.shadowColor = '#FF7700';
+        ctx.shadowBlur = 14;
+        const orangeGrad = ctx.createLinearGradient(0, 20, 0, baseY);
+        orangeGrad.addColorStop(0.0, 'rgba(255, 120, 0, 0.98)');
+        orangeGrad.addColorStop(0.65, 'rgba(255, 85, 0, 0.95)');
+        orangeGrad.addColorStop(0.88, 'rgba(220, 50, 0, 0.3)');
+        orangeGrad.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
 
-          const grad = ctx.createLinearGradient(0, tipY, 0, startY);
-          grad.addColorStop(0, 'rgba(255, 245, 120, 0.98)');
-          grad.addColorStop(0.4, 'rgba(255, 200, 30, 0.85)');
-          grad.addColorStop(0.8, 'rgba(255, 120, 0, 0.2)');
-          grad.addColorStop(1.0, 'rgba(255, 120, 0, 0.0)');
+        drawSolidBaseBody(50, orangeGrad, 1.25, 2.0);
+        tongues.forEach(tg => {
+          drawFlameTongue(tg, 0.85, 1.08, orangeGrad, 0.85, 1.25);
+        });
+        ctx.restore();
+
+        // 3. LAYER 3: HOT GOLDEN YELLOW CORE (#FFEE33)
+        ctx.save();
+        ctx.shadowColor = '#FFEE33';
+        ctx.shadowBlur = 10;
+        const yellowGrad = ctx.createLinearGradient(0, 32, 0, baseY - 8);
+        yellowGrad.addColorStop(0.0, 'rgba(255, 245, 60, 1.0)');
+        yellowGrad.addColorStop(0.65, 'rgba(255, 210, 25, 0.95)');
+        yellowGrad.addColorStop(0.88, 'rgba(255, 150, 10, 0.2)');
+        yellowGrad.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
+
+        tongues.forEach((tg, idx) => {
+          if (idx % 3 === 0) return;
+          drawFlameTongue(tg, 0.58, 0.74, yellowGrad, 0.6, 1.55, 12);
+        });
+        ctx.restore();
+
+        // 4. DETACHED ANIME FLAME WISPS (Pic 2)
+        wisps.forEach(wisp => {
+          wisp.y += wisp.vy * (0.8 + waveEnergy * 0.8);
+          wisp.x += wisp.vx + Math.sin(t * 4.5 + wisp.y * 0.06) * 1.0;
+          wisp.life -= 0.018;
+
+          if (wisp.life <= 0 || wisp.y < 5) {
+            wisp.x = 25 + Math.random() * (w - 50);
+            wisp.y = baseY - 35 - Math.random() * 45;
+            wisp.life = 0.7 + Math.random() * 0.3;
+            wisp.r = 3 + Math.random() * 5.5;
+          }
 
           ctx.save();
-          ctx.shadowColor = '#FFEE33';
+          ctx.fillStyle = wisp.color;
+          ctx.shadowColor = wisp.color;
           ctx.shadowBlur = 8;
-          ctx.fillStyle = grad;
           ctx.beginPath();
-          ctx.moveTo(f.x - f.baseWidth * 0.3, startY);
-          ctx.quadraticCurveTo(f.x + sway * 0.4, startY - flameH * 0.5, tipX, tipY);
-          ctx.quadraticCurveTo(f.x + sway * 0.4, startY - flameH * 0.5, f.x + f.baseWidth * 0.3, startY);
-          ctx.closePath();
+          const rad = wisp.r * (0.6 + wisp.life * 0.5);
+          ctx.ellipse(wisp.x, wisp.y, rad * 0.7, rad * 1.4, Math.PI / 10, 0, Math.PI * 2);
           ctx.fill();
           ctx.restore();
         });
 
-        // 4. FLOATING SPARKS & EMBERS
-        ctx.globalCompositeOperation = 'lighter';
-        embers.forEach(p => {
-          p.x += p.vx + Math.sin(t * 4 + p.y * 0.1) * 0.5;
+        // 5. SPARKS & EMBERS
+        sparks.forEach(p => {
+          p.x += p.vx + Math.sin(t * 4 + p.y * 0.1) * 0.6;
           p.y += p.vy * (0.8 + waveEnergy * 0.9);
-          p.life -= 0.02;
-          if (p.life <= 0 || p.y < -5) {
-            p.x = 10 + Math.random() * (w - 20);
-            p.y = baseY;
+          p.life -= 0.022;
+          if (p.life <= 0 || p.y < 0) {
+            p.x = 15 + Math.random() * (w - 30);
+            p.y = baseY - 15;
             p.life = 0.6 + Math.random() * 0.4;
           }
           ctx.save();
@@ -1873,11 +1943,11 @@ HTML_CONTENT = """<!DOCTYPE html>
       renderRightPanel();
     }
 
-    // Centered Play/Pause Icon State Manager
+    // Centered Play/Pause Icon State Manager (Fiery Orange Theme)
     function setPlayerPlayIcon(state) {
       const el = document.getElementById('playerPlayIcon');
       if (!el) return;
-      el.style.background = 'linear-gradient(135deg, #3D8BFF 0%, #00D4FF 100%)';
+      el.style.background = 'linear-gradient(135deg, #FF4500 0%, #FFAA00 100%)';
       el.style.webkitBackgroundClip = 'text';
       el.style.webkitTextFillColor = 'transparent';
       if (state === 'pause') {
@@ -1889,8 +1959,8 @@ HTML_CONTENT = """<!DOCTYPE html>
       } else if (state === 'spin') {
         el.className = 'fa-solid fa-circle-notch fa-spin text-sm';
         el.style.background = 'none';
-        el.style.webkitTextFillColor = '#00D4FF';
-        el.style.color = '#00D4FF';
+        el.style.webkitTextFillColor = '#FF7700';
+        el.style.color = '#FF7700';
         el.style.transform = 'none';
       }
     }
@@ -2254,7 +2324,7 @@ HTML_CONTENT = """<!DOCTYPE html>
       renderRightPanel();
     }
 
-    // Shuffle & Repeat
+    // Shuffle & Repeat (Orange Active Accent)
     function toggleShuffle() {
       isShuffle = !isShuffle;
       const btn = document.getElementById('playerShuffleBtn');
@@ -2262,11 +2332,11 @@ HTML_CONTENT = """<!DOCTYPE html>
       const rightLabel = document.getElementById('rightShuffleLabel');
 
       if (isShuffle) {
-        if (btn) btn.classList.add('text-[#00D4FF]');
+        if (btn) btn.classList.add('text-[#FF7700]');
         if (dot) dot.classList.remove('hidden');
         if (rightLabel) rightLabel.innerText = 'Shuffle';
       } else {
-        if (btn) btn.classList.remove('text-[#00D4FF]');
+        if (btn) btn.classList.remove('text-[#FF7700]');
         if (dot) dot.classList.add('hidden');
         if (rightLabel) rightLabel.innerText = 'Seq';
       }
@@ -2279,15 +2349,15 @@ HTML_CONTENT = """<!DOCTYPE html>
 
       if (repeatMode === 'off') {
         repeatMode = 'all';
-        btn.classList.add('text-[#00D4FF]');
+        btn.classList.add('text-[#FF7700]');
         dot.classList.remove('hidden');
         icon.className = 'fa-solid fa-repeat';
       } else if (repeatMode === 'all') {
         repeatMode = 'one';
-        icon.className = 'fa-solid fa-repeat text-[#00D4FF]';
+        icon.className = 'fa-solid fa-repeat text-[#FF7700]';
       } else {
         repeatMode = 'off';
-        btn.classList.remove('text-[#00D4FF]');
+        btn.classList.remove('text-[#FF7700]');
         dot.classList.add('hidden');
         icon.className = 'fa-solid fa-repeat';
       }
