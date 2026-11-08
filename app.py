@@ -534,7 +534,7 @@ HTML_CONTENT = """<!DOCTYPE html>
   <link rel="icon" type="image/png" href="/logo.png?v=10">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Chakra+Petch:wght@700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -563,7 +563,7 @@ HTML_CONTENT = """<!DOCTYPE html>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
   <style>
     .font-brand {
-      font-family: 'Orbitron', -apple-system, sans-serif;
+      font-family: 'Russo One', 'Chakra Petch', sans-serif;
       font-weight: 900;
     }
     :root {
@@ -683,14 +683,14 @@ HTML_CONTENT = """<!DOCTYPE html>
 
     <!-- 1. LEFT SIDEBAR (Panel 1 in diagram) -->
     <aside class="w-64 sm:w-72 spotify-panel flex flex-col p-4 flex-shrink-0 overflow-hidden">
-      <!-- SKULLBEAT BRAND HEADER (Centered Logo + Inverting Beat Fire Wave Name) -->
+      <!-- SKULLBEAT BRAND HEADER (Centered Logo + Beat-Reactive Layered Fire Name) -->
       <div class="flex items-center space-x-3 mb-6 px-1 py-1 cursor-pointer group" onclick="switchTab('home')">
         <img src="/logo.png?v=10" alt="SKULLBEAT" class="w-11 h-11 object-contain drop-shadow-[0_0_16px_rgba(61,139,255,0.45)] group-hover:scale-110 transition-transform">
         
-        <!-- Seamless Fire Wave with Pure Black/White Inverting Orbitron Text (No Red, No Box Border) -->
-        <div class="relative flex items-center overflow-hidden rounded-md px-1 py-0.5 select-none">
-          <canvas id="brandWaveCanvas" width="168" height="34" class="pointer-events-none absolute inset-0 w-full h-full"></canvas>
-          <span class="relative z-10 font-brand text-[23px] tracking-[3px] leading-none" style="color: #ffffff; mix-blend-mode: difference;">
+        <!-- Beat-Reactive Layered Fire (Orange, Red, Cyan Layered Flames + Floating Embers) -->
+        <div class="relative flex items-center overflow-hidden rounded-md px-1.5 py-0.5 select-none bg-[#05070F]">
+          <canvas id="brandWaveCanvas" width="178" height="36" class="pointer-events-none absolute inset-0 w-full h-full"></canvas>
+          <span class="relative z-10 font-brand text-[23px] tracking-[2.5px] leading-none text-bone" style="text-shadow: 0 0 8px #000, 0 1px 3px #000, 0 0 12px rgba(0,0,0,0.95);">
             SKULLBEAT
           </span>
         </div>
@@ -1469,79 +1469,154 @@ HTML_CONTENT = """<!DOCTYPE html>
       initBrandWaveEngine();
     });
 
-    // SKULLBEAT FIRE WAVE INVERTER ENGINE
-    // Animated beat-reactive fire wave that surges up & down across the brand name, inverting text between black and white
+    // SKULLBEAT BEAT-REACTIVE LAYERED FIRE ENGINE
+    // Combines Crimson Red (#FF1E40), Vibrant Orange (#FF7700), and Electric Cyan (#00D4FF)
+    // Flames surge up and down organically on music beats, with floating sparks and embers
     function initBrandWaveEngine() {
       const canvas = document.getElementById('brandWaveCanvas');
       if (!canvas) return;
       const ctx = canvas.getContext('2d');
-      let waveEnergy = 0.2;
+      const w = canvas.width;
+      const h = canvas.height;
 
-      function renderWave() {
-        requestAnimationFrame(renderWave);
+      // Embers
+      const embers = [];
+      for (let i = 0; i < 28; i++) {
+        embers.push({
+          x: Math.random() * w,
+          y: h - Math.random() * (h * 1.1),
+          vx: (Math.random() - 0.5) * 0.6,
+          vy: -0.7 - Math.random() * 1.6,
+          size: 0.8 + Math.random() * 2.2,
+          color: Math.random() < 0.35 ? '#00D4FF' : (Math.random() < 0.7 ? '#FF7700' : '#FF1E40'),
+          life: Math.random()
+        });
+      }
+
+      let waveEnergy = 0.25;
+
+      function renderFire() {
+        requestAnimationFrame(renderFire);
 
         const isPlaying = (audio && !audio.paused && !audio.ended && audio.currentTime > 0);
         const t = (audio && audio.currentTime > 0) ? audio.currentTime : (Date.now() / 1000);
 
-        let targetEnergy = 0.15;
+        let targetEnergy = 0.25;
         if (isPlaying) {
-          // Sharp exponential kick hits for punchy beat surges
           const kick = Math.pow(Math.max(0, Math.sin(t * Math.PI * 2.22)), 4);
           const snare = Math.pow(Math.max(0, Math.sin((t + 0.115) * Math.PI * 4.44)), 3);
           const sub = Math.sin(t * 16) * 0.08;
           const vol = (audio.volume !== undefined ? audio.volume : 1);
-          targetEnergy = Math.min(1.0, (0.18 + kick * 0.72 + snare * 0.22 + sub) * vol);
+          targetEnergy = Math.min(1.0, (0.28 + kick * 0.62 + snare * 0.20 + sub) * vol);
+        } else {
+          targetEnergy = 0.25 + 0.08 * Math.sin(t * 3);
         }
 
-        // Fast rise on beats, snappy decay for rhythm
-        waveEnergy += (targetEnergy - waveEnergy) * (targetEnergy > waveEnergy ? 0.40 : 0.16);
+        waveEnergy += (targetEnergy - waveEnergy) * (targetEnergy > waveEnergy ? 0.45 : 0.15);
 
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        // Base dark background (matches deep navy 47% #05070F)
+        ctx.clearRect(0, 0, w, h);
         ctx.fillStyle = '#05070F';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(0, 0, w, h);
 
-        const w = canvas.width;
-        const h = canvas.height;
+        // 1. CRIMSON RED OUTER / BACK FLAME (#FF1E40)
+        drawFlameLayer(ctx, w, h, t * 1.1, waveEnergy, {
+          colorStart: 'rgba(255, 30, 64, 0.85)',
+          colorEnd: 'rgba(214, 0, 41, 0.0)',
+          glow: '#FF1E40',
+          glowBlur: 14,
+          maxH: h * 0.95,
+          minH: h * 0.40,
+          freq: 0.09,
+          tongues: 16,
+          speed: 4.8
+        });
 
-        // Wave waterline: surges up on kick (h * 0.12), drops down at rest (h * 0.82)
-        const baseLineY = h * 0.82 - waveEnergy * (h * 0.68);
-        const amp = 3.0 + waveEnergy * 9.0;
+        // 2. VIBRANT ORANGE MID FLAME (#FF7700)
+        drawFlameLayer(ctx, w, h, t * 1.45 + 2.5, waveEnergy, {
+          colorStart: 'rgba(255, 120, 0, 0.90)',
+          colorEnd: 'rgba(255, 80, 0, 0.0)',
+          glow: '#FF7700',
+          glowBlur: 10,
+          maxH: h * 0.75,
+          minH: h * 0.28,
+          freq: 0.12,
+          tongues: 20,
+          speed: 6.2
+        });
 
-        // Draw the Pure White Fire Wave (Inverts text to PURE BLACK via mix-blend-mode: difference with zero red tint)
+        // 3. ELECTRIC CYAN CORE / ACCENT FLAME (#00D4FF)
+        drawFlameLayer(ctx, w, h, t * 1.9 + 5.8, waveEnergy, {
+          colorStart: 'rgba(0, 212, 255, 0.95)',
+          colorEnd: 'rgba(0, 180, 255, 0.0)',
+          glow: '#00F0FF',
+          glowBlur: 8,
+          maxH: h * 0.52,
+          minH: h * 0.18,
+          freq: 0.16,
+          tongues: 24,
+          speed: 8.5
+        });
+
+        // 4. FLOATING SPARKS & EMBERS
+        embers.forEach(p => {
+          p.x += p.vx + Math.sin(t * 4 + p.y * 0.1) * 0.4;
+          p.y += p.vy * (0.8 + waveEnergy * 0.8);
+          p.life -= 0.02;
+          if (p.life <= 0 || p.y < -5) {
+            p.x = Math.random() * w;
+            p.y = h + 2;
+            p.life = 0.6 + Math.random() * 0.4;
+          }
+          ctx.save();
+          ctx.shadowColor = p.color;
+          ctx.shadowBlur = 6;
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size * (0.6 + waveEnergy * 0.5), 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        });
+      }
+
+      function drawFlameLayer(ctx, w, h, time, energy, cfg) {
         ctx.save();
-        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = cfg.glow;
+        ctx.shadowBlur = cfg.glowBlur;
+
+        const flameH = cfg.minH + (cfg.maxH - cfg.minH) * energy;
+        const grad = ctx.createLinearGradient(0, h - flameH, 0, h);
+        grad.addColorStop(0, cfg.colorStart);
+        grad.addColorStop(0.75, cfg.colorStart);
+        grad.addColorStop(1, cfg.colorEnd);
+        ctx.fillStyle = grad;
+
         ctx.beginPath();
         ctx.moveTo(0, h);
-        ctx.lineTo(0, baseLineY);
 
-        const step = 2;
-        for (let x = 0; x <= w; x += step) {
-          const w1 = Math.sin(x * 0.055 + t * 7.5) * amp;
-          const w2 = Math.cos(x * 0.11 - t * 10.5) * (amp * 0.55);
-          const w3 = Math.sin(x * 0.20 + t * 15.0) * (amp * 0.3);
-          const spike = Math.pow(Math.max(0, Math.sin(x * 0.085 + t * 8.5)), 3) * (waveEnergy * 8.5);
-          const y = baseLineY + w1 + w2 + w3 - spike;
-          ctx.lineTo(x, y);
+        const step = w / cfg.tongues;
+        for (let i = 0; i <= cfg.tongues; i++) {
+          const x = i * step;
+          const n1 = Math.sin(x * cfg.freq + time * cfg.speed);
+          const n2 = Math.cos(x * cfg.freq * 2.2 - time * (cfg.speed * 1.3)) * 0.5;
+          const n3 = Math.sin(x * cfg.freq * 4.3 + time * (cfg.speed * 2.2)) * 0.25;
+          const noise = Math.max(0.12, 0.5 + 0.5 * (n1 + n2 + n3));
+
+          const tipH = flameH * noise;
+          const tipY = Math.max(2, h - tipH);
+          const cpX = x - step * 0.5 + Math.sin(time * 3 + x) * (step * 0.4);
+          const cpY = h - tipH * 0.55;
+
+          if (i === 0) ctx.lineTo(0, tipY);
+          else ctx.quadraticCurveTo(cpX, cpY, x, tipY);
         }
 
         ctx.lineTo(w, h);
         ctx.closePath();
         ctx.fill();
-
-        // White Fire Tongues licking along the wave crest (Pure #ffffff for pure monochrome inversion)
-        ctx.beginPath();
-        for (let x = 6; x < w - 6; x += 14) {
-          const tongueH = (4 + waveEnergy * 15) * (0.8 + 0.25 * Math.sin(x + t * 11));
-          const waveY = baseLineY + Math.sin(x * 0.055 + t * 7.5) * amp;
-          ctx.moveTo(x - 3.5, waveY);
-          ctx.quadraticCurveTo(x, waveY - tongueH, x + 3.5, waveY);
-        }
-        ctx.fill();
         ctx.restore();
       }
 
-      renderWave();
+      renderFire();
     }
 
     function setGreeting() {

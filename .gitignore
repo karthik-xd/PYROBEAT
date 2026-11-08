@@ -56,3 +56,10 @@ history/*.json
 *.swo
 .DS_Store
 Thumbs.db
+
+# Android build cache
+.gradle/
+android/.gradle/
+local.properties
+android/local.properties
+android/**/build/
