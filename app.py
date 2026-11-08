@@ -25,7 +25,6 @@ HISTORY_DIR = pathlib.Path(__file__).parent / "history"
 HISTORY_FILE = HISTORY_DIR / "recent.json"
 HISTORY_DIR.mkdir(parents=True, exist_ok=True)
 LOGO_PATH = pathlib.Path(__file__).parent / "logo.png"
-SKULL_CLEAN_PATH = pathlib.Path(__file__).parent / "skull_clean.png"
 
 
 @app.get("/logo.png")
@@ -33,13 +32,6 @@ def get_app_logo():
     if LOGO_PATH.is_file():
         return FileResponse(str(LOGO_PATH), media_type="image/png")
     raise HTTPException(status_code=404, detail="Logo not found")
-
-
-@app.get("/skull_clean.png")
-def get_skull_clean():
-    if SKULL_CLEAN_PATH.is_file():
-        return FileResponse(str(SKULL_CLEAN_PATH), media_type="image/png")
-    raise HTTPException(status_code=404, detail="Skull image not found")
 
 
 class HistoryItem(BaseModel):
@@ -776,25 +768,10 @@ HTML_CONTENT = """<!DOCTYPE html>
           <i class="fa-solid fa-backward-step"></i>
         </button>
 
-        <!-- WHITE SKULL PLAY / PAUSE BUTTON WITH HIGH-VARIABILITY BEAT FLAMES -->
-        <div class="relative z-10 flex items-center justify-center">
-          <!-- Multi-Tongue Beat Flame Visualizer Canvas wrapping around skull head -->
-          <canvas id="flameCanvas" width="220" height="150" class="pointer-events-none absolute -top-[84px] left-1/2 -translate-x-1/2 z-0 overflow-visible"></canvas>
-
-          <!-- Flame Aura Glow behind skull -->
-          <div id="playBtnAura" class="absolute inset-0 rounded-full bg-[#00e5ff]/35 blur-xl pointer-events-none transition-transform duration-75"></div>
-
-          <!-- White Skull Play/Pause Button with Defined Cranium and Black Icon -->
-          <button onclick="togglePlayPause()" id="playerPlayBtn" title="Play / Pause"
-            class="relative z-10 w-12 h-14 sm:w-14 sm:h-16 hover:scale-105 active:scale-95 flex items-center justify-center transition duration-150 select-none focus:outline-none drop-shadow-[0_0_14px_rgba(0,229,255,0.75)]">
-            <img id="skullImg" src="/skull_clean.png" alt="Skull Play/Pause" class="w-full h-full object-contain pointer-events-none select-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
-            
-            <!-- Centered Black Play / Pause Icon -->
-            <div class="absolute inset-0 flex items-center justify-center pt-2 pointer-events-none">
-              <i id="playerPlayIcon" class="fa-solid fa-play text-black text-sm sm:text-base font-black transition-transform duration-100" style="color: #000000 !important; filter: drop-shadow(0 0 1px rgba(255,255,255,0.4));"></i>
-            </div>
-          </button>
-        </div>
+        <!-- Standard Play / Pause Button -->
+        <button onclick="togglePlayPause()" id="playerPlayBtn" title="Play / Pause" class="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white text-black hover:bg-[#00e5ff] shadow-md hover:scale-105 active:scale-95 flex items-center justify-center transition duration-150 select-none font-bold focus:outline-none">
+          <i id="playerPlayIcon" class="fa-solid fa-play ml-0.5 text-sm sm:text-base text-black"></i>
+        </button>
 
         <!-- Next -->
         <button onclick="playNextTrack()" title="Next" class="text-neutral-400 hover:text-white text-base transition relative z-10">
@@ -1195,229 +1172,8 @@ HTML_CONTENT = """<!DOCTYPE html>
       }
     }
 
-    // HIGH-VARIABILITY MULTI-TONGUE BEAT FLAME VISUALIZER ENGINE
-    // Surges 5x up and down to the beat of the song wrapping around the skull head dome
-    function initBeatFlameEngine() {
-      const canvas = document.getElementById('flameCanvas');
-      const ctx = canvas ? canvas.getContext('2d') : null;
-      const aura = document.getElementById('playBtnAura');
-      const playBtn = document.getElementById('playerPlayBtn');
-
-      let flameEnergy = 0.15;
-      const particles = [];
-      const MAX_PARTICLES = 36;
-
-      class FlameSpark {
-        constructor(x, y, isBurst) {
-          this.reset(x, y, isBurst);
-        }
-        reset(x, y, isBurst) {
-          const mul = isBurst ? 2.4 : 1.0;
-          this.x = x + (Math.random() - 0.5) * 48;
-          this.y = y - Math.random() * 12;
-          this.vx = (Math.random() - 0.5) * 1.8;
-          this.vy = -(2.2 + Math.random() * 3.2) * mul;
-          this.size = 1.8 + Math.random() * 2.5;
-          this.life = 0;
-          this.maxLife = 20 + Math.random() * 26;
-          this.color = Math.random() > 0.4 ? '#00e5ff' : (Math.random() > 0.5 ? '#ffffff' : '#00b0ff');
-        }
-        update() {
-          this.vy -= 0.03;
-          this.x += this.vx + Math.sin(this.life * 0.25) * 0.5;
-          this.y += this.vy;
-          this.size = Math.max(0.2, this.size * 0.94);
-          this.life++;
-        }
-        draw(c) {
-          const a = Math.max(0, 1 - (this.life / this.maxLife));
-          c.save();
-          c.globalAlpha = a;
-          c.fillStyle = this.color;
-          c.shadowColor = '#00e5ff';
-          c.shadowBlur = 8;
-          c.beginPath();
-          c.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-          c.fill();
-          c.restore();
-        }
-      }
-
-      function drawFlameTongue(c, baseX, baseY, tipX, tipY, width, colGrad, glowCol, blur) {
-        c.save();
-        c.shadowColor = glowCol;
-        c.shadowBlur = blur;
-        c.fillStyle = colGrad;
-        c.beginPath();
-        c.moveTo(baseX - width * 0.5, baseY);
-        const cp1x = baseX - width * 0.6 + (tipX - baseX) * 0.2;
-        const cp1y = baseY - (baseY - tipY) * 0.55;
-        const cp2x = tipX - width * 0.15;
-        const cp2y = tipY + (baseY - tipY) * 0.25;
-        c.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, tipX, tipY);
-        const cp3x = tipX + width * 0.15;
-        const cp3y = tipY + (baseY - tipY) * 0.25;
-        const cp4x = baseX + width * 0.6 + (tipX - baseX) * 0.2;
-        const cp4y = baseY - (baseY - tipY) * 0.55;
-        c.bezierCurveTo(cp3x, cp3y, cp4x, cp4y, baseX + width * 0.5, baseY);
-        c.closePath();
-        c.fill();
-        c.restore();
-      }
-
-      function animateFlames() {
-        requestAnimationFrame(animateFlames);
-        if (!ctx || !canvas) return;
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        const isPlaying = (audio && !audio.paused && !audio.ended && audio.currentTime > 0);
-        const t = (audio && audio.currentTime > 0) ? audio.currentTime : (Date.now() / 1000);
-
-        let targetEnergy = 0.12;
-        if (isPlaying) {
-          // Sharp exponential kick hits for huge dynamic beat jumps
-          const kick = Math.pow(Math.max(0, Math.sin(t * Math.PI * 2.22)), 5);
-          const snare = Math.pow(Math.max(0, Math.sin((t + 0.115) * Math.PI * 4.44)), 3.5);
-          const subBass = Math.pow(Math.max(0, Math.sin(t * Math.PI * 1.11)), 3) * 0.35;
-          const jitter = (Math.sin(t * 32) + Math.cos(t * 47)) * 0.08;
-          const vol = (audio.volume !== undefined ? audio.volume : 1);
-          // High dynamic range: surges between 0.16 and 1.0!
-          targetEnergy = Math.min(1.0, (0.16 + kick * 0.72 + snare * 0.24 + subBass + jitter) * vol);
-        }
-
-        // Fast rise (0.45) on kicks, snappy decay (0.16) for clear beat separation
-        flameEnergy += (targetEnergy - flameEnergy) * (targetEnergy > flameEnergy ? 0.45 : 0.16);
-
-        const cx = canvas.width / 2; // 110
-        const skullTopY = canvas.height - 48; // Cranium top baseline in canvas
-
-        // Dynamic flame height: surges from 22px at rest up to 105px on beat drops (5x variation!)
-        const maxH = 22 + flameEnergy * 86;
-
-        // Defined cranium dome curvature: fire wraps around the head of the skull!
-        function getDomeBaseY(x) {
-          const dx = (x - cx) / 30.0;
-          return skullTopY + (dx * dx) * 14.0;
-        }
-
-        // 7 distinct flame tongues matching the PYROBEAT brand logo
-        const tongues = [
-          // Center roaring flame tongue
-          { rx: 0,   h: 1.0,  w: 24, f: 8.5, ph: 0,   curl: 1.2 },
-          // Mid-left tongue
-          { rx: -15, h: 0.82, w: 18, f: 9.2, ph: 1.8, curl: -0.9 },
-          // Mid-right tongue
-          { rx: 15,  h: 0.86, w: 19, f: 8.8, ph: 2.6, curl: 1.0 },
-          // Outer left sweeping horn (curling around temple/side of skull)
-          { rx: -30, h: 0.65, w: 15, f: 9.8, ph: 3.4, curl: -1.7 },
-          // Outer right sweeping horn (curling around temple/side of skull)
-          { rx: 30,  h: 0.68, w: 15, f: 9.5, ph: 4.2, curl: 1.6 },
-          // Inner filler tongues
-          { rx: -7,  h: 0.72, w: 13, f: 11.0, ph: 5.1, curl: 0.4 },
-          { rx: 7,   h: 0.75, w: 13, f: 10.5, ph: 5.9, curl: -0.5 }
-        ];
-
-        // Pass 1: Outer Electric Blue Fire
-        tongues.forEach(tg => {
-          const bx = cx + tg.rx;
-          const by = getDomeBaseY(bx);
-          const th = maxH * tg.h * (0.88 + 0.12 * Math.sin(t * tg.f + tg.ph));
-          const sway = Math.sin(t * (tg.f * 0.9) + tg.ph) * (6 + flameEnergy * 14) + tg.curl * (4 + flameEnergy * 8);
-          const tx = bx + sway;
-          const ty = by - th;
-
-          const grad = ctx.createLinearGradient(0, by, 0, ty);
-          grad.addColorStop(0, '#00e5ff');
-          grad.addColorStop(0.35, '#0099ff');
-          grad.addColorStop(0.75, '#0033ff');
-          grad.addColorStop(1, '#0011bb');
-
-          drawFlameTongue(ctx, bx, by, tx, ty, tg.w * (0.9 + flameEnergy * 0.25), grad, '#0055ff', 16 + flameEnergy * 18);
-        });
-
-        // Pass 2: Mid Neon Cyan Hot Layer
-        tongues.forEach(tg => {
-          const bx = cx + tg.rx * 0.85;
-          const by = getDomeBaseY(bx);
-          const th = maxH * tg.h * 0.78 * (0.9 + 0.1 * Math.sin(t * tg.f + tg.ph));
-          const sway = Math.sin(t * (tg.f * 0.9) + tg.ph) * (4 + flameEnergy * 9) + tg.curl * 3;
-          const tx = bx + sway;
-          const ty = by - th;
-
-          const grad = ctx.createLinearGradient(0, by, 0, ty);
-          grad.addColorStop(0, '#e0ffff');
-          grad.addColorStop(0.3, '#00e5ff');
-          grad.addColorStop(0.8, '#0088ff');
-          grad.addColorStop(1, '#0044ff');
-
-          drawFlameTongue(ctx, bx, by, tx, ty, tg.w * 0.62, grad, '#00e5ff', 10 + flameEnergy * 12);
-        });
-
-        // Pass 3: White-Hot Core Layer
-        [tongues[0], tongues[1], tongues[2]].forEach(tg => {
-          const bx = cx + tg.rx * 0.7;
-          const by = getDomeBaseY(bx);
-          const th = maxH * tg.h * 0.52 * (0.92 + 0.08 * Math.sin(t * tg.f + tg.ph));
-          const tx = bx + Math.sin(t * tg.f + tg.ph) * (2 + flameEnergy * 4);
-          const ty = by - th;
-
-          const grad = ctx.createLinearGradient(0, by, 0, ty);
-          grad.addColorStop(0, '#ffffff');
-          grad.addColorStop(0.6, '#bbf7ff');
-          grad.addColorStop(1, '#00e5ff');
-
-          drawFlameTongue(ctx, bx, by, tx, ty, tg.w * 0.32, grad, '#ffffff', 8);
-        });
-
-        // Pass 4: Rising Sparks & Embers
-        if (isPlaying && (flameEnergy > 0.35 || Math.random() < 0.3) && particles.length < MAX_PARTICLES) {
-          const isBurst = flameEnergy > 0.72;
-          particles.push(new FlameSpark(cx, skullTopY, isBurst));
-          if (isBurst && particles.length < MAX_PARTICLES) {
-            particles.push(new FlameSpark(cx, skullTopY, true));
-          }
-        }
-
-        for (let i = particles.length - 1; i >= 0; i--) {
-          const p = particles[i];
-          p.update();
-          p.draw(ctx);
-          if (p.life >= p.maxLife || p.y < 0) {
-            particles.splice(i, 1);
-          }
-        }
-
-        // Pass 5: Dynamic Skull Aura and Button Glow
-        if (playBtn) {
-          if (isPlaying) {
-            const glowSize = Math.round(12 + flameEnergy * 26);
-            const glowAlpha = (0.65 + flameEnergy * 0.35).toFixed(2);
-            playBtn.style.filter = `drop-shadow(0 0 ${glowSize}px rgba(0, 229, 255, ${glowAlpha}))`;
-          } else {
-            playBtn.style.filter = 'drop-shadow(0 0 10px rgba(0, 229, 255, 0.45))';
-          }
-        }
-
-        if (aura) {
-          if (isPlaying) {
-            const scale = 1.0 + flameEnergy * 0.6;
-            const op = 0.25 + flameEnergy * 0.65;
-            aura.style.transform = `scale(${scale.toFixed(2)})`;
-            aura.style.opacity = op.toFixed(2);
-          } else {
-            aura.style.transform = 'scale(1)';
-            aura.style.opacity = '0.12';
-          }
-        }
-      }
-
-      animateFlames();
-    }
-
     document.addEventListener('DOMContentLoaded', () => {
       initPlaylistCustomizationUI();
-      initBeatFlameEngine();
       loadFavorites();
       loadUserPlaylists();
       loadQueue();
