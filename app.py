@@ -379,15 +379,16 @@ HTML_CONTENT = """<!DOCTYPE html>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>SKULLBEAT - Pure Audio Experience</title>
-  <link rel="icon" type="image/png" href="/logo.png?v=5">
+  <link rel="icon" type="image/png" href="/logo.png?v=6">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Creepster&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@800;900&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
   <style>
-    .font-creepster {
-      font-family: 'Creepster', cursive;
+    .font-brand {
+      font-family: 'Orbitron', -apple-system, sans-serif;
+      font-weight: 900;
     }
     :root {
       --pyro-cyan: #00e5ff;
@@ -474,14 +475,14 @@ HTML_CONTENT = """<!DOCTYPE html>
 
     <!-- 1. LEFT SIDEBAR (Panel 1 in diagram) -->
     <aside class="w-64 sm:w-72 spotify-panel flex flex-col p-4 flex-shrink-0 overflow-hidden">
-      <!-- SKULLBEAT BRAND HEADER (Logo + Skully Inverting Fire Wave Name) -->
-      <div class="flex items-center space-x-2.5 mb-5 px-1 py-1 cursor-pointer group" onclick="switchTab('home')">
-        <img src="/logo.png?v=5" alt="SKULLBEAT" class="w-11 h-11 object-contain drop-shadow-[0_0_14px_rgba(0,229,255,0.85)] group-hover:scale-110 transition-transform">
+      <!-- SKULLBEAT BRAND HEADER (Centered Logo + Inverting Beat Fire Wave Name) -->
+      <div class="flex items-center space-x-3 mb-6 px-1 py-1 cursor-pointer group" onclick="switchTab('home')">
+        <img src="/logo.png?v=7" alt="SKULLBEAT" class="w-11 h-11 object-contain drop-shadow-[0_0_14px_rgba(0,229,255,0.85)] group-hover:scale-110 transition-transform">
         
-        <!-- Animated Beat Fire Wave with Black/White Inverting Skully Text -->
-        <div class="relative flex items-center overflow-hidden rounded-lg px-2 py-1 select-none bg-black border border-white/10 shadow-[0_0_16px_rgba(0,229,255,0.35)]">
-          <canvas id="brandWaveCanvas" width="168" height="38" class="pointer-events-none absolute inset-0 w-full h-full"></canvas>
-          <span class="relative z-10 font-creepster text-[26px] tracking-wider leading-none" style="color: #ffffff; mix-blend-mode: difference; letter-spacing: 2px;">
+        <!-- Seamless Fire Wave with Pure Black/White Inverting Orbitron Text (No Red, No Box Border) -->
+        <div class="relative flex items-center overflow-hidden rounded-md px-1 py-0.5 select-none">
+          <canvas id="brandWaveCanvas" width="168" height="34" class="pointer-events-none absolute inset-0 w-full h-full"></canvas>
+          <span class="relative z-10 font-brand text-[23px] tracking-[3px] leading-none" style="color: #ffffff; mix-blend-mode: difference;">
             SKULLBEAT
           </span>
         </div>
@@ -834,9 +835,9 @@ HTML_CONTENT = """<!DOCTYPE html>
               <line x1="61" y1="86" x2="61" y2="96" stroke="#07090e" stroke-width="2.4" stroke-linecap="round" />
             </svg>
 
-            <!-- Centered Black Play / Pause Icon -->
-            <div class="absolute inset-0 flex items-center justify-center pt-2 pointer-events-none">
-              <i id="playerPlayIcon" class="fa-solid fa-play text-black text-sm sm:text-base font-black ml-0.5" style="color: #07090e !important;"></i>
+            <!-- Centered Black Play / Pause Icon - EXACT OPTICAL EYE LEVEL -->
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none" style="margin-top: -8px;">
+              <i id="playerPlayIcon" class="fa-solid fa-play text-black text-sm sm:text-base font-black" style="color: #07090e !important; transform: translateX(1.5px);"></i>
             </div>
           </button>
         </div>
@@ -1282,32 +1283,30 @@ HTML_CONTENT = """<!DOCTYPE html>
         waveEnergy += (targetEnergy - waveEnergy) * (targetEnergy > waveEnergy ? 0.40 : 0.16);
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        // Base dark background
-        ctx.fillStyle = '#000000';
+        // Base dark background (matches sidebar background)
+        ctx.fillStyle = '#07090e';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         const w = canvas.width;
         const h = canvas.height;
 
-        // Wave waterline: surges up on kick (h * 0.18), drops down at rest (h * 0.78)
-        const baseLineY = h * 0.78 - waveEnergy * (h * 0.58);
-        const amp = 3.5 + waveEnergy * 8.0;
+        // Wave waterline: surges up on kick (h * 0.12), drops down at rest (h * 0.82)
+        const baseLineY = h * 0.82 - waveEnergy * (h * 0.68);
+        const amp = 3.0 + waveEnergy * 9.0;
 
-        // 1. Draw the White Core Fire Wave (Inverts text to BLACK via mix-blend-mode: difference!)
+        // Draw the Pure White Fire Wave (Inverts text to PURE BLACK via mix-blend-mode: difference with zero red tint)
         ctx.save();
         ctx.fillStyle = '#ffffff';
-        ctx.shadowColor = '#00e5ff';
-        ctx.shadowBlur = 8 + waveEnergy * 14;
         ctx.beginPath();
         ctx.moveTo(0, h);
         ctx.lineTo(0, baseLineY);
 
-        const step = 3;
+        const step = 2;
         for (let x = 0; x <= w; x += step) {
-          const w1 = Math.sin(x * 0.05 + t * 7.5) * amp;
-          const w2 = Math.cos(x * 0.10 - t * 10.5) * (amp * 0.5);
-          const w3 = Math.sin(x * 0.18 + t * 14.0) * (amp * 0.25);
-          const spike = Math.pow(Math.max(0, Math.sin(x * 0.08 + t * 8.5)), 3) * (waveEnergy * 7);
+          const w1 = Math.sin(x * 0.055 + t * 7.5) * amp;
+          const w2 = Math.cos(x * 0.11 - t * 10.5) * (amp * 0.55);
+          const w3 = Math.sin(x * 0.20 + t * 15.0) * (amp * 0.3);
+          const spike = Math.pow(Math.max(0, Math.sin(x * 0.085 + t * 8.5)), 3) * (waveEnergy * 8.5);
           const y = baseLineY + w1 + w2 + w3 - spike;
           ctx.lineTo(x, y);
         }
@@ -1315,19 +1314,14 @@ HTML_CONTENT = """<!DOCTYPE html>
         ctx.lineTo(w, h);
         ctx.closePath();
         ctx.fill();
-        ctx.restore();
 
-        // 2. Cyan Neon Fire Tips licking along the wave crest
-        ctx.save();
-        ctx.fillStyle = '#00e5ff';
-        ctx.shadowColor = '#00e5ff';
-        ctx.shadowBlur = 6;
+        // White Fire Tongues licking along the wave crest (Pure #ffffff for pure monochrome inversion)
         ctx.beginPath();
-        for (let x = 8; x < w - 8; x += 16) {
-          const tongueH = (5 + waveEnergy * 14) * (0.8 + 0.2 * Math.sin(x + t * 11));
-          const waveY = baseLineY + Math.sin(x * 0.05 + t * 7.5) * amp;
-          ctx.moveTo(x - 4, waveY);
-          ctx.quadraticCurveTo(x, waveY - tongueH, x + 4, waveY);
+        for (let x = 6; x < w - 6; x += 14) {
+          const tongueH = (4 + waveEnergy * 15) * (0.8 + 0.25 * Math.sin(x + t * 11));
+          const waveY = baseLineY + Math.sin(x * 0.055 + t * 7.5) * amp;
+          ctx.moveTo(x - 3.5, waveY);
+          ctx.quadraticCurveTo(x, waveY - tongueH, x + 3.5, waveY);
         }
         ctx.fill();
         ctx.restore();
@@ -1558,6 +1552,22 @@ HTML_CONTENT = """<!DOCTYPE html>
       renderRightPanel();
     }
 
+    // Centered Play/Pause Icon State Manager
+    function setPlayerPlayIcon(state) {
+      const el = document.getElementById('playerPlayIcon');
+      if (!el) return;
+      if (state === 'pause') {
+        el.className = 'fa-solid fa-pause text-black text-sm sm:text-base font-black';
+        el.style.transform = 'none';
+      } else if (state === 'play') {
+        el.className = 'fa-solid fa-play text-black text-sm sm:text-base font-black';
+        el.style.transform = 'translateX(1.5px)';
+      } else if (state === 'spin') {
+        el.className = 'fa-solid fa-circle-notch fa-spin text-sm text-black';
+        el.style.transform = 'none';
+      }
+    }
+
     // Playback Engine - Continuous, gapless, no-pause auto-advance
     async function playTrack(track, origin = 'SKULLBEAT', isAutoPlay = false) {
       if (!track || !track.videoId) return;
@@ -1566,7 +1576,7 @@ HTML_CONTENT = """<!DOCTYPE html>
       document.getElementById('playerTitle').innerText = track.title;
       document.getElementById('playerArtist').innerText = track.channel;
       document.getElementById('playerCover').src = track.thumbnail;
-      document.getElementById('playerPlayIcon').className = 'fa-solid fa-circle-notch fa-spin text-sm';
+      setPlayerPlayIcon('spin');
 
       updateHeartUI();
       // Only fetch author tracks if NOT playing inside a playlist context (prevents queue hijacking)
@@ -1589,7 +1599,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         const p = audio.play();
         if (p !== undefined) {
           p.then(() => {
-            document.getElementById('playerPlayIcon').className = 'fa-solid fa-pause';
+            setPlayerPlayIcon('pause');
           }).catch(err => {
             console.warn('Audio play() promise error:', err);
           });
@@ -1614,7 +1624,7 @@ HTML_CONTENT = """<!DOCTYPE html>
           const p = audio.play();
           if (p !== undefined) {
             p.then(() => {
-              document.getElementById('playerPlayIcon').className = 'fa-solid fa-pause';
+              setPlayerPlayIcon('pause');
             }).catch(err => {
               console.warn('Audio play() promise error:', err);
             });
@@ -1623,10 +1633,10 @@ HTML_CONTENT = """<!DOCTYPE html>
           localStorage.setItem('audiotube_last_track', JSON.stringify(track));
           setTimeout(prefetchUpcomingTracks, 1000);
         } else {
-          document.getElementById('playerPlayIcon').className = 'fa-solid fa-play ml-0.5';
+          setPlayerPlayIcon('play');
         }
       } catch (e) {
-        document.getElementById('playerPlayIcon').className = 'fa-solid fa-play ml-0.5';
+        setPlayerPlayIcon('play');
         console.error('Playback fetch error:', e);
       }
     }
@@ -1647,11 +1657,11 @@ HTML_CONTENT = """<!DOCTYPE html>
       }
       if (audio.paused) {
         audio.play().then(() => {
-          document.getElementById('playerPlayIcon').className = 'fa-solid fa-pause';
+          setPlayerPlayIcon('pause');
         }).catch(e => console.log('play error:', e));
       } else {
         audio.pause();
-        document.getElementById('playerPlayIcon').className = 'fa-solid fa-play ml-0.5';
+        setPlayerPlayIcon('play');
       }
     }
 
@@ -1949,24 +1959,24 @@ HTML_CONTENT = """<!DOCTYPE html>
 
     function setupAudioListeners() {
       audio.addEventListener('play', () => {
-        document.getElementById('playerPlayIcon').className = 'fa-solid fa-pause';
+        setPlayerPlayIcon('pause');
       });
 
       audio.addEventListener('playing', () => {
-        document.getElementById('playerPlayIcon').className = 'fa-solid fa-pause';
+        setPlayerPlayIcon('pause');
       });
 
       audio.addEventListener('pause', () => {
-        document.getElementById('playerPlayIcon').className = 'fa-solid fa-play ml-0.5';
+        setPlayerPlayIcon('play');
       });
 
       audio.addEventListener('waiting', () => {
-        document.getElementById('playerPlayIcon').className = 'fa-solid fa-circle-notch fa-spin text-sm';
+        setPlayerPlayIcon('spin');
       });
 
       audio.addEventListener('error', (e) => {
         console.error('Audio playback error:', audio.error);
-        document.getElementById('playerPlayIcon').className = 'fa-solid fa-play ml-0.5';
+        setPlayerPlayIcon('play');
       });
 
       audio.addEventListener('timeupdate', () => {
