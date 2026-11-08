@@ -379,7 +379,7 @@ HTML_CONTENT = """<!DOCTYPE html>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>SKULLBEAT - Pure Audio Experience</title>
-  <link rel="icon" type="image/png" href="/logo.png?v=6">
+  <link rel="icon" type="image/png" href="/logo.png?v=8">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@800;900&display=swap" rel="stylesheet">
@@ -477,7 +477,7 @@ HTML_CONTENT = """<!DOCTYPE html>
     <aside class="w-64 sm:w-72 spotify-panel flex flex-col p-4 flex-shrink-0 overflow-hidden">
       <!-- SKULLBEAT BRAND HEADER (Centered Logo + Inverting Beat Fire Wave Name) -->
       <div class="flex items-center space-x-3 mb-6 px-1 py-1 cursor-pointer group" onclick="switchTab('home')">
-        <img src="/logo.png?v=7" alt="SKULLBEAT" class="w-11 h-11 object-contain drop-shadow-[0_0_14px_rgba(0,229,255,0.85)] group-hover:scale-110 transition-transform">
+        <img src="/logo.png?v=8" alt="SKULLBEAT" class="w-11 h-11 object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)] group-hover:scale-110 transition-transform">
         
         <!-- Seamless Fire Wave with Pure Black/White Inverting Orbitron Text (No Red, No Box Border) -->
         <div class="relative flex items-center overflow-hidden rounded-md px-1 py-0.5 select-none">
@@ -779,17 +779,11 @@ HTML_CONTENT = """<!DOCTYPE html>
           <i class="fa-solid fa-backward-step"></i>
         </button>
 
-        <!-- WHITE SKULL PLAY / PAUSE BUTTON (NO FIRE ON SKULL, BEAT FLAME BEHIND) -->
+        <!-- WHITE SKULL PLAY / PAUSE BUTTON (CLEAN BONE SKULL, NO CYAN GLOW) -->
         <div class="relative z-10 flex items-center justify-center">
-          <!-- Rising spark particles canvas -->
-          <canvas id="flameCanvas" width="160" height="90" class="pointer-events-none absolute -top-14 left-1/2 -translate-x-1/2 z-0"></canvas>
-
-          <!-- Flame Aura Glow behind skull -->
-          <div id="playBtnAura" class="absolute inset-0 rounded-full bg-[#00e5ff]/35 blur-xl pointer-events-none transition-transform duration-75"></div>
-
-          <!-- White Skull Play/Pause Button with Defined Head Border -->
+          <!-- White Skull Play/Pause Button with Defined Dark Contour -->
           <button onclick="togglePlayPause()" id="playerPlayBtn" title="Play / Pause"
-            class="relative z-10 w-12 h-14 sm:w-14 sm:h-16 hover:scale-105 active:scale-95 flex items-center justify-center transition duration-150 select-none focus:outline-none drop-shadow-[0_0_14px_rgba(0,229,255,0.7)]">
+            class="relative z-10 w-12 h-14 sm:w-14 sm:h-16 hover:scale-105 active:scale-95 flex items-center justify-center transition duration-150 select-none focus:outline-none drop-shadow-[0_4px_12px_rgba(0,0,0,0.65)]">
             <svg viewBox="0 0 100 115" class="w-full h-full pointer-events-none select-none overflow-visible">
               <defs>
                 <!-- 3D Shaded Skull Bone Gradient -->
@@ -806,7 +800,7 @@ HTML_CONTENT = """<!DOCTYPE html>
                 </radialGradient>
               </defs>
 
-              <!-- DEFINED SKULL HEAD & BODY (WITHOUT FIRE ON SKULL) -->
+              <!-- DEFINED SKULL HEAD & BODY (CLEAN DARK BORDER, NO CYAN) -->
               <path d="M 12,50 
                        C 12,30 26,14 50,14 
                        C 74,14 88,30 88,50 
@@ -818,8 +812,8 @@ HTML_CONTENT = """<!DOCTYPE html>
                        C 28,86 27,82 24,80 
                        C 17,75 12,66 12,50 Z" 
                     fill="url(#skullBoneGrad)" 
-                    stroke="#00e5ff" 
-                    stroke-width="1.8" />
+                    stroke="#0f172a" 
+                    stroke-width="2.2" />
 
               <!-- 3D Cranium Highlight -->
               <ellipse cx="50" cy="42" rx="33" ry="24" fill="url(#craniumHighlight)" />
