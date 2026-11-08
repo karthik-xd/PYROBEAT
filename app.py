@@ -659,66 +659,123 @@ HTML_CONTENT = """<!DOCTYPE html>
           <i class="fa-solid fa-backward-step"></i>
         </button>
 
-        <!-- WHITE SKULL PLAY / PAUSE BUTTON WITH DYNAMIC BEAT FLAME AROUND HEAD -->
+        <!-- WHITE SKULL PLAY / PAUSE BUTTON WITH DEFINED BORDER & BEAT FLAME -->
         <div class="relative z-10 flex items-center justify-center">
-          <!-- Flame canvas: large, centered on skull, z-1 so skull sits on top -->
-          <canvas id="flameCanvas" width="200" height="200"
-            class="pointer-events-none absolute left-1/2 -translate-x-1/2 -translate-y-[42%] z-0"
-            style="top:0;"></canvas>
+          <!-- Rising spark particles canvas -->
+          <canvas id="flameCanvas" width="160" height="90" class="pointer-events-none absolute -top-14 left-1/2 -translate-x-1/2 z-0"></canvas>
 
-          <!-- Flame Aura Glow -->
-          <div id="playBtnAura" class="absolute inset-0 rounded-full bg-[#00e5ff]/30 blur-xl pointer-events-none transition-transform duration-75"></div>
+          <!-- Flame Aura Glow behind skull -->
+          <div id="playBtnAura" class="absolute inset-0 rounded-full bg-[#00e5ff]/35 blur-xl pointer-events-none transition-transform duration-75"></div>
 
-          <!-- White Skull Play/Pause Button (z-10 sits in front of canvas) -->
+          <!-- White Skull Play/Pause Button with Defined Head Border and Fire -->
           <button onclick="togglePlayPause()" id="playerPlayBtn" title="Play / Pause"
-            class="relative z-10 w-11 h-13 sm:w-12 sm:h-14 hover:scale-110 active:scale-95 flex items-center justify-center transition-transform duration-100 select-none focus:outline-none drop-shadow-[0_0_12px_rgba(0,229,255,0.65)]">
-            <!-- White Skull SVG -->
-            <svg viewBox="0 0 100 115" class="w-full h-full pointer-events-none select-none">
+            class="relative z-10 w-12 h-14 sm:w-14 sm:h-16 hover:scale-105 active:scale-95 flex items-center justify-center transition duration-150 select-none focus:outline-none drop-shadow-[0_0_14px_rgba(0,229,255,0.7)]">
+            <svg viewBox="0 0 100 115" class="w-full h-full pointer-events-none select-none overflow-visible">
               <defs>
+                <!-- Deep Electric Cyan/Blue Flame Gradient -->
+                <linearGradient id="skullFlameGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+                  <stop offset="0%" stop-color="#00e5ff" stop-opacity="0.95" />
+                  <stop offset="35%" stop-color="#00b0ff" />
+                  <stop offset="75%" stop-color="#0033ff" />
+                  <stop offset="100%" stop-color="#00e5ff" />
+                </linearGradient>
+                <!-- White-Hot Core Flame Gradient -->
+                <linearGradient id="skullFlameCore" x1="0%" y1="100%" x2="0%" y2="0%">
+                  <stop offset="0%" stop-color="#ffffff" />
+                  <stop offset="60%" stop-color="#00e5ff" />
+                  <stop offset="100%" stop-color="transparent" />
+                </linearGradient>
+                <!-- 3D Shaded Skull Bone Gradient -->
                 <linearGradient id="skullBoneGrad" x1="0%" y1="0%" x2="0%" y2="100%">
                   <stop offset="0%" stop-color="#ffffff" />
-                  <stop offset="30%" stop-color="#f8fafc" />
+                  <stop offset="35%" stop-color="#f8fafc" />
                   <stop offset="70%" stop-color="#e2e8f0" />
                   <stop offset="100%" stop-color="#cbd5e1" />
                 </linearGradient>
-                <radialGradient id="craniumHighlight" cx="50%" cy="28%" r="48%">
+                <radialGradient id="craniumHighlight" cx="50%" cy="40%" r="45%">
                   <stop offset="0%" stop-color="#ffffff" />
-                  <stop offset="60%" stop-color="#f8fafc" stop-opacity="0.9" />
+                  <stop offset="65%" stop-color="#f8fafc" stop-opacity="0.9" />
                   <stop offset="100%" stop-color="#e2e8f0" stop-opacity="0" />
                 </radialGradient>
+                <filter id="flameGlow" x="-30%" y="-30%" width="160%" height="160%">
+                  <feDropShadow dx="0" dy="0" stdDeviation="3.5" flood-color="#00e5ff" flood-opacity="0.85" />
+                </filter>
               </defs>
-              <!-- Cranium & Jaw Outline -->
-              <path d="M 50,8 
-                       C 36,8 24,13 18,22 
-                       C 11,31 7,42 7,50 
-                       C 7,61 10,70 12,75 
-                       C 15,80 23,82 25,85 
-                       C 26,87 26,92 27,95 
-                       C 29,101 34,103 38,103 
-                       L 62,103 
-                       C 66,103 71,101 73,95 
-                       C 74,92 74,87 75,85 
-                       C 77,82 85,80 88,75 
-                       C 90,70 93,61 93,50 
-                       C 93,42 89,31 82,22 
-                       C 76,13 64,8 50,8 Z" 
+
+              <!-- 1. FLAME AROUND THE SKULL HEAD (Rooted on defined skull head border) -->
+              <g id="svgFlameGroup" filter="url(#flameGlow)" style="transform-origin: 50px 32px; transition: transform 0.08s ease-out;">
+                <!-- Outer Cyan/Blue Fire Silhouette wrapping around cranium -->
+                <path d="M 10,50 
+                         C 6,42 10,34 16,30 
+                         C 19,28 22,34 25,23 
+                         C 28,15 34,10 37,10 
+                         C 41,14 43,18 46,6 
+                         C 49,2 51,2 54,4 
+                         C 57,8 59,15 63,11 
+                         C 67,8 72,14 75,18 
+                         C 78,23 81,28 84,30 
+                         C 90,34 94,42 90,50 
+                         C 80,39 68,32 50,30 
+                         C 32,32 20,39 10,50 Z" 
+                      fill="url(#skullFlameGrad)" />
+
+                <!-- Inner Electric Cyan / White Flame Licks -->
+                <path d="M 22,38 
+                         C 27,27 34,20 37,18 
+                         C 39,22 43,24 47,10 
+                         C 49,6 51,6 53,8 
+                         C 55,14 58,18 61,16 
+                         C 66,15 71,24 78,38 
+                         C 68,34 59,32 50,32 
+                         C 41,32 32,34 22,38 Z" 
+                      fill="url(#skullFlameCore)" opacity="0.9" />
+              </g>
+
+              <!-- 2. DEFINED SKULL HEAD & BODY -->
+              <!-- Skull Body Fill with defined outline -->
+              <path d="M 10,50 
+                       C 20,39 32,32 50,30 
+                       C 68,32 80,39 90,50 
+                       C 90,66 85,76 77,81 
+                       C 74,83 73,87 72,91 
+                       C 70,96 66,98 62,98 
+                       L 38,98 
+                       C 34,98 30,96 28,91 
+                       C 27,87 26,83 23,81 
+                       C 15,76 10,66 10,50 Z" 
                     fill="url(#skullBoneGrad)" 
-                    stroke="#ffffff" 
+                    stroke="#0d111a" 
                     stroke-width="1.6" />
-              <!-- Top Highlight -->
-              <ellipse cx="50" cy="35" rx="34" ry="24" fill="url(#craniumHighlight)" />
-              <!-- Cheekbone Contour Lines -->
-              <path d="M 17,73 Q 23,69 25,62" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.6" />
-              <path d="M 83,73 Q 77,69 75,62" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.6" />
-              <!-- Teeth Ridges -->
-              <line x1="39" y1="91" x2="39" y2="102" stroke="#07090e" stroke-width="2.2" stroke-linecap="round" />
-              <line x1="46" y1="90" x2="46" y2="103" stroke="#07090e" stroke-width="2.2" stroke-linecap="round" />
-              <line x1="54" y1="90" x2="54" y2="103" stroke="#07090e" stroke-width="2.2" stroke-linecap="round" />
-              <line x1="61" y1="91" x2="61" y2="102" stroke="#07090e" stroke-width="2.2" stroke-linecap="round" />
+
+              <!-- 3D Cranium Highlight -->
+              <ellipse cx="50" cy="48" rx="30" ry="18" fill="url(#craniumHighlight)" />
+
+              <!-- EXPLICIT DEFINED BORDER OF SKULL HEAD (Cranium Rim separating bone from flame) -->
+              <path id="skullHeadBorder" 
+                    d="M 10,50 C 20,39 32,32 50,30 C 68,32 80,39 90,50" 
+                    stroke="#00e5ff" 
+                    stroke-width="2.5" 
+                    stroke-linecap="round" 
+                    fill="none" />
+              <path d="M 10,50 C 20,39 32,32 50,30 C 68,32 80,39 90,50" 
+                    stroke="#0d111a" 
+                    stroke-width="1" 
+                    stroke-linecap="round" 
+                    fill="none" />
+
+              <!-- Cheekbone subtle contour lines -->
+              <path d="M 18,73 Q 24,69 26,62" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.6" />
+              <path d="M 82,73 Q 76,69 74,62" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.6" />
+
+              <!-- Teeth Ridges on jaw (NO NOSE!) -->
+              <line x1="39" y1="87" x2="39" y2="97" stroke="#07090e" stroke-width="2" stroke-linecap="round" />
+              <line x1="46" y1="86" x2="46" y2="98" stroke="#07090e" stroke-width="2" stroke-linecap="round" />
+              <line x1="54" y1="86" x2="54" y2="98" stroke="#07090e" stroke-width="2" stroke-linecap="round" />
+              <line x1="61" y1="87" x2="61" y2="97" stroke="#07090e" stroke-width="2" stroke-linecap="round" />
             </svg>
 
             <!-- Centered Black Play / Pause Icon -->
-            <div class="absolute inset-0 flex items-center justify-center pb-2.5 pointer-events-none">
+            <div class="absolute inset-0 flex items-center justify-center pt-2.5 pointer-events-none">
               <i id="playerPlayIcon" class="fa-solid fa-play text-black text-xs sm:text-sm ml-0.5" style="color: #000000 !important;"></i>
             </div>
           </button>
@@ -1097,50 +1154,38 @@ HTML_CONTENT = """<!DOCTYPE html>
     }
 
     // BEAT FLAME VISUALIZER ENGINE
-    // Flames radiate outward from the skull's cranium perimeter in all directions
+    // Modulates SVG flame hair attached to skull head border and animates rising embers
     function initBeatFlameEngine() {
       const canvas = document.getElementById('flameCanvas');
-      if (!canvas) return;
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas ? canvas.getContext('2d') : null;
       const aura = document.getElementById('playBtnAura');
       const playBtn = document.getElementById('playerPlayBtn');
+      const svgFlame = document.getElementById('svgFlameGroup');
 
       let flameEnergy = 0.12;
       const particles = [];
-      const MAX_PARTICLES = 48;
-
-      // Canvas is 200x200. Skull cranium center sits at canvas center.
-      // Skull button is ~44px tall in the DOM, cranium top ~40% of that.
-      // We position canvas centered on skull: cranium circle center ≈ (100, 100), radius ≈ 44.
-      const CX = 100;   // canvas cranium center X
-      const CY = 108;   // canvas cranium center Y (slightly below true center so jaw is below canvas)
-      const CR = 44;    // cranium circle radius in canvas coords
+      const MAX_PARTICLES = 32;
 
       class FlameParticle {
-        constructor(x, y, angle, isBurst) {
-          this.reset(x, y, angle, isBurst);
+        constructor(x, y, isBurst) {
+          this.reset(x, y, isBurst);
         }
-        reset(x, y, angle, isBurst) {
+        reset(x, y, isBurst) {
           const mul = isBurst ? 2.2 : 1.0;
-          const speed = (1.6 + Math.random() * 2.2) * mul;
-          // Add slight spread around spawn angle
-          const spread = (Math.random() - 0.5) * 0.6;
-          this.x = x;
-          this.y = y;
-          this.vx = Math.cos(angle + spread) * speed * 0.6;
-          this.vy = Math.sin(angle + spread) * speed;
-          this.size = 2.2 + Math.random() * 2.8;
+          this.x = x + (Math.random() - 0.5) * 36;
+          this.y = y - Math.random() * 10;
+          this.vx = (Math.random() - 0.5) * 1.5;
+          this.vy = -(1.6 + Math.random() * 2.4) * mul;
+          this.size = 2.0 + Math.random() * 2.8;
           this.life = 0;
-          this.maxLife = 20 + Math.random() * 28;
+          this.maxLife = 22 + Math.random() * 28;
           this.color = Math.random() > 0.4 ? '#00e5ff' : (Math.random() > 0.5 ? '#ffffff' : '#00b0ff');
         }
         update() {
-          // Particles rise (negative Y is up)
-          this.vy -= 0.06; // buoyancy
-          this.vx += Math.sin(this.life * 0.25) * 0.08;
-          this.x += this.vx;
+          this.vy -= 0.04;
+          this.x += this.vx + Math.sin(this.life * 0.22) * 0.4;
           this.y += this.vy;
-          this.size = Math.max(0.3, this.size * 0.94);
+          this.size = Math.max(0.3, this.size * 0.95);
           this.life++;
         }
         draw(c) {
@@ -1157,47 +1202,15 @@ HTML_CONTENT = """<!DOCTYPE html>
         }
       }
 
-      // Draw one flame tongue radiating outward from point (bx,by) in direction of outward angle
-      function drawRadialTongue(c, bx, by, outAngle, height, width, curveRand, colorStop1, colorStop2) {
-        c.save();
-        // tip of flame
-        const tipX = bx + Math.cos(outAngle) * height;
-        const tipY = by + Math.sin(outAngle) * height;
-        // perpendicular direction for tongue width
-        const perpX = -Math.sin(outAngle);
-        const perpY = Math.cos(outAngle);
-        const halfW = width / 2;
-        const ctrl1X = bx + perpX * halfW + Math.cos(outAngle) * height * 0.45 + Math.cos(outAngle - Math.PI / 2) * curveRand;
-        const ctrl1Y = by + perpY * halfW + Math.sin(outAngle) * height * 0.45 + Math.sin(outAngle - Math.PI / 2) * curveRand;
-        const ctrl2X = bx - perpX * halfW + Math.cos(outAngle) * height * 0.45 + Math.cos(outAngle + Math.PI / 2) * curveRand;
-        const ctrl2Y = by - perpY * halfW + Math.sin(outAngle) * height * 0.45 + Math.sin(outAngle + Math.PI / 2) * curveRand;
-
-        const grad = c.createLinearGradient(bx, by, tipX, tipY);
-        grad.addColorStop(0, 'rgba(255,255,255,0.9)');
-        grad.addColorStop(0.15, colorStop1);
-        grad.addColorStop(0.65, colorStop2);
-        grad.addColorStop(1, 'transparent');
-        c.fillStyle = grad;
-        c.shadowColor = '#00e5ff';
-        c.shadowBlur = 14;
-        c.beginPath();
-        c.moveTo(bx + perpX * halfW, by + perpY * halfW);
-        c.quadraticCurveTo(ctrl1X, ctrl1Y, tipX, tipY);
-        c.quadraticCurveTo(ctrl2X, ctrl2Y, bx - perpX * halfW, by - perpY * halfW);
-        c.arc(bx, by, halfW, Math.atan2(-perpY, -perpX), Math.atan2(perpY, perpX), false);
-        c.closePath();
-        c.fill();
-        c.restore();
-      }
-
       function animateFlames() {
         requestAnimationFrame(animateFlames);
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (ctx && canvas) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
 
         const isPlaying = (audio && !audio.paused && !audio.ended && audio.currentTime > 0);
         const t = (audio && audio.currentTime > 0) ? audio.currentTime : (Date.now() / 1000);
 
-        // Beat energy
         let targetEnergy = 0.12;
         if (isPlaying) {
           const kick  = Math.pow(Math.max(0, Math.sin(t * Math.PI * 2.133)), 4);
@@ -1208,96 +1221,28 @@ HTML_CONTENT = """<!DOCTYPE html>
         }
         flameEnergy += (targetEnergy - flameEnergy) * (targetEnergy > flameEnergy ? 0.35 : 0.16);
 
-        ctx.globalCompositeOperation = 'lighter';
+        // 1. Modulate SVG Flame directly attached to the defined skull head border
+        if (svgFlame) {
+          const flameScaleY = 1.0 + flameEnergy * 0.32;
+          const flameScaleX = 1.0 + flameEnergy * 0.12;
+          svgFlame.style.transform = `scale(${flameScaleX.toFixed(3)}, ${flameScaleY.toFixed(3)})`;
+        }
 
-        if (flameEnergy > 0.05) {
-          const now = Date.now();
-
-          // Cyan radial glow halo around cranium
-          const halo = ctx.createRadialGradient(CX, CY, CR * 0.7, CX, CY, CR * 2.0 + flameEnergy * 24);
-          halo.addColorStop(0, `rgba(0,229,255,${(0.22 * flameEnergy).toFixed(2)})`);
-          halo.addColorStop(0.55, `rgba(0,160,255,${(0.12 * flameEnergy).toFixed(2)})`);
-          halo.addColorStop(1, 'transparent');
-          ctx.fillStyle = halo;
-          ctx.beginPath();
-          ctx.arc(CX, CY, CR * 2.4 + flameEnergy * 22, 0, Math.PI * 2);
-          ctx.fill();
-
-          // 7 flame tongues distributed around the top 220° arc of the skull
-          // angles: -110° to +110° from top (i.e. from -1.92 to +1.92 rad, outward = angle - π/2 rotated to point away from center)
-          // outward angle at skull surface = angle pointing AWAY from CX,CY
-          const tongueAngles = [
-            -Math.PI * 0.72,  // far left temple
-            -Math.PI * 0.55,  // left side
-            -Math.PI * 0.35,  // left forehead
-            -Math.PI * 0.5,   // top-left
-            -Math.PI * 0.5,   // straight up (center)
-            -Math.PI * 0.65,  // top-right
-            -Math.PI * 0.82,  // right forehead
-          ];
-
-          // Actually compute outward angles simply: angle from center to surface point
-          // Surface points evenly spread from -110° to +110° of top
-          const numTongues = 9;
-          for (let i = 0; i < numTongues; i++) {
-            // Spread from -110° to +110° measured from "up" (-π/2 radians)
-            const frac = i / (numTongues - 1);        // 0..1
-            const spreadDeg = -110 + frac * 220;       // -110°..+110°
-            const outwardAngle = -Math.PI / 2 + (spreadDeg * Math.PI / 180); // outward from skull
-
-            // Surface point
-            const sx = CX + Math.cos(outwardAngle) * CR;
-            const sy = CY + Math.sin(outwardAngle) * CR;
-
-            // Height varies: tallest at center top, shorter at sides
-            const centerFrac = 1 - Math.abs(frac - 0.5) * 2;  // 0 at edges, 1 at center
-            const baseH = 10 + centerFrac * 18;
-            const height = baseH + flameEnergy * (22 + centerFrac * 36);
-
-            // Width
-            const width = 7 + centerFrac * 7 + flameEnergy * 4;
-
-            // Curve wobble per tongue
-            const wobble = Math.sin(now / (90 + i * 17) + i) * (3 + centerFrac * 4);
-
-            // Colors: central hotter (cyan/white), sides deeper blue
-            const c1 = centerFrac > 0.5 ? '#00e5ff' : '#00b0ff';
-            const c2 = centerFrac > 0.5 ? '#0022ff' : '#0044ff';
-
-            drawRadialTongue(ctx, sx, sy, outwardAngle, height, width, wobble, c1, c2);
+        // 2. Modulate Skull cyan contour glow
+        if (playBtn) {
+          if (isPlaying) {
+            const gs = Math.round(12 + flameEnergy * 24);
+            const ga = (0.65 + flameEnergy * 0.35).toFixed(2);
+            playBtn.style.filter = `drop-shadow(0 0 ${gs}px rgba(0, 229, 255, ${ga}))`;
+          } else {
+            playBtn.style.filter = 'drop-shadow(0 0 10px rgba(0, 229, 255, 0.45))';
           }
         }
 
-        // Spawn arc-distributed particles on beat peaks
-        if (isPlaying && flameEnergy > 0.42 && particles.length < MAX_PARTICLES) {
-          const burst = flameEnergy > 0.68;
-          const frac = Math.random();
-          const spreadDeg = -110 + frac * 220;
-          const outAngle = -Math.PI / 2 + (spreadDeg * Math.PI / 180);
-          const sx = CX + Math.cos(outAngle) * (CR + 2);
-          const sy = CY + Math.sin(outAngle) * (CR + 2);
-          particles.push(new FlameParticle(sx, sy, outAngle, burst));
-          if (burst && particles.length < MAX_PARTICLES) {
-            const f2 = Math.random();
-            const a2 = -Math.PI / 2 + ((-110 + f2 * 220) * Math.PI / 180);
-            particles.push(new FlameParticle(CX + Math.cos(a2) * CR, CY + Math.sin(a2) * CR, a2, true));
-          }
-        }
-
-        // Update & draw particles
-        for (let i = particles.length - 1; i >= 0; i--) {
-          const p = particles[i];
-          p.update();
-          p.draw(ctx);
-          if (p.life >= p.maxLife || p.y < 0 || p.x < 0 || p.x > canvas.width) {
-            particles.splice(i, 1);
-          }
-        }
-
-        // Pulse aura
+        // 3. Modulate play button aura
         if (aura) {
           if (isPlaying) {
-            const scale = 1.0 + flameEnergy * 0.5;
+            const scale = 1.0 + flameEnergy * 0.45;
             const op = 0.25 + flameEnergy * 0.65;
             aura.style.transform = `scale(${scale.toFixed(2)})`;
             aura.style.opacity = op.toFixed(2);
@@ -1307,13 +1252,25 @@ HTML_CONTENT = """<!DOCTYPE html>
           }
         }
 
-        if (playBtn) {
-          if (isPlaying) {
-            const gs = Math.round(8 + flameEnergy * 18);
-            const ga = (0.5 + flameEnergy * 0.45).toFixed(2);
-            playBtn.style.filter = `drop-shadow(0 0 ${gs}px rgba(0,229,255,${ga}))`;
-          } else {
-            playBtn.style.filter = 'drop-shadow(0 0 8px rgba(0,229,255,0.4))';
+        // 4. Floating sparks rising above skull cranium
+        if (ctx && canvas) {
+          if (isPlaying && flameEnergy > 0.42 && particles.length < MAX_PARTICLES) {
+            const burst = flameEnergy > 0.7;
+            const spawnX = canvas.width / 2;
+            const spawnY = canvas.height - 8;
+            particles.push(new FlameParticle(spawnX, spawnY, burst));
+            if (burst && particles.length < MAX_PARTICLES) {
+              particles.push(new FlameParticle(spawnX, spawnY, true));
+            }
+          }
+
+          for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            p.update();
+            p.draw(ctx);
+            if (p.life >= p.maxLife || p.y < 0) {
+              particles.splice(i, 1);
+            }
           }
         }
       }
