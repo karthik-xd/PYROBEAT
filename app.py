@@ -709,8 +709,6 @@ HTML_CONTENT = """<!DOCTYPE html>
               <!-- Cheekbone Contour Lines -->
               <path d="M 17,73 Q 23,69 25,62" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.6" />
               <path d="M 83,73 Q 77,69 75,62" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.6" />
-              <!-- Inverted Heart Nasal Cavity -->
-              <path d="M 50,71 C 48,67 44,68 44,72 C 44,75 48,79 50,82 C 52,79 56,75 56,72 C 56,68 52,67 50,71 Z" fill="#07090e" />
               <!-- Teeth Ridges -->
               <line x1="39" y1="91" x2="39" y2="102" stroke="#07090e" stroke-width="2.2" stroke-linecap="round" />
               <line x1="46" y1="90" x2="46" y2="103" stroke="#07090e" stroke-width="2.2" stroke-linecap="round" />
