@@ -661,9 +661,9 @@ HTML_CONTENT = """<!DOCTYPE html>
 
         <!-- WHITE SKULL PLAY / PAUSE BUTTON WITH DYNAMIC BEAT FLAME DIRECTLY ON TOP -->
         <div class="relative z-10 flex items-center justify-center">
-          <!-- Dynamic Beat Flame Canvas: positioned directly on the skull cranium -->
-          <div id="flameContainer" class="absolute -top-14 left-1/2 -translate-x-1/2 pointer-events-none w-40 h-24 overflow-visible flex items-end justify-center z-0">
-            <canvas id="flameCanvas" width="160" height="96" class="pointer-events-none"></canvas>
+          <!-- Dynamic Beat Flame Canvas: wraps around the curved cranium of the skull -->
+          <div id="flameContainer" class="absolute -top-14 left-1/2 -translate-x-1/2 pointer-events-none w-44 h-26 overflow-visible flex items-end justify-center z-0">
+            <canvas id="flameCanvas" width="180" height="104" class="pointer-events-none"></canvas>
           </div>
 
           <!-- Flame Aura Glow behind skull -->
@@ -1145,10 +1145,10 @@ HTML_CONTENT = """<!DOCTYPE html>
 
       function drawFlameTongue(c, baseX, baseY, height, width, curveOffset, colorStop1, colorStop2) {
         c.save();
-        const grad = c.createLinearGradient(baseX, baseY, baseX, baseY - height);
-        grad.addColorStop(0, '#ffffff');
-        grad.addColorStop(0.2, colorStop1);
-        grad.addColorStop(0.75, colorStop2);
+        const grad = c.createLinearGradient(baseX, baseY + 6, baseX + curveOffset * 1.3, baseY - height);
+        grad.addColorStop(0, 'rgba(0, 229, 255, 0)');
+        grad.addColorStop(0.12, colorStop1);
+        grad.addColorStop(0.65, colorStop2);
         grad.addColorStop(1, 'transparent');
 
         c.fillStyle = grad;
@@ -1156,8 +1156,9 @@ HTML_CONTENT = """<!DOCTYPE html>
         c.shadowBlur = 10;
         c.beginPath();
         c.moveTo(baseX - width / 2, baseY);
-        c.quadraticCurveTo(baseX - width / 4 + curveOffset, baseY - height * 0.6, baseX + curveOffset * 1.4, baseY - height);
-        c.quadraticCurveTo(baseX + width / 4 + curveOffset, baseY - height * 0.6, baseX + width / 2, baseY);
+        c.quadraticCurveTo(baseX - width / 4 + curveOffset * 0.7, baseY - height * 0.55, baseX + curveOffset * 1.25, baseY - height);
+        c.quadraticCurveTo(baseX + width / 4 + curveOffset * 0.7, baseY - height * 0.55, baseX + width / 2, baseY);
+        c.quadraticCurveTo(baseX, baseY - 4, baseX - width / 2, baseY);
         c.closePath();
         c.fill();
         c.restore();
@@ -1187,39 +1188,73 @@ HTML_CONTENT = """<!DOCTYPE html>
         flameEnergy += (targetEnergy - flameEnergy) * (targetEnergy > flameEnergy ? 0.35 : 0.16);
 
         const centerX = canvas.width / 2;
-        const baseY = canvas.height - 4;
+        const skullApexY = canvas.height - 18;
+
+        function getCraniumY(dx) {
+          return skullApexY + (dx * dx) / 38;
+        }
 
         ctx.globalCompositeOperation = 'lighter';
 
-        if (flameEnergy > 0.06) {
-          const wobble = Math.sin(Date.now() / 110) * 4;
-          const wobble2 = Math.cos(Date.now() / 130) * 5;
+        if (flameEnergy > 0.05) {
+          const now = Date.now();
+          const wobble = Math.sin(now / 110) * 3.5;
+          const wobble2 = Math.cos(now / 130) * 4.5;
 
-          // Outer deep blue flame
-          const outerHeight = 22 + flameEnergy * 64;
-          drawFlameTongue(ctx, centerX, baseY, outerHeight, 40, wobble * 0.6, '#00b0ff', '#0033ff');
+          // 1. Radial cyan flame halo wrapping around the curved skull dome
+          const haloGrad = ctx.createRadialGradient(centerX, skullApexY + 16, 12, centerX, skullApexY + 16, 36 + flameEnergy * 18);
+          haloGrad.addColorStop(0, `rgba(0, 229, 255, ${(0.35 * flameEnergy).toFixed(2)})`);
+          haloGrad.addColorStop(0.6, `rgba(0, 160, 255, ${(0.18 * flameEnergy).toFixed(2)})`);
+          haloGrad.addColorStop(1, 'transparent');
+          ctx.fillStyle = haloGrad;
+          ctx.beginPath();
+          ctx.arc(centerX, skullApexY + 16, 42 + flameEnergy * 18, Math.PI, 0, false);
+          ctx.fill();
 
-          // Left secondary flame lick
-          drawFlameTongue(ctx, centerX - 14, baseY, outerHeight * 0.78, 25, -wobble2 * 0.7, '#00e5ff', '#0066ff');
+          // 2. Far-Left Flame Lick (wrapping around the left temple)
+          const lx2 = -26;
+          const ly2 = getCraniumY(lx2);
+          const lh2 = (14 + flameEnergy * 42) * 0.72;
+          drawFlameTongue(ctx, centerX + lx2, ly2, lh2, 18, -13 - wobble2 * 0.8, '#00b0ff', '#0033ff');
 
-          // Right secondary flame lick
-          drawFlameTongue(ctx, centerX + 14, baseY, outerHeight * 0.75, 25, wobble2 * 0.7, '#00e5ff', '#0066ff');
+          // 3. Mid-Left Flame Lick (sweeping up and around left forehead)
+          const lx1 = -14;
+          const ly1 = getCraniumY(lx1);
+          const lh1 = (18 + flameEnergy * 56) * 0.82;
+          drawFlameTongue(ctx, centerX + lx1, ly1, lh1, 24, -7 - wobble * 0.6, '#00e5ff', '#0055ff');
 
-          // Core electric cyan flame
-          const coreHeight = 16 + flameEnergy * 50;
-          drawFlameTongue(ctx, centerX, baseY, coreHeight, 28, wobble * 0.4, '#00e5ff', '#00d2ff');
+          // 4. Far-Right Flame Lick (wrapping around the right temple)
+          const rx2 = 26;
+          const ry2 = getCraniumY(rx2);
+          const rh2 = (14 + flameEnergy * 42) * 0.70;
+          drawFlameTongue(ctx, centerX + rx2, ry2, rh2, 18, 13 + wobble2 * 0.8, '#00b0ff', '#0033ff');
 
+          // 5. Mid-Right Flame Lick (sweeping up and around right forehead)
+          const rx1 = 14;
+          const ry1 = getCraniumY(rx1);
+          const rh1 = (18 + flameEnergy * 56) * 0.80;
+          drawFlameTongue(ctx, centerX + rx1, ry1, rh1, 24, 7 + wobble * 0.6, '#00e5ff', '#0055ff');
+
+          // 6. Central Hero Flame Crest (Tallest, roaring fire directly on apex)
+          const heroHeight = 24 + flameEnergy * 68;
+          // Outer deep blue
+          drawFlameTongue(ctx, centerX, skullApexY, heroHeight, 38, wobble * 0.5, '#00b0ff', '#0022ff');
+          // Core electric cyan
+          drawFlameTongue(ctx, centerX, skullApexY, heroHeight * 0.76, 26, wobble * 0.35, '#00e5ff', '#00d2ff');
           // White-hot inner core
-          const whiteHeight = 10 + flameEnergy * 28;
-          drawFlameTongue(ctx, centerX, baseY, whiteHeight, 16, 0, '#ffffff', '#aef8ff');
+          drawFlameTongue(ctx, centerX, skullApexY, heroHeight * 0.45, 16, 0, '#ffffff', '#aef8ff');
         }
 
-        // Spawn spark particles on beat peaks
+        // Spawn spark particles from along the curved skull cranium arc
         if (isPlaying && flameEnergy > 0.45 && particles.length < MAX_PARTICLES) {
           const burst = (flameEnergy > 0.7);
-          particles.push(new FlameParticle(centerX, baseY, burst));
+          const angle = (Math.random() * 0.7 + 0.15) * Math.PI;
+          const spawnX = centerX - Math.cos(angle) * (20 + Math.random() * 4);
+          const spawnY = (skullApexY + 14) - Math.sin(angle) * (20 + Math.random() * 4);
+          particles.push(new FlameParticle(spawnX, spawnY, burst));
           if (burst && particles.length < MAX_PARTICLES) {
-            particles.push(new FlameParticle(centerX, baseY, true));
+            const angle2 = (Math.random() * 0.7 + 0.15) * Math.PI;
+            particles.push(new FlameParticle(centerX - Math.cos(angle2) * 22, (skullApexY + 14) - Math.sin(angle2) * 22, true));
           }
         }
 
