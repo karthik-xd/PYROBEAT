@@ -106,6 +106,11 @@ def extract_spotify_metadata(url_or_uri: str) -> Dict[str, Any]:
     import re, urllib.request, urllib.parse, json, concurrent.futures
 
     raw = url_or_uri.strip()
+    if "collection/tracks" in raw.lower():
+        raise HTTPException(
+            status_code=400,
+            detail="Spotify Liked Songs (collection/tracks) is private to your Spotify account. To import: in Spotify desktop, press Ctrl+A on Liked Songs -> Right Click -> Add to Playlist -> New Playlist -> Share public link here!"
+        )
     m = re.search(r"(playlist|album|track)[/:]([a-zA-Z0-9]+)", raw)
     if not m:
         raise HTTPException(status_code=400, detail="Invalid Spotify link format. Provide open.spotify.com/playlist/... or album/...")
@@ -379,7 +384,7 @@ HTML_CONTENT = """<!DOCTYPE html>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>SKULLBEAT - Pure Audio Experience</title>
-  <link rel="icon" type="image/png" href="/logo.png?v=9">
+  <link rel="icon" type="image/png" href="/logo.png?v=10">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@800;900&display=swap" rel="stylesheet">
@@ -390,15 +395,19 @@ HTML_CONTENT = """<!DOCTYPE html>
         extend: {
           colors: {
             navy: {
-              DEFAULT: '#070B16',
-              bg: '#070B16',
-              surface: '#0F1830',
-              card: '#142040',
-              hover: '#1A2952',
+              DEFAULT: '#05070F',
+              bg: '#05070F',
+              surface: '#0E1426',
+              raised: '#172044',
             },
-            bone: '#EAF0FF',
-            muted: '#8A96B8',
-            electric: '#2F7BFF',
+            bone: '#F2F5FF',
+            muted: '#7F8BB0',
+            electric: '#3D8BFF',
+            cyan: '#00D4FF',
+            violet: '#8B5CFF',
+            heart: '#FF3B5C',
+            success: '#2DE08A',
+            warning: '#FFB020',
           }
         }
       }
@@ -411,66 +420,82 @@ HTML_CONTENT = """<!DOCTYPE html>
       font-weight: 900;
     }
     :root {
-      /* Palette 60-25-10-5 */
-      --navy-bg: #070B16;          /* 60% deep navy */
-      --navy-surface: #0F1830;     /* 25% dark blue */
-      --navy-card: #142040;
-      --navy-card-hover: #1A2952;
-      --text-bone: #EAF0FF;        /* 10% bone white */
-      --text-muted: #8A96B8;       /* muted blue-gray */
-      --accent-electric: #2F7BFF;  /* 5% electric blue */
-      --accent-glow: rgba(47, 123, 255, 0.45);
+      /* Precise Palette Ratios */
+      --color-bg: #05070F;         /* Deep navy 47% */
+      --color-surface: #0E1426;    /* Dark blue cards & sidebar 20% */
+      --color-raised: #172044;     /* Raised blue hover & selection 10% */
+      --color-bone: #F2F5FF;       /* Bone white main text & logo 8% */
+      --color-muted: #7F8BB0;      /* Muted blue-gray secondary text 5% */
+      --color-electric: #3D8BFF;   /* Electric blue accent 5% */
+      --color-cyan: #00D4FF;       /* Cyan gradient partner 3% */
+      --color-violet: #8B5CFF;     /* Violet highlight partner 2% */
+      --color-heart: #FF3B5C;      /* Likes / errors */
+      --color-success: #2DE08A;    /* Success / downloads */
+      --color-warning: #FFB020;    /* Warnings */
 
-      --pyro-cyan: #2F7BFF;
-      --pyro-blue: #2F7BFF;
-      --pyro-glow: rgba(47, 123, 255, 0.45);
-      --pyro-bg: #070B16;
-      --pyro-panel: #0F1830;
-      --pyro-card: #142040;
-      --pyro-card-hover: #1A2952;
+      /* Gradients */
+      --grad-main: linear-gradient(135deg, #3D8BFF 0%, #00D4FF 100%);
+      --grad-highlight: linear-gradient(135deg, #3D8BFF 0%, #8B5CFF 100%);
+      --grad-bg: linear-gradient(180deg, #172044 0%, #05070F 280px, #05070F 100%);
+
+      /* Legacy variable fallbacks */
+      --pyro-cyan: #3D8BFF;
+      --pyro-blue: #00D4FF;
+      --pyro-glow: rgba(0, 212, 255, 0.45);
+      --pyro-bg: #05070F;
+      --pyro-panel: #0E1426;
+      --pyro-card: #0E1426;
+      --pyro-card-hover: #172044;
     }
     body {
-      background-color: #070B16;
-      color: #EAF0FF;
+      background: linear-gradient(180deg, #172044 0%, #05070F 280px, #05070F 100%);
+      background-color: #05070F;
+      color: #F2F5FF;
       font-family: -apple-system, BlinkMacSystemFont, "Circular Spotify Tx T", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       user-select: none;
       -webkit-tap-highlight-color: transparent;
       overflow: hidden;
     }
     .spotify-panel {
-      background-color: #0F1830;
-      border: 1px solid rgba(47, 123, 255, 0.12);
+      background-color: #0E1426;
+      border: 1px solid rgba(61, 139, 255, 0.12);
       border-radius: 12px;
     }
     .spotify-card {
-      background-color: #142040;
-      border: 1px solid rgba(47, 123, 255, 0.08);
+      background-color: #0E1426;
+      border: 1px solid rgba(61, 139, 255, 0.08);
       border-radius: 10px;
       transition: background-color 0.2s ease, transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     }
     .spotify-card:hover {
-      background-color: #1A2952;
-      border-color: rgba(47, 123, 255, 0.4);
-      box-shadow: 0 4px 20px rgba(47, 123, 255, 0.2);
+      background-color: #172044;
+      border-color: rgba(61, 139, 255, 0.45);
+      box-shadow: 0 4px 20px rgba(0, 212, 255, 0.2);
       transform: translateY(-2px);
     }
     .text-neutral-400 {
-      color: #8A96B8 !important;
+      color: #7F8BB0 !important;
     }
     .text-neutral-500 {
-      color: #627094 !important;
+      color: #556080 !important;
     }
     .text-white {
-      color: #EAF0FF !important;
+      color: #F2F5FF !important;
     }
-    /* Seek slider with Electric Blue */
+    .text-pink-500 {
+      color: #FF3B5C !important;
+    }
+    /* Main Gradient on Seek Slider (electric blue to cyan) */
+    .seek-slider {
+      background: linear-gradient(90deg, #3D8BFF, #00D4FF) !important;
+    }
     .seek-slider::-webkit-slider-thumb {
       appearance: none;
       width: 12px;
       height: 12px;
       border-radius: 50%;
-      background: #2F7BFF;
-      box-shadow: 0 0 10px #2F7BFF;
+      background: #00D4FF;
+      box-shadow: 0 0 10px #00D4FF, 0 0 4px #3D8BFF;
       cursor: pointer;
       opacity: 0;
       transition: opacity 0.15s ease, transform 0.15s ease;
@@ -482,8 +507,8 @@ HTML_CONTENT = """<!DOCTYPE html>
     /* Scrollbars */
     ::-webkit-scrollbar { width: 8px; height: 8px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(47, 123, 255, 0.2); border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: rgba(47, 123, 255, 0.45); }
+    ::-webkit-scrollbar-thumb { background: rgba(61, 139, 255, 0.22); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(0, 212, 255, 0.45); }
 
     /* Solid Color Monochrome Emojis */
     .emoji-solid-white {
@@ -500,9 +525,6 @@ HTML_CONTENT = """<!DOCTYPE html>
       line-height: 1;
       filter: grayscale(100%) brightness(0);
     }
-    #playerPlayIcon {
-      color: #070B16 !important;
-    }
   </style>
 </head>
 <body class="h-screen w-screen flex flex-col p-2 gap-2 select-none">
@@ -516,7 +538,7 @@ HTML_CONTENT = """<!DOCTYPE html>
     <aside class="w-64 sm:w-72 spotify-panel flex flex-col p-4 flex-shrink-0 overflow-hidden">
       <!-- SKULLBEAT BRAND HEADER (Centered Logo + Inverting Beat Fire Wave Name) -->
       <div class="flex items-center space-x-3 mb-6 px-1 py-1 cursor-pointer group" onclick="switchTab('home')">
-        <img src="/logo.png?v=9" alt="SKULLBEAT" class="w-11 h-11 object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)] group-hover:scale-110 transition-transform">
+        <img src="/logo.png?v=10" alt="SKULLBEAT" class="w-11 h-11 object-contain drop-shadow-[0_0_16px_rgba(61,139,255,0.45)] group-hover:scale-110 transition-transform">
         
         <!-- Seamless Fire Wave with Pure Black/White Inverting Orbitron Text (No Red, No Box Border) -->
         <div class="relative flex items-center overflow-hidden rounded-md px-1 py-0.5 select-none">
@@ -527,14 +549,14 @@ HTML_CONTENT = """<!DOCTYPE html>
         </div>
       </div>
 
-      <!-- Top navigation (Home & Search) -->
-      <div class="space-y-3 mb-4">
-        <button onclick="switchTab('home')" id="side-nav-home" class="w-full flex items-center space-x-4 text-[#2F7BFF] font-bold text-sm hover:text-[#2F7BFF] transition">
-          <i class="fa-solid fa-house text-lg"></i>
+      <!-- Top navigation (Home & Search) - Highlight Gradient for Active Tab -->
+      <div class="space-y-2 mb-4">
+        <button onclick="switchTab('home')" id="side-nav-home" class="w-full flex items-center space-x-3 text-bone font-bold text-sm px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-[#3D8BFF] to-[#8B5CFF] shadow-[0_0_16px_rgba(61,139,255,0.4)] transition">
+          <i class="fa-solid fa-house text-base"></i>
           <span>Home</span>
         </button>
-        <button onclick="switchTab('search')" id="side-nav-search" class="w-full flex items-center space-x-4 text-[#8A96B8] font-bold text-sm hover:text-[#2F7BFF] transition">
-          <i class="fa-solid fa-magnifying-glass text-lg"></i>
+        <button onclick="switchTab('search')" id="side-nav-search" class="w-full flex items-center space-x-3 text-[#7F8BB0] font-bold text-sm px-3.5 py-2.5 rounded-xl hover:text-bone hover:bg-white/5 transition">
+          <i class="fa-solid fa-magnifying-glass text-base"></i>
           <span>Search</span>
         </button>
       </div>
@@ -592,14 +614,14 @@ HTML_CONTENT = """<!DOCTYPE html>
               placeholder="What do you want to play?" 
               oninput="debounceSearch(this.value)"
               onkeydown="if(event.key === 'Enter'){ if(searchDebounceTimeout) clearTimeout(searchDebounceTimeout); if(this.value.trim()){ switchTab('search'); runSearch(this.value.trim()); } }"
-              class="w-full pl-10 pr-4 py-2 bg-[#070B16] hover:bg-[#070B16]/80 focus:bg-[#070B16] border border-[#2F7BFF]/25 focus:border-[#2F7BFF] rounded-full text-xs sm:text-sm text-bone placeholder-[#8A96B8] focus:outline-none transition shadow-inner"
+              class="w-full pl-10 pr-4 py-2 bg-[#05070F] hover:bg-[#05070F]/80 focus:bg-[#05070F] border border-[#3D8BFF]/30 focus:border-[#00D4FF] rounded-full text-xs sm:text-sm text-bone placeholder-[#7F8BB0] focus:outline-none transition shadow-inner"
             />
           </div>
         </div>
 
         <!-- Right: 3-dot Menu & Profile -->
         <div class="flex items-center space-x-3 flex-shrink-0">
-          <button onclick="toggleImportModal()" title="Import Spotify or YouTube Library" class="text-bone hover:text-white text-xs hidden sm:inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full border border-[#2F7BFF]/40 hover:border-[#2F7BFF] bg-[#2F7BFF]/15 hover:bg-[#2F7BFF]/30 transition shadow-sm">
+          <button onclick="toggleImportModal()" title="Import Spotify or YouTube Library" class="text-bone hover:opacity-90 text-xs hidden sm:inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-[#3D8BFF] to-[#8B5CFF] shadow-[0_0_15px_rgba(61,139,255,0.4)] transition">
             <i class="fa-brands fa-spotify text-emerald-400"></i>
             <i class="fa-brands fa-youtube text-red-500 text-[11px]"></i>
             <span class="font-semibold text-bone">Import</span>
@@ -810,7 +832,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         <!-- Shuffle -->
         <button onclick="toggleShuffle()" id="playerShuffleBtn" title="Shuffle" class="text-neutral-400 hover:text-white text-sm transition relative z-10">
           <i class="fa-solid fa-shuffle"></i>
-          <span id="playerShuffleDot" class="w-1.5 h-1.5 rounded-full bg-[#2F7BFF] shadow-[0_0_8px_#2F7BFF] absolute -bottom-1.5 left-1/2 transform -translate-x-1/2 hidden"></span>
+          <span id="playerShuffleDot" class="w-1.5 h-1.5 rounded-full bg-[#00D4FF] shadow-[0_0_8px_#3D8BFF] absolute -bottom-1.5 left-1/2 transform -translate-x-1/2 hidden"></span>
         </button>
 
         <!-- Previous -->
@@ -818,28 +840,27 @@ HTML_CONTENT = """<!DOCTYPE html>
           <i class="fa-solid fa-backward-step"></i>
         </button>
 
-        <!-- WHITE SKULL PLAY / PAUSE BUTTON (CLEAN BONE SKULL, NO CYAN GLOW) -->
+        <!-- BONE WHITE SKULL PLAY / PAUSE BUTTON (SOFT BLUE GLOW + ELECTRIC-TO-CYAN PLAY ICON) -->
         <div class="relative z-10 flex items-center justify-center">
-          <!-- White Skull Play/Pause Button with Defined Dark Contour -->
           <button onclick="togglePlayPause()" id="playerPlayBtn" title="Play / Pause"
-            class="relative z-10 w-12 h-14 sm:w-14 sm:h-16 hover:scale-105 active:scale-95 flex items-center justify-center transition duration-150 select-none focus:outline-none drop-shadow-[0_4px_12px_rgba(7,11,22,0.85)]">
+            class="relative z-10 w-12 h-14 sm:w-14 sm:h-16 hover:scale-105 active:scale-95 flex items-center justify-center transition duration-150 select-none focus:outline-none drop-shadow-[0_0_16px_rgba(61,139,255,0.45)] drop-shadow-[0_4px_12px_rgba(5,7,15,0.85)]">
             <svg viewBox="0 0 100 115" class="w-full h-full pointer-events-none select-none overflow-visible">
               <defs>
-                <!-- 3D Shaded Bone White Skull Gradient -->
+                <!-- 3D Shaded Bone White #F2F5FF Skull Gradient -->
                 <linearGradient id="skullBoneGrad" x1="0%" y1="0%" x2="0%" y2="100%">
                   <stop offset="0%" stop-color="#ffffff" />
-                  <stop offset="35%" stop-color="#EAF0FF" />
-                  <stop offset="70%" stop-color="#d6e2fc" />
-                  <stop offset="100%" stop-color="#8A96B8" />
+                  <stop offset="35%" stop-color="#F2F5FF" />
+                  <stop offset="70%" stop-color="#dce4fc" />
+                  <stop offset="100%" stop-color="#7F8BB0" />
                 </linearGradient>
                 <radialGradient id="craniumHighlight" cx="50%" cy="36%" r="48%">
                   <stop offset="0%" stop-color="#ffffff" />
-                  <stop offset="55%" stop-color="#EAF0FF" stop-opacity="0.95" />
-                  <stop offset="100%" stop-color="#d6e2fc" stop-opacity="0" />
+                  <stop offset="55%" stop-color="#F2F5FF" stop-opacity="0.95" />
+                  <stop offset="100%" stop-color="#dce4fc" stop-opacity="0" />
                 </radialGradient>
               </defs>
 
-              <!-- DEFINED SKULL HEAD & BODY (CLEAN DEEP NAVY BORDER) -->
+              <!-- DEFINED SKULL HEAD & BODY (CLEAN DEEP NAVY #05070F BORDER) -->
               <path d="M 12,50 
                        C 12,30 26,14 50,14 
                        C 74,14 88,30 88,50 
@@ -851,26 +872,26 @@ HTML_CONTENT = """<!DOCTYPE html>
                        C 28,86 27,82 24,80 
                        C 17,75 12,66 12,50 Z" 
                     fill="url(#skullBoneGrad)" 
-                    stroke="#070B16" 
+                    stroke="#05070F" 
                     stroke-width="2.4" />
 
               <!-- 3D Cranium Highlight -->
               <ellipse cx="50" cy="42" rx="33" ry="24" fill="url(#craniumHighlight)" />
 
-              <!-- Cheekbone subtle contour lines in Muted Blue-Gray -->
-              <path d="M 19,72 Q 25,68 27,61" stroke="#8A96B8" stroke-width="2.2" stroke-linecap="round" fill="none" opacity="0.75" />
-              <path d="M 81,72 Q 75,68 73,61" stroke="#8A96B8" stroke-width="2.2" stroke-linecap="round" fill="none" opacity="0.75" />
+              <!-- Cheekbone subtle contour lines in Muted Blue-Gray #7F8BB0 -->
+              <path d="M 19,72 Q 25,68 27,61" stroke="#7F8BB0" stroke-width="2.2" stroke-linecap="round" fill="none" opacity="0.8" />
+              <path d="M 81,72 Q 75,68 73,61" stroke="#7F8BB0" stroke-width="2.2" stroke-linecap="round" fill="none" opacity="0.8" />
 
-              <!-- Teeth Ridges on jaw in Deep Navy -->
-              <line x1="39" y1="86" x2="39" y2="96" stroke="#070B16" stroke-width="2.4" stroke-linecap="round" />
-              <line x1="46" y1="85" x2="46" y2="97" stroke="#070B16" stroke-width="2.4" stroke-linecap="round" />
-              <line x1="54" y1="85" x2="54" y2="97" stroke="#070B16" stroke-width="2.4" stroke-linecap="round" />
-              <line x1="61" y1="86" x2="61" y2="96" stroke="#070B16" stroke-width="2.4" stroke-linecap="round" />
+              <!-- Teeth Ridges on jaw in Deep Navy #05070F -->
+              <line x1="39" y1="86" x2="39" y2="96" stroke="#05070F" stroke-width="2.4" stroke-linecap="round" />
+              <line x1="46" y1="85" x2="46" y2="97" stroke="#05070F" stroke-width="2.4" stroke-linecap="round" />
+              <line x1="54" y1="85" x2="54" y2="97" stroke="#05070F" stroke-width="2.4" stroke-linecap="round" />
+              <line x1="61" y1="86" x2="61" y2="96" stroke="#05070F" stroke-width="2.4" stroke-linecap="round" />
             </svg>
 
-            <!-- Centered Black Play / Pause Icon - EXACT OPTICAL EYE LEVEL -->
+            <!-- Centered Electric-to-Cyan Gradient Play / Pause Icon -->
             <div class="absolute inset-0 flex items-center justify-center pointer-events-none" style="margin-top: -8px;">
-              <i id="playerPlayIcon" class="fa-solid fa-play text-black text-sm sm:text-base font-black" style="color: #070B16 !important; transform: translateX(1.5px);"></i>
+              <i id="playerPlayIcon" class="fa-solid fa-play text-sm sm:text-base font-black" style="background: linear-gradient(135deg, #3D8BFF 0%, #00D4FF 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; transform: translateX(1.5px);"></i>
             </div>
           </button>
         </div>
@@ -883,7 +904,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         <!-- Repeat -->
         <button onclick="toggleRepeat()" id="playerRepeatBtn" title="Repeat" class="text-neutral-400 hover:text-white text-sm transition relative z-10">
           <i id="repeatIcon" class="fa-solid fa-repeat"></i>
-          <span id="playerRepeatDot" class="w-1.5 h-1.5 rounded-full bg-[#2F7BFF] shadow-[0_0_8px_#2F7BFF] absolute -bottom-1.5 left-1/2 transform -translate-x-1/2 hidden"></span>
+          <span id="playerRepeatDot" class="w-1.5 h-1.5 rounded-full bg-[#00D4FF] shadow-[0_0_8px_#3D8BFF] absolute -bottom-1.5 left-1/2 transform -translate-x-1/2 hidden"></span>
         </button>
       </div>
 
@@ -898,7 +919,7 @@ HTML_CONTENT = """<!DOCTYPE html>
           value="0" 
           oninput="onSeekInput(this.value)" 
           onchange="onSeekChange(this.value)"
-          class="flex-1 h-1 bg-white/20 hover:bg-white/40 rounded-full appearance-none cursor-pointer seek-slider accent-[#2F7BFF]"
+          class="flex-1 h-1 bg-white/20 hover:bg-white/40 rounded-full appearance-none cursor-pointer seek-slider accent-[#00D4FF]"
         />
         <span id="playerTotalTime" class="w-8">0:00</span>
       </div>
@@ -929,7 +950,7 @@ HTML_CONTENT = """<!DOCTYPE html>
           step="0.05" 
           value="1" 
           oninput="changeVolume(this.value)" 
-          class="w-20 h-1 bg-white/20 hover:bg-white/40 rounded-full appearance-none cursor-pointer accent-[#2F7BFF]"
+          class="w-20 h-1 bg-white/20 hover:bg-white/40 rounded-full appearance-none cursor-pointer accent-[#00D4FF]"
         />
       </div>
 
@@ -941,97 +962,97 @@ HTML_CONTENT = """<!DOCTYPE html>
   </footer>
 
   <!-- MULTI-PLAYLIST PICKER MODAL -->
-  <div id="playlistPickerModal" class="fixed inset-0 bg-[#070B16]/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-[#0F1830] max-w-md w-full rounded-2xl p-6 border border-[#2F7BFF]/20 shadow-2xl">
+  <div id="playlistPickerModal" class="fixed inset-0 bg-[#05070F]/85 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-[#0E1426] max-w-md w-full rounded-2xl p-6 border border-[#3D8BFF]/20 shadow-2xl">
       <div class="flex justify-between items-center mb-4">
         <h3 class="text-base font-bold text-bone">Add to Playlist</h3>
-        <button onclick="closePlaylistPickerModal()" class="text-[#8A96B8] hover:text-bone"><i class="fa-solid fa-xmark"></i></button>
+        <button onclick="closePlaylistPickerModal()" class="text-[#7F8BB0] hover:text-bone"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
       <div class="space-y-2 max-h-60 overflow-y-auto mb-4" id="playlistPickerList"></div>
 
       <!-- Create New Playlist on the fly -->
       <div class="pt-3 border-t border-white/10 flex space-x-2">
-        <input id="newPlaylistInput" type="text" placeholder="Create new playlist..." class="flex-1 px-3.5 py-2 bg-[#070B16] border border-[#2F7BFF]/25 rounded-lg text-xs text-bone placeholder-[#8A96B8] focus:outline-none focus:border-[#2F7BFF]">
-        <button onclick="createNewPlaylistFromPicker()" class="px-4 py-2 bg-[#2F7BFF] text-bone rounded-lg text-xs font-bold hover:scale-105 transition shadow-[0_0_10px_rgba(47,123,255,0.35)]">Create</button>
+        <input id="newPlaylistInput" type="text" placeholder="Create new playlist..." class="flex-1 px-3.5 py-2 bg-[#05070F] border border-[#3D8BFF]/25 rounded-lg text-xs text-bone placeholder-[#7F8BB0] focus:outline-none focus:border-[#00D4FF]">
+        <button onclick="createNewPlaylistFromPicker()" class="px-4 py-2 bg-gradient-to-r from-[#3D8BFF] to-[#00D4FF] text-bone rounded-lg text-xs font-bold hover:scale-105 transition shadow-[0_0_12px_rgba(61,139,255,0.4)]">Create</button>
       </div>
     </div>
   </div>
 
   <!-- CREATE / EDIT PLAYLIST MODAL -->
-  <div id="createPlaylistModal" class="fixed inset-0 bg-[#070B16]/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-[#0F1830] max-w-lg w-full rounded-2xl p-5 sm:p-6 border border-[#2F7BFF]/20 shadow-2xl space-y-3.5">
+  <div id="createPlaylistModal" class="fixed inset-0 bg-[#05070F]/85 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-[#0E1426] max-w-lg w-full rounded-2xl p-5 sm:p-6 border border-[#3D8BFF]/20 shadow-2xl space-y-3.5">
       <div class="flex justify-between items-center">
         <h3 id="createPlaylistModalTitle" class="text-base font-bold text-bone">Create or Edit Playlist</h3>
-        <button onclick="toggleCreatePlaylistModal()" class="text-[#8A96B8] hover:text-bone"><i class="fa-solid fa-xmark"></i></button>
+        <button onclick="toggleCreatePlaylistModal()" class="text-[#7F8BB0] hover:text-bone"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
       <!-- Live Dynamic Playlist Preview Card -->
-      <div class="flex items-center space-x-3.5 p-3 rounded-xl bg-[#142040] border border-[#2F7BFF]/15">
-        <div id="modalCoverPreview" class="w-14 h-14 rounded-lg flex items-center justify-center text-3xl shadow-xl flex-shrink-0 transition-all duration-200" style="background: radial-gradient(circle, #2F7BFF 0%, #070B16 100%); border: 1px solid rgba(47, 123, 255, 0.4);">
+      <div class="flex items-center space-x-3.5 p-3 rounded-xl bg-[#172044] border border-[#3D8BFF]/20">
+        <div id="modalCoverPreview" class="w-14 h-14 rounded-lg flex items-center justify-center text-3xl shadow-xl flex-shrink-0 transition-all duration-200" style="background: radial-gradient(circle, #3D8BFF 0%, #05070F 100%); border: 1px solid rgba(61, 139, 255, 0.4);">
           <span id="modalEmojiPreview" class="emoji-solid-white">🎵</span>
         </div>
         <div class="flex-1 min-w-0">
-          <span class="text-[10px] font-bold uppercase tracking-wider text-[#2F7BFF]">PLAYLIST PREVIEW</span>
+          <span class="text-[10px] font-bold uppercase tracking-wider text-[#3D8BFF]">PLAYLIST PREVIEW</span>
           <div id="modalTitlePreview" class="text-sm font-bold text-bone truncate">New Playlist</div>
-          <div id="modalContrastLabel" class="text-[10px] text-[#8A96B8] mt-0.5">Icon: Solid White on Dark BG</div>
+          <div id="modalContrastLabel" class="text-[10px] text-[#7F8BB0] mt-0.5">Icon: Solid White on Dark BG</div>
         </div>
       </div>
       
       <div>
-        <label class="text-[11px] text-[#8A96B8] uppercase font-semibold block mb-1">Name / URL</label>
-        <input id="playlistNameInput" type="text" oninput="updateModalPreviewTitle(this.value)" placeholder="Playlist name OR Spotify / YouTube playlist link..." class="w-full px-3.5 py-2 bg-[#070B16] border border-[#2F7BFF]/25 rounded-lg text-xs text-bone placeholder-[#8A96B8] focus:outline-none focus:border-[#2F7BFF]">
+        <label class="text-[11px] text-[#7F8BB0] uppercase font-semibold block mb-1">Name / URL</label>
+        <input id="playlistNameInput" type="text" oninput="updateModalPreviewTitle(this.value)" placeholder="Playlist name OR Spotify / YouTube playlist link..." class="w-full px-3.5 py-2 bg-[#05070F] border border-[#3D8BFF]/25 rounded-lg text-xs text-bone placeholder-[#7F8BB0] focus:outline-none focus:border-[#00D4FF]">
       </div>
 
       <!-- Color Selection Swatches with Auto-Contrast Detection -->
       <div>
         <div class="flex items-center justify-between mb-1">
-          <label class="text-[11px] text-[#8A96B8] uppercase font-semibold">Background Theme Color</label>
-          <span id="selectedColorPreview" class="w-4 h-4 rounded-full border border-white/40 inline-block" style="background-color: #2F7BFF;"></span>
+          <label class="text-[11px] text-[#7F8BB0] uppercase font-semibold">Background Theme Color</label>
+          <span id="selectedColorPreview" class="w-4 h-4 rounded-full border border-white/40 inline-block" style="background-color: #3D8BFF;"></span>
         </div>
-        <div class="flex items-center space-x-2 bg-[#142040] p-2 rounded-lg border border-white/5 overflow-x-auto scrollbar-thin" id="colorPickerList"></div>
+        <div class="flex items-center space-x-2 bg-[#172044] p-2 rounded-lg border border-white/5 overflow-x-auto scrollbar-thin" id="colorPickerList"></div>
       </div>
 
       <!-- All-Type Emojis: Search, Categories & Solid Black/White Rendering -->
       <div>
         <div class="flex items-center justify-between mb-1">
-          <label class="text-[11px] text-[#8A96B8] uppercase font-semibold">Solid Icon / Emoji</label>
+          <label class="text-[11px] text-[#7F8BB0] uppercase font-semibold">Solid Icon / Emoji</label>
           <div class="flex items-center space-x-1.5">
-            <span class="text-[10px] text-[#8A96B8]">Custom:</span>
-            <input id="playlistEmojiCustom" type="text" maxlength="4" value="🎵" oninput="selectPlaylistEmoji(this.value)" class="w-12 text-center px-1 py-0.5 bg-[#070B16] border border-[#2F7BFF]/25 rounded text-sm text-bone focus:outline-none">
+            <span class="text-[10px] text-[#7F8BB0]">Custom:</span>
+            <input id="playlistEmojiCustom" type="text" maxlength="4" value="🎵" oninput="selectPlaylistEmoji(this.value)" class="w-12 text-center px-1 py-0.5 bg-[#05070F] border border-[#3D8BFF]/25 rounded text-sm text-bone focus:outline-none">
           </div>
         </div>
 
         <!-- Category Filter Pills -->
         <div class="flex items-center space-x-1 overflow-x-auto pb-1 mb-1.5 text-[10px] scrollbar-thin" id="emojiCategoryPills">
-          <button type="button" onclick="filterEmojiCategory('All')" class="emoji-cat-btn px-2 py-0.5 rounded-full bg-[#2F7BFF] text-bone font-semibold flex-shrink-0" data-cat="All">All</button>
-          <button type="button" onclick="filterEmojiCategory('Music')" class="emoji-cat-btn px-2 py-0.5 rounded-full bg-white/5 text-[#8A96B8] hover:text-bone flex-shrink-0" data-cat="Music">🎵 Music</button>
-          <button type="button" onclick="filterEmojiCategory('Vibes')" class="emoji-cat-btn px-2 py-0.5 rounded-full bg-white/5 text-[#8A96B8] hover:text-bone flex-shrink-0" data-cat="Vibes">⚡ Vibes</button>
-          <button type="button" onclick="filterEmojiCategory('Faces')" class="emoji-cat-btn px-2 py-0.5 rounded-full bg-white/5 text-[#8A96B8] hover:text-bone flex-shrink-0" data-cat="Faces">💀 Faces</button>
-          <button type="button" onclick="filterEmojiCategory('Nature')" class="emoji-cat-btn px-2 py-0.5 rounded-full bg-white/5 text-[#8A96B8] hover:text-bone flex-shrink-0" data-cat="Nature">🪐 Nature</button>
-          <button type="button" onclick="filterEmojiCategory('Animals')" class="emoji-cat-btn px-2 py-0.5 rounded-full bg-white/5 text-[#8A96B8] hover:text-bone flex-shrink-0" data-cat="Animals">🐺 Animals</button>
-          <button type="button" onclick="filterEmojiCategory('Sports')" class="emoji-cat-btn px-2 py-0.5 rounded-full bg-white/5 text-[#8A96B8] hover:text-bone flex-shrink-0" data-cat="Sports">🎮 Sports</button>
-          <button type="button" onclick="filterEmojiCategory('Objects')" class="emoji-cat-btn px-2 py-0.5 rounded-full bg-white/5 text-[#8A96B8] hover:text-bone flex-shrink-0" data-cat="Objects">💎 Objects</button>
-          <button type="button" onclick="filterEmojiCategory('Symbols')" class="emoji-cat-btn px-2 py-0.5 rounded-full bg-white/5 text-[#8A96B8] hover:text-bone flex-shrink-0" data-cat="Symbols">♾️ Symbols</button>
+          <button type="button" onclick="filterEmojiCategory('All')" class="emoji-cat-btn px-2 py-0.5 rounded-full bg-[#3D8BFF] text-bone font-semibold flex-shrink-0" data-cat="All">All</button>
+          <button type="button" onclick="filterEmojiCategory('Music')" class="emoji-cat-btn px-2 py-0.5 rounded-full bg-white/5 text-[#7F8BB0] hover:text-bone flex-shrink-0" data-cat="Music">🎵 Music</button>
+          <button type="button" onclick="filterEmojiCategory('Vibes')" class="emoji-cat-btn px-2 py-0.5 rounded-full bg-white/5 text-[#7F8BB0] hover:text-bone flex-shrink-0" data-cat="Vibes">⚡ Vibes</button>
+          <button type="button" onclick="filterEmojiCategory('Faces')" class="emoji-cat-btn px-2 py-0.5 rounded-full bg-white/5 text-[#7F8BB0] hover:text-bone flex-shrink-0" data-cat="Faces">💀 Faces</button>
+          <button type="button" onclick="filterEmojiCategory('Nature')" class="emoji-cat-btn px-2 py-0.5 rounded-full bg-white/5 text-[#7F8BB0] hover:text-bone flex-shrink-0" data-cat="Nature">🪐 Nature</button>
+          <button type="button" onclick="filterEmojiCategory('Animals')" class="emoji-cat-btn px-2 py-0.5 rounded-full bg-white/5 text-[#7F8BB0] hover:text-bone flex-shrink-0" data-cat="Animals">🐺 Animals</button>
+          <button type="button" onclick="filterEmojiCategory('Sports')" class="emoji-cat-btn px-2 py-0.5 rounded-full bg-white/5 text-[#7F8BB0] hover:text-bone flex-shrink-0" data-cat="Sports">🎮 Sports</button>
+          <button type="button" onclick="filterEmojiCategory('Objects')" class="emoji-cat-btn px-2 py-0.5 rounded-full bg-white/5 text-[#7F8BB0] hover:text-bone flex-shrink-0" data-cat="Objects">💎 Objects</button>
+          <button type="button" onclick="filterEmojiCategory('Symbols')" class="emoji-cat-btn px-2 py-0.5 rounded-full bg-white/5 text-[#7F8BB0] hover:text-bone flex-shrink-0" data-cat="Symbols">♾️ Symbols</button>
         </div>
 
         <!-- Search bar inside emoji picker -->
         <div class="relative mb-1.5">
-          <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2 text-[10px] text-[#8A96B8]"></i>
-          <input id="emojiSearchInput" type="text" placeholder="Search emojis or paste any character..." oninput="searchEmojiCatalog(this.value)" class="w-full pl-7 pr-3 py-1 bg-[#070B16] border border-[#2F7BFF]/25 rounded-md text-[11px] text-bone placeholder-[#8A96B8] focus:outline-none focus:border-[#2F7BFF]">
+          <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2 text-[10px] text-[#7F8BB0]"></i>
+          <input id="emojiSearchInput" type="text" placeholder="Search emojis or paste any character..." oninput="searchEmojiCatalog(this.value)" class="w-full pl-7 pr-3 py-1 bg-[#05070F] border border-[#3D8BFF]/25 rounded-md text-[11px] text-bone placeholder-[#7F8BB0] focus:outline-none focus:border-[#00D4FF]">
         </div>
 
         <!-- Scrollable Grid of All Emojis -->
-        <div class="grid grid-cols-8 sm:grid-cols-10 gap-1 bg-[#142040] p-2 rounded-lg border border-white/5 max-h-36 overflow-y-auto scrollbar-thin" id="emojiPickerList"></div>
+        <div class="grid grid-cols-8 sm:grid-cols-10 gap-1 bg-[#172044] p-2 rounded-lg border border-white/5 max-h-36 overflow-y-auto scrollbar-thin" id="emojiPickerList"></div>
       </div>
 
-      <button onclick="saveNewPlaylistAction()" id="createPlaylistBtn" class="w-full py-2.5 bg-[#2F7BFF] text-bone rounded-lg text-xs font-bold hover:scale-105 transition shadow-[0_0_12px_rgba(47,123,255,0.4)]">Save Playlist</button>
+      <button onclick="saveNewPlaylistAction()" id="createPlaylistBtn" class="w-full py-2.5 bg-gradient-to-r from-[#3D8BFF] to-[#00D4FF] text-bone rounded-lg text-xs font-bold hover:scale-105 transition shadow-[0_0_14px_rgba(61,139,255,0.4)]">Save Playlist</button>
     </div>
   </div>
 
   <!-- IMPORT PLAYLIST MODAL (SPOTIFY & YOUTUBE) -->
-  <div id="importModal" class="fixed inset-0 bg-[#070B16]/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-[#0F1830] max-w-md w-full rounded-2xl p-6 border border-[#2F7BFF]/20 shadow-2xl space-y-4">
+  <div id="importModal" class="fixed inset-0 bg-[#05070F]/85 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-[#0E1426] max-w-md w-full rounded-2xl p-6 border border-[#3D8BFF]/20 shadow-2xl space-y-4">
       <div class="flex justify-between items-center">
         <div class="flex items-center space-x-2.5">
           <div class="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-sm space-x-1">
@@ -1040,13 +1061,13 @@ HTML_CONTENT = """<!DOCTYPE html>
           </div>
           <div>
             <h3 class="text-base font-bold text-bone leading-tight">Import Library</h3>
-            <p class="text-[10px] text-[#8A96B8]">Spotify & YouTube Supported</p>
+            <p class="text-[10px] text-[#7F8BB0]">Spotify & YouTube Supported</p>
           </div>
         </div>
-        <button onclick="toggleImportModal()" class="text-[#8A96B8] hover:text-bone transition"><i class="fa-solid fa-xmark"></i></button>
+        <button onclick="toggleImportModal()" class="text-[#7F8BB0] hover:text-bone transition"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
-      <div class="bg-[#070B16] p-3.5 rounded-xl border border-white/5 space-y-2">
+      <div class="bg-[#05070F] p-3.5 rounded-xl border border-white/5 space-y-2">
         <div class="flex items-center space-x-2 text-emerald-400 font-semibold text-xs">
           <i class="fa-brands fa-spotify text-sm"></i>
           <span>Spotify Playlist, Album or Track</span>
@@ -1055,14 +1076,14 @@ HTML_CONTENT = """<!DOCTYPE html>
           <i class="fa-brands fa-youtube text-sm"></i>
           <span>YouTube or YouTube Music Playlist</span>
         </div>
-        <p class="text-[11px] text-[#8A96B8] pt-1 leading-relaxed">
+        <p class="text-[11px] text-[#7F8BB0] pt-1 leading-relaxed">
           Paste any link below. SKULLBEAT matches tracks to pure audio streams with zero ads and saves them into your playlists!
         </p>
       </div>
 
-      <input id="playlistUrlInput" type="text" placeholder="https://open.spotify.com/playlist/... or https://youtube.com/..." class="w-full px-4 py-3 bg-[#070B16] border border-[#2F7BFF]/25 rounded-xl text-xs text-bone placeholder-[#8A96B8] focus:outline-none focus:border-[#2F7BFF] focus:ring-1 focus:ring-[#2F7BFF] transition">
+      <input id="playlistUrlInput" type="text" placeholder="https://open.spotify.com/playlist/... or https://youtube.com/..." class="w-full px-4 py-3 bg-[#05070F] border border-[#3D8BFF]/25 rounded-xl text-xs text-bone placeholder-[#7F8BB0] focus:outline-none focus:border-[#00D4FF] focus:ring-1 focus:ring-[#00D4FF] transition">
       
-      <button onclick="importPlaylistAction()" class="w-full py-3 bg-[#2F7BFF] text-bone font-bold rounded-xl text-xs hover:scale-[1.02] active:scale-95 transition shadow-[0_0_15px_rgba(47,123,255,0.4)] flex items-center justify-center space-x-2">
+      <button onclick="importPlaylistAction()" class="w-full py-3 bg-gradient-to-r from-[#3D8BFF] to-[#00D4FF] text-bone font-bold rounded-xl text-xs hover:scale-[1.02] active:scale-95 transition shadow-[0_0_16px_rgba(61,139,255,0.4)] flex items-center justify-center space-x-2">
         <i class="fa-solid fa-cloud-arrow-down"></i>
         <span>Import Library</span>
       </button>
@@ -1070,13 +1091,13 @@ HTML_CONTENT = """<!DOCTYPE html>
   </div>
 
   <!-- LYRICS MODAL -->
-  <div id="lyricsModal" class="fixed inset-0 bg-[#070B16] z-50 p-6 flex flex-col hidden">
+  <div id="lyricsModal" class="fixed inset-0 bg-[#05070F] z-50 p-6 flex flex-col hidden">
     <div class="flex items-center justify-between pb-4 border-b border-white/10 max-w-xl w-full mx-auto">
       <div>
         <h2 class="text-lg font-bold text-bone">Lyrics</h2>
-        <p id="lyricsTrackInfo" class="text-xs text-[#8A96B8]">Loading...</p>
+        <p id="lyricsTrackInfo" class="text-xs text-[#7F8BB0]">Loading...</p>
       </div>
-      <button onclick="toggleLyricsModal()" class="text-[#8A96B8] hover:text-bone text-lg"><i class="fa-solid fa-xmark"></i></button>
+      <button onclick="toggleLyricsModal()" class="text-[#7F8BB0] hover:text-bone text-lg"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div id="lyricsContent" class="flex-1 overflow-y-auto max-w-xl w-full mx-auto py-8 text-center text-xl font-bold text-neutral-300 space-y-6">
       <p class="text-neutral-500">Sing along with the music!</p>
@@ -1316,8 +1337,8 @@ HTML_CONTENT = """<!DOCTYPE html>
         waveEnergy += (targetEnergy - waveEnergy) * (targetEnergy > waveEnergy ? 0.40 : 0.16);
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        // Base dark background (matches deep navy 60% #070B16)
-        ctx.fillStyle = '#070B16';
+        // Base dark background (matches deep navy 47% #05070F)
+        ctx.fillStyle = '#05070F';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         const w = canvas.width;
@@ -1380,8 +1401,16 @@ HTML_CONTENT = """<!DOCTYPE html>
 
       const sideHome = document.getElementById('side-nav-home');
       const sideSearch = document.getElementById('side-nav-search');
-      if (sideHome) sideHome.className = (tab === 'home') ? 'w-full flex items-center space-x-4 text-[#2F7BFF] font-bold text-sm' : 'w-full flex items-center space-x-4 text-[#8A96B8] font-bold text-sm hover:text-[#2F7BFF]';
-      if (sideSearch) sideSearch.className = (tab === 'search') ? 'w-full flex items-center space-x-4 text-[#2F7BFF] font-bold text-sm' : 'w-full flex items-center space-x-4 text-[#8A96B8] font-bold text-sm hover:text-[#2F7BFF]';
+      if (sideHome) {
+        sideHome.className = (tab === 'home') 
+          ? 'w-full flex items-center space-x-3 text-bone font-bold text-sm px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-[#3D8BFF] to-[#8B5CFF] shadow-[0_0_16px_rgba(61,139,255,0.4)] transition' 
+          : 'w-full flex items-center space-x-3 text-[#7F8BB0] font-bold text-sm px-3.5 py-2.5 rounded-xl hover:text-bone hover:bg-white/5 transition';
+      }
+      if (sideSearch) {
+        sideSearch.className = (tab === 'search') 
+          ? 'w-full flex items-center space-x-3 text-bone font-bold text-sm px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-[#3D8BFF] to-[#8B5CFF] shadow-[0_0_16px_rgba(61,139,255,0.4)] transition' 
+          : 'w-full flex items-center space-x-3 text-[#7F8BB0] font-bold text-sm px-3.5 py-2.5 rounded-xl hover:text-bone hover:bg-white/5 transition';
+      }
 
       const activeView = document.getElementById(`view-${tab}`);
       if (activeView) activeView.classList.remove('hidden');
@@ -1529,7 +1558,7 @@ HTML_CONTENT = """<!DOCTYPE html>
 
           <!-- Action bar: always '+ Add', Love Heart Symbol, Download button -->
           <div class="mt-3 pt-2 border-t border-white/5 flex items-center justify-between text-xs text-neutral-400">
-            <button onclick="event.stopPropagation(); openAddToPlaylistDialog('${item.videoId}')" class="add-btn-${item.videoId} px-2.5 py-1 rounded-full text-[11px] font-semibold flex items-center space-x-1.5 transition-all ${inPlaylist ? 'text-[#2F7BFF] bg-[#2F7BFF]/20 border border-[#2F7BFF]/60 shadow-[0_0_10px_rgba(47,123,255,0.35)]' : 'text-neutral-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10'}">
+            <button onclick="event.stopPropagation(); openAddToPlaylistDialog('${item.videoId}')" class="add-btn-${item.videoId} px-2.5 py-1 rounded-full text-[11px] font-semibold flex items-center space-x-1.5 transition-all ${inPlaylist ? 'text-[#00D4FF] bg-[#172044] border border-[#3D8BFF]/60 shadow-[0_0_12px_rgba(61,139,255,0.35)]' : 'text-neutral-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10'}">
               <i class="fa-solid fa-plus text-[10px]"></i>
               <span>Add</span>
             </button>
@@ -1589,14 +1618,20 @@ HTML_CONTENT = """<!DOCTYPE html>
     function setPlayerPlayIcon(state) {
       const el = document.getElementById('playerPlayIcon');
       if (!el) return;
+      el.style.background = 'linear-gradient(135deg, #3D8BFF 0%, #00D4FF 100%)';
+      el.style.webkitBackgroundClip = 'text';
+      el.style.webkitTextFillColor = 'transparent';
       if (state === 'pause') {
-        el.className = 'fa-solid fa-pause text-black text-sm sm:text-base font-black';
+        el.className = 'fa-solid fa-pause text-sm sm:text-base font-black';
         el.style.transform = 'none';
       } else if (state === 'play') {
-        el.className = 'fa-solid fa-play text-black text-sm sm:text-base font-black';
+        el.className = 'fa-solid fa-play text-sm sm:text-base font-black';
         el.style.transform = 'translateX(1.5px)';
       } else if (state === 'spin') {
-        el.className = 'fa-solid fa-circle-notch fa-spin text-sm text-black';
+        el.className = 'fa-solid fa-circle-notch fa-spin text-sm';
+        el.style.background = 'none';
+        el.style.webkitTextFillColor = '#00D4FF';
+        el.style.color = '#00D4FF';
         el.style.transform = 'none';
       }
     }
@@ -1854,12 +1889,12 @@ HTML_CONTENT = """<!DOCTYPE html>
           const isCurrent = (idx === playbackContext.currentIndex);
           const isFav = isFavorite(t.videoId);
           return `
-            <div class="p-2 rounded-md hover:bg-white/5 flex items-center justify-between group cursor-pointer transition ${isCurrent ? 'bg-[#2F7BFF]/15 text-bone border-l-2 border-[#2F7BFF] shadow-[0_0_10px_rgba(47,123,255,0.2)]' : 'text-neutral-300'}" onclick="playTrackFromPlaylist('${escapeQuotes(playbackContext.name)}', ${idx})">
+            <div class="p-2 rounded-md hover:bg-white/5 flex items-center justify-between group cursor-pointer transition ${isCurrent ? 'bg-[#172044] text-bone border-l-2 border-[#3D8BFF] shadow-[0_0_12px_rgba(61,139,255,0.25)]' : 'text-neutral-300'}" onclick="playTrackFromPlaylist('${escapeQuotes(playbackContext.name)}', ${idx})">
               <div class="flex items-center space-x-2.5 overflow-hidden flex-1">
-                <span class="text-[10px] ${isCurrent ? 'text-[#2F7BFF] font-bold' : 'text-neutral-500'} w-4 text-center">${isCurrent ? '▶' : idx + 1}</span>
+                <span class="text-[10px] ${isCurrent ? 'text-[#00D4FF] font-bold' : 'text-neutral-500'} w-4 text-center">${isCurrent ? '▶' : idx + 1}</span>
                 <img src="${t.thumbnail}" class="w-9 h-9 rounded object-cover flex-shrink-0">
                 <div class="overflow-hidden">
-                  <div class="text-xs font-semibold truncate hover:underline ${isCurrent ? 'text-[#2F7BFF]' : ''}" onclick="event.stopPropagation(); openArtistPage('${escapeQuotes(t.channel)}')">${t.title}</div>
+                  <div class="text-xs font-semibold truncate hover:underline ${isCurrent ? 'text-[#00D4FF]' : ''}" onclick="event.stopPropagation(); openArtistPage('${escapeQuotes(t.channel)}')">${t.title}</div>
                   <div class="text-[10px] text-neutral-400 truncate hover:underline" onclick="event.stopPropagation(); openArtistPage('${escapeQuotes(t.channel)}')">${t.channel}</div>
                 </div>
               </div>
@@ -1886,11 +1921,11 @@ HTML_CONTENT = """<!DOCTYPE html>
         const isFav = isFavorite(t.videoId);
         const isCurrent = (idx === artistCurrentIndex);
         return `
-          <div class="p-2 rounded-md hover:bg-white/5 flex items-center justify-between group cursor-pointer transition ${isCurrent ? 'bg-[#2F7BFF]/15 text-bone border-l-2 border-[#2F7BFF]' : 'text-neutral-300'}" onclick="playArtistRightTrack(${idx})">
+          <div class="p-2 rounded-md hover:bg-white/5 flex items-center justify-between group cursor-pointer transition ${isCurrent ? 'bg-[#172044] text-bone border-l-2 border-[#3D8BFF] shadow-[0_0_12px_rgba(61,139,255,0.25)]' : 'text-neutral-300'}" onclick="playArtistRightTrack(${idx})">
             <div class="flex items-center space-x-2.5 overflow-hidden flex-1">
               <img src="${t.thumbnail}" class="w-9 h-9 rounded object-cover flex-shrink-0">
               <div class="overflow-hidden">
-                <div class="text-xs font-semibold truncate hover:underline ${isCurrent ? 'text-[#2F7BFF]' : ''}" onclick="event.stopPropagation(); openArtistPage('${escapeQuotes(t.channel)}')">${t.title}</div>
+                <div class="text-xs font-semibold truncate hover:underline ${isCurrent ? 'text-[#00D4FF]' : ''}" onclick="event.stopPropagation(); openArtistPage('${escapeQuotes(t.channel)}')">${t.title}</div>
                 <div class="text-[10px] text-neutral-400 truncate hover:underline" onclick="event.stopPropagation(); openArtistPage('${escapeQuotes(t.channel)}')">${t.channel}</div>
               </div>
             </div>
@@ -1919,11 +1954,11 @@ HTML_CONTENT = """<!DOCTYPE html>
       const rightLabel = document.getElementById('rightShuffleLabel');
 
       if (isShuffle) {
-        if (btn) btn.classList.add('text-[#2F7BFF]');
+        if (btn) btn.classList.add('text-[#00D4FF]');
         if (dot) dot.classList.remove('hidden');
         if (rightLabel) rightLabel.innerText = 'Shuffle';
       } else {
-        if (btn) btn.classList.remove('text-[#2F7BFF]');
+        if (btn) btn.classList.remove('text-[#00D4FF]');
         if (dot) dot.classList.add('hidden');
         if (rightLabel) rightLabel.innerText = 'Seq';
       }
@@ -1936,15 +1971,15 @@ HTML_CONTENT = """<!DOCTYPE html>
 
       if (repeatMode === 'off') {
         repeatMode = 'all';
-        btn.classList.add('text-[#2F7BFF]');
+        btn.classList.add('text-[#00D4FF]');
         dot.classList.remove('hidden');
         icon.className = 'fa-solid fa-repeat';
       } else if (repeatMode === 'all') {
         repeatMode = 'one';
-        icon.className = 'fa-solid fa-repeat text-[#2F7BFF]';
+        icon.className = 'fa-solid fa-repeat text-[#00D4FF]';
       } else {
         repeatMode = 'off';
-        btn.classList.remove('text-[#2F7BFF]');
+        btn.classList.remove('text-[#00D4FF]');
         dot.classList.add('hidden');
         icon.className = 'fa-solid fa-repeat';
       }
@@ -2224,7 +2259,7 @@ HTML_CONTENT = """<!DOCTYPE html>
       if (!videoId) return;
       const inPl = isSongInAnyPlaylist(videoId);
       document.querySelectorAll(`.add-btn-${videoId}`).forEach(btn => {
-        btn.className = `add-btn-${videoId} px-2.5 py-1 rounded-full text-[11px] font-semibold flex items-center space-x-1.5 transition-all ${inPl ? 'text-[#2F7BFF] bg-[#2F7BFF]/20 border border-[#2F7BFF]/60 shadow-[0_0_10px_rgba(47,123,255,0.35)]' : 'text-neutral-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10'}`;
+        btn.className = `add-btn-${videoId} px-2.5 py-1 rounded-full text-[11px] font-semibold flex items-center space-x-1.5 transition-all ${inPl ? 'text-[#00D4FF] bg-[#172044] border border-[#3D8BFF]/60 shadow-[0_0_12px_rgba(61,139,255,0.35)]' : 'text-neutral-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10'}`;
       });
     }
 
@@ -2427,14 +2462,14 @@ HTML_CONTENT = """<!DOCTYPE html>
       const isSpotify = url.toLowerCase().includes('spotify');
       const platformName = isSpotify ? 'Spotify' : 'YouTube';
       const defaultEmoji = isSpotify ? '🟢' : '🎵';
-      const defaultColor = isSpotify ? '#1db954' : '#2F7BFF';
+      const defaultColor = isSpotify ? '#1db954' : '#3D8BFF';
 
       switchTab('search');
       document.getElementById('searchResultsTitle').innerText = `Importing ${platformName} Library...`;
       const grid = document.getElementById('searchResultsGrid');
       grid.innerHTML = `
         <div class="col-span-full text-center text-neutral-400 py-20">
-          <i class="fa-solid fa-circle-notch fa-spin text-3xl mb-4 ${isSpotify ? 'text-emerald-400' : 'text-[#2F7BFF]'}"></i>
+          <i class="fa-solid fa-circle-notch fa-spin text-3xl mb-4 ${isSpotify ? 'text-emerald-400' : 'text-[#3D8BFF]'}"></i>
           <h3 class="text-base font-bold text-white mb-1.5">Importing ${platformName} Library</h3>
           <p class="text-xs text-neutral-400 max-w-sm mx-auto leading-relaxed">
             ${isSpotify ? 'Extracting Spotify tracks and matching pure audio streams... This takes just a few seconds.' : 'Fetching playlist tracks from YouTube...'}
@@ -2660,7 +2695,7 @@ HTML_CONTENT = """<!DOCTYPE html>
             </div>
             ${subtitle === 'Liked songs' && items.length > 0 ? `
               <div class="flex items-center space-x-2">
-                <button onclick="playTrackFromPlaylist('Liked songs', 0)" class="w-9 h-9 rounded-full bg-[#2F7BFF] text-bone shadow-[0_0_12px_rgba(47,123,255,0.4)] hover:scale-105 active:scale-95 flex items-center justify-center text-sm transition" title="Play All">
+                <button onclick="playTrackFromPlaylist('Liked songs', 0)" class="w-9 h-9 rounded-full bg-gradient-to-r from-[#3D8BFF] to-[#00D4FF] text-bone shadow-[0_0_12px_rgba(61,139,255,0.4)] hover:scale-105 active:scale-95 flex items-center justify-center text-sm transition" title="Play All">
                   <i class="fa-solid fa-play ml-0.5"></i>
                 </button>
                 <button onclick="isShuffle=true; const dot=document.getElementById('playerShuffleDot'); if(dot) dot.classList.remove('hidden'); playTrackFromPlaylist('Liked songs', Math.floor(Math.random() * ${items.length}))" class="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-bone flex items-center justify-center text-xs transition" title="Shuffle Play">
@@ -2673,17 +2708,17 @@ HTML_CONTENT = """<!DOCTYPE html>
         ${items.map((t, idx) => {
           const isFav = isFavorite(t.videoId);
           return `
-            <div class="p-2.5 rounded-lg bg-[#142040] hover:bg-[#1A2952] border border-[#2F7BFF]/10 flex items-center justify-between group cursor-pointer transition" onclick="${subtitle === 'Liked songs' ? `playTrackFromPlaylist('Liked songs', ${idx})` : `quickPlayCard('${t.videoId}')`}">
+            <div class="p-2.5 rounded-lg bg-[#0E1426] hover:bg-[#172044] border border-[#3D8BFF]/15 flex items-center justify-between group cursor-pointer transition" onclick="${subtitle === 'Liked songs' ? `playTrackFromPlaylist('Liked songs', ${idx})` : `quickPlayCard('${t.videoId}')`}">
               <div class="flex items-center space-x-3 overflow-hidden flex-1">
                 <span class="text-xs text-neutral-500 w-5">${idx + 1}</span>
                 <img src="${t.thumbnail}" class="w-10 h-10 rounded object-cover flex-shrink-0">
                 <div class="overflow-hidden">
                   <div class="text-sm font-bold text-bone truncate hover:underline" onclick="event.stopPropagation(); openArtistPage('${t.videoId}')">${t.title}</div>
-                  <div class="text-xs text-[#8A96B8] truncate hover:underline" onclick="event.stopPropagation(); openArtistPage('${t.videoId}')">${t.channel}</div>
+                  <div class="text-xs text-[#7F8BB0] truncate hover:underline" onclick="event.stopPropagation(); openArtistPage('${t.videoId}')">${t.channel}</div>
                 </div>
               </div>
-              <div class="flex items-center space-x-2 text-xs text-[#8A96B8]">
-                <button onclick="event.stopPropagation(); openAddToPlaylistDialog('${t.videoId}')" class="add-btn-${t.videoId} px-2.5 py-1 rounded-full text-[11px] font-semibold flex items-center space-x-1.5 transition-all ${isSongInAnyPlaylist(t.videoId) ? 'text-[#2F7BFF] bg-[#2F7BFF]/20 border border-[#2F7BFF]/60 shadow-[0_0_10px_rgba(47,123,255,0.35)]' : 'text-neutral-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10'}">
+              <div class="flex items-center space-x-2 text-xs text-[#7F8BB0]">
+                <button onclick="event.stopPropagation(); openAddToPlaylistDialog('${t.videoId}')" class="add-btn-${t.videoId} px-2.5 py-1 rounded-full text-[11px] font-semibold flex items-center space-x-1.5 transition-all ${isSongInAnyPlaylist(t.videoId) ? 'text-[#00D4FF] bg-[#172044] border border-[#3D8BFF]/60 shadow-[0_0_12px_rgba(61,139,255,0.35)]' : 'text-neutral-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10'}">
                   <i class="fa-solid fa-plus text-[10px]"></i>
                   <span>Add</span>
                 </button>
