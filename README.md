@@ -1,8 +1,8 @@
-# PYROBEAT (AudioTube) 🎵
+# SKULLBEAT (AudioTube) 🎵
 
 > High-fidelity, ad-free YouTube Music streamer and library filter with 80% bandwidth savings.
 
-PYROBEAT lets you filter your YouTube Music library, export playlists, and stream pure audio without downloading video streams or listening to advertisements. It includes both a modern FastAPI web interface and a comprehensive command-line tool.
+SKULLBEAT lets you filter your YouTube Music library, export playlists, and stream pure audio without downloading video streams or listening to advertisements. It includes both a modern FastAPI web interface and a comprehensive command-line tool.
 
 ---
 
@@ -41,7 +41,7 @@ Or on Windows, double-click `run_audiotube.bat`. Open your browser at [http://lo
 
 ## 🛠️ CLI Usage & Account Setup
 
-PYROBEAT includes a CLI tool (`filter_music.py`) for library filtering and terminal audio streaming.
+SKULLBEAT includes a CLI tool (`filter_music.py`) for library filtering and terminal audio streaming.
 
 ### Authentication Setup
 

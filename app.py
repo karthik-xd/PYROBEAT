@@ -18,7 +18,7 @@ import uvicorn
 from ytmusicapi import YTMusic
 import yt_dlp
 
-app = FastAPI(title="PYROBEAT")
+app = FastAPI(title="SKULLBEAT")
 ytm = YTMusic()
 DOWNLOADS_DIR = pathlib.Path.home() / "Downloads"
 HISTORY_DIR = pathlib.Path(__file__).parent / "history"
@@ -212,7 +212,7 @@ def extract_youtube_playlist(url_or_id: str) -> Dict[str, Any]:
     else:
         url = clean_id
 
-    ydl_opts = {"quiet": True, "extract_flat": True, "skip_download": True}
+    ydl_opts = {"quiet": True, "extract_flat": True, "skip_download": True, "js_runtimes": {"node": {}}}
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             data = ydl.extract_info(url, download=False)
@@ -267,6 +267,7 @@ def api_stream_url(video_id: str):
         "format": "bestaudio/best",
         "quiet": True,
         "skip_download": True,
+        "js_runtimes": {"node": {}},
     }
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -377,11 +378,17 @@ HTML_CONTENT = """<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>PYROBEAT - Pure Audio Experience</title>
-  <link rel="icon" type="image/png" href="/logo.png?v=4">
+  <title>SKULLBEAT - Pure Audio Experience</title>
+  <link rel="icon" type="image/png" href="/logo.png?v=5">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Creepster&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
   <style>
+    .font-creepster {
+      font-family: 'Creepster', cursive;
+    }
     :root {
       --pyro-cyan: #00e5ff;
       --pyro-blue: #00b0ff;
@@ -467,13 +474,16 @@ HTML_CONTENT = """<!DOCTYPE html>
 
     <!-- 1. LEFT SIDEBAR (Panel 1 in diagram) -->
     <aside class="w-64 sm:w-72 spotify-panel flex flex-col p-4 flex-shrink-0 overflow-hidden">
-      <!-- PYROBEAT BRAND HEADER (Logo + Electric Name) -->
-      <div class="flex items-center space-x-3 mb-5 px-1 py-1 cursor-pointer group" onclick="switchTab('home')">
-        <img src="/logo.png?v=4" alt="PYROBEAT" class="w-10 h-10 object-contain drop-shadow-[0_0_12px_rgba(0,229,255,0.7)] group-hover:scale-110 transition-transform">
-        <div>
-          <h1 class="text-lg font-black tracking-wider text-white font-mono flex items-center leading-none">
-            <span class="text-[#00e5ff] drop-shadow-[0_0_10px_rgba(0,229,255,0.7)]">PYRO</span><span>BEAT</span>
-          </h1>
+      <!-- SKULLBEAT BRAND HEADER (Logo + Skully Inverting Fire Wave Name) -->
+      <div class="flex items-center space-x-2.5 mb-5 px-1 py-1 cursor-pointer group" onclick="switchTab('home')">
+        <img src="/logo.png?v=5" alt="SKULLBEAT" class="w-11 h-11 object-contain drop-shadow-[0_0_14px_rgba(0,229,255,0.85)] group-hover:scale-110 transition-transform">
+        
+        <!-- Animated Beat Fire Wave with Black/White Inverting Skully Text -->
+        <div class="relative flex items-center overflow-hidden rounded-lg px-2 py-1 select-none bg-black border border-white/10 shadow-[0_0_16px_rgba(0,229,255,0.35)]">
+          <canvas id="brandWaveCanvas" width="168" height="38" class="pointer-events-none absolute inset-0 w-full h-full"></canvas>
+          <span class="relative z-10 font-creepster text-[26px] tracking-wider leading-none" style="color: #ffffff; mix-blend-mode: difference; letter-spacing: 2px;">
+            SKULLBEAT
+          </span>
         </div>
       </div>
 
@@ -1012,7 +1022,7 @@ HTML_CONTENT = """<!DOCTYPE html>
           <span>YouTube or YouTube Music Playlist</span>
         </div>
         <p class="text-[11px] text-neutral-400 pt-1 leading-relaxed">
-          Paste any link below. PYROBEAT matches tracks to pure audio streams with zero ads and saves them into your playlists!
+          Paste any link below. SKULLBEAT matches tracks to pure audio streams with zero ads and saves them into your playlists!
         </p>
       </div>
 
@@ -1241,123 +1251,89 @@ HTML_CONTENT = """<!DOCTYPE html>
       setupAudioListeners();
       setupKeyboard();
       restoreLastPlayback();
-      initBeatFlameEngine();
+      initBrandWaveEngine();
     });
 
-    // Dynamic Beat Flame Visualizer & Glowing Skull Aura Engine
-    function initBeatFlameEngine() {
-      const canvas = document.getElementById('flameCanvas');
-      const ctx = canvas ? canvas.getContext('2d') : null;
-      const aura = document.getElementById('playBtnAura');
-      const playBtn = document.getElementById('playerPlayBtn');
+    // SKULLBEAT FIRE WAVE INVERTER ENGINE
+    // Animated beat-reactive fire wave that surges up & down across the brand name, inverting text between black and white
+    function initBrandWaveEngine() {
+      const canvas = document.getElementById('brandWaveCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      let waveEnergy = 0.2;
 
-      let flameEnergy = 0.12;
-      const particles = [];
-      const MAX_PARTICLES = 36;
-
-      class FlameParticle {
-        constructor(x, y, isBurst) {
-          this.reset(x, y, isBurst);
-        }
-        reset(x, y, isBurst) {
-          const mul = isBurst ? 2.4 : 1.0;
-          this.x = x + (Math.random() - 0.5) * 44;
-          this.y = y - Math.random() * 10;
-          this.vx = (Math.random() - 0.5) * 1.6;
-          this.vy = -(1.8 + Math.random() * 2.6) * mul;
-          this.size = 2.2 + Math.random() * 3.0;
-          this.life = 0;
-          this.maxLife = 22 + Math.random() * 26;
-          this.color = Math.random() > 0.4 ? '#00e5ff' : (Math.random() > 0.5 ? '#ffffff' : '#00b0ff');
-        }
-        update() {
-          this.vy -= 0.04;
-          this.x += this.vx + Math.sin(this.life * 0.22) * 0.4;
-          this.y += this.vy;
-          this.size = Math.max(0.3, this.size * 0.95);
-          this.life++;
-        }
-        draw(c) {
-          const alpha = Math.max(0, 1 - (this.life / this.maxLife));
-          c.save();
-          c.globalAlpha = alpha;
-          c.fillStyle = this.color;
-          c.shadowColor = '#00e5ff';
-          c.shadowBlur = 10;
-          c.beginPath();
-          c.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-          c.fill();
-          c.restore();
-        }
-      }
-
-      function animateFlames() {
-        requestAnimationFrame(animateFlames);
-        if (ctx && canvas) {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-        }
+      function renderWave() {
+        requestAnimationFrame(renderWave);
 
         const isPlaying = (audio && !audio.paused && !audio.ended && audio.currentTime > 0);
         const t = (audio && audio.currentTime > 0) ? audio.currentTime : (Date.now() / 1000);
 
-        let targetEnergy = 0.12;
+        let targetEnergy = 0.15;
         if (isPlaying) {
-          const kick  = Math.pow(Math.max(0, Math.sin(t * Math.PI * 2.133)), 4);
-          const snare = Math.pow(Math.max(0, Math.sin((t + 0.12) * Math.PI * 4.266)), 3);
-          const jitter = (Math.sin(t * 32) + Math.cos(t * 47)) * 0.08;
+          // Sharp exponential kick hits for punchy beat surges
+          const kick = Math.pow(Math.max(0, Math.sin(t * Math.PI * 2.22)), 4);
+          const snare = Math.pow(Math.max(0, Math.sin((t + 0.115) * Math.PI * 4.44)), 3);
+          const sub = Math.sin(t * 16) * 0.08;
           const vol = (audio.volume !== undefined ? audio.volume : 1);
-          targetEnergy = Math.min(1.0, (0.35 + kick * 0.55 + snare * 0.2 + jitter) * vol);
-        }
-        flameEnergy += (targetEnergy - flameEnergy) * (targetEnergy > flameEnergy ? 0.35 : 0.16);
-
-        // Modulate Skull cyan contour glow
-        if (playBtn) {
-          if (isPlaying) {
-            const gs = Math.round(12 + flameEnergy * 24);
-            const ga = (0.65 + flameEnergy * 0.35).toFixed(2);
-            playBtn.style.filter = `drop-shadow(0 0 ${gs}px rgba(0, 229, 255, ${ga}))`;
-          } else {
-            playBtn.style.filter = 'drop-shadow(0 0 10px rgba(0, 229, 255, 0.45))';
-          }
+          targetEnergy = Math.min(1.0, (0.18 + kick * 0.72 + snare * 0.22 + sub) * vol);
         }
 
-        // Modulate play button aura
-        if (aura) {
-          if (isPlaying) {
-            const scale = 1.0 + flameEnergy * 0.5;
-            const op = 0.25 + flameEnergy * 0.65;
-            aura.style.transform = `scale(${scale.toFixed(2)})`;
-            aura.style.opacity = op.toFixed(2);
-          } else {
-            aura.style.transform = 'scale(1.0)';
-            aura.style.opacity = '0.35';
-          }
+        // Fast rise on beats, snappy decay for rhythm
+        waveEnergy += (targetEnergy - waveEnergy) * (targetEnergy > waveEnergy ? 0.40 : 0.16);
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // Base dark background
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const w = canvas.width;
+        const h = canvas.height;
+
+        // Wave waterline: surges up on kick (h * 0.18), drops down at rest (h * 0.78)
+        const baseLineY = h * 0.78 - waveEnergy * (h * 0.58);
+        const amp = 3.5 + waveEnergy * 8.0;
+
+        // 1. Draw the White Core Fire Wave (Inverts text to BLACK via mix-blend-mode: difference!)
+        ctx.save();
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = '#00e5ff';
+        ctx.shadowBlur = 8 + waveEnergy * 14;
+        ctx.beginPath();
+        ctx.moveTo(0, h);
+        ctx.lineTo(0, baseLineY);
+
+        const step = 3;
+        for (let x = 0; x <= w; x += step) {
+          const w1 = Math.sin(x * 0.05 + t * 7.5) * amp;
+          const w2 = Math.cos(x * 0.10 - t * 10.5) * (amp * 0.5);
+          const w3 = Math.sin(x * 0.18 + t * 14.0) * (amp * 0.25);
+          const spike = Math.pow(Math.max(0, Math.sin(x * 0.08 + t * 8.5)), 3) * (waveEnergy * 7);
+          const y = baseLineY + w1 + w2 + w3 - spike;
+          ctx.lineTo(x, y);
         }
 
-        // Floating flame spark particles rising above skull cranium
-        if (ctx && canvas) {
-          if (isPlaying && flameEnergy > 0.42 && particles.length < MAX_PARTICLES) {
-            const burst = flameEnergy > 0.7;
-            const spawnX = canvas.width / 2;
-            const spawnY = canvas.height - 8;
-            particles.push(new FlameParticle(spawnX, spawnY, burst));
-            if (burst && particles.length < MAX_PARTICLES) {
-              particles.push(new FlameParticle(spawnX, spawnY, true));
-            }
-          }
+        ctx.lineTo(w, h);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
 
-          for (let i = particles.length - 1; i >= 0; i--) {
-            const p = particles[i];
-            p.update();
-            p.draw(ctx);
-            if (p.life >= p.maxLife || p.y < 0) {
-              particles.splice(i, 1);
-            }
-          }
+        // 2. Cyan Neon Fire Tips licking along the wave crest
+        ctx.save();
+        ctx.fillStyle = '#00e5ff';
+        ctx.shadowColor = '#00e5ff';
+        ctx.shadowBlur = 6;
+        ctx.beginPath();
+        for (let x = 8; x < w - 8; x += 16) {
+          const tongueH = (5 + waveEnergy * 14) * (0.8 + 0.2 * Math.sin(x + t * 11));
+          const waveY = baseLineY + Math.sin(x * 0.05 + t * 7.5) * amp;
+          ctx.moveTo(x - 4, waveY);
+          ctx.quadraticCurveTo(x, waveY - tongueH, x + 4, waveY);
         }
+        ctx.fill();
+        ctx.restore();
       }
 
-      animateFlames();
+      renderWave();
     }
 
     function setGreeting() {
@@ -1583,7 +1559,7 @@ HTML_CONTENT = """<!DOCTYPE html>
     }
 
     // Playback Engine - Continuous, gapless, no-pause auto-advance
-    async function playTrack(track, origin = 'PYROBEAT', isAutoPlay = false) {
+    async function playTrack(track, origin = 'SKULLBEAT', isAutoPlay = false) {
       if (!track || !track.videoId) return;
       trackCache[track.videoId] = track;
       currentTrack = track;
@@ -1602,7 +1578,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         navigator.mediaSession.metadata = new MediaMetadata({
           title: track.title,
           artist: track.channel,
-          album: track.album || 'PYROBEAT',
+          album: track.album || 'SKULLBEAT',
           artwork: [{ src: track.thumbnail, sizes: '512x512', type: 'image/jpeg' }]
         });
       }
