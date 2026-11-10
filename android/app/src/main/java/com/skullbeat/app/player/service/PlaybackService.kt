@@ -14,14 +14,20 @@ import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.drawable.BitmapDrawable
 import android.os.Build
+import android.os.Bundle
 import android.support.v4.media.session.MediaSessionCompat
 import androidx.core.app.NotificationCompat
 import androidx.media.app.NotificationCompat.MediaStyle
 import androidx.palette.graphics.Palette
 import androidx.media3.common.ForwardingPlayer
 import androidx.media3.common.Player
+import androidx.media3.session.CommandButton
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
+import androidx.media3.session.SessionCommand
+import androidx.media3.session.SessionResult
+import com.google.common.util.concurrent.Futures
+import com.google.common.util.concurrent.ListenableFuture
 import coil.ImageLoader
 import coil.request.ImageRequest
 import com.skullbeat.app.MainActivity
@@ -110,8 +116,24 @@ class PlaybackService : MediaSessionService() {
             }
         }
 
+        val sessionCallback = object : MediaSession.Callback {
+            override fun onCustomCommand(
+                session: MediaSession,
+                controller: MediaSession.ControllerInfo,
+                customCommand: SessionCommand,
+                args: Bundle
+            ): ListenableFuture<SessionResult> {
+                if (customCommand.customAction == ACTION_SHUFFLE) {
+                    playerManager.toggleShuffle()
+                    return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+                }
+                return super.onCustomCommand(session, controller, customCommand, args)
+            }
+        }
+
         mediaSession = MediaSession.Builder(this, forwardingPlayer)
             .setSessionActivity(pendingIntent)
+            .setCallback(sessionCallback)
             .build()
 
         serviceScope.launch {
@@ -167,6 +189,13 @@ class PlaybackService : MediaSessionService() {
             secondary = secondaryColorInt.toLong() and 0xFFFFFFFFL
         )
 
+        val artworkBytes = withContext(Dispatchers.Default) {
+            val stream = java.io.ByteArrayOutputStream()
+            artwork.compress(Bitmap.CompressFormat.JPEG, 90, stream)
+            stream.toByteArray()
+        }
+        playerManager.updateArtworkData(artworkBytes)
+
         val contentIntent = PendingIntent.getActivity(
             this,
             0,
@@ -177,6 +206,14 @@ class PlaybackService : MediaSessionService() {
         )
 
         val isShuffle = playerManager.playbackState.value.isShuffle
+        val shuffleCommand = CommandButton.Builder()
+            .setDisplayName(if (isShuffle) "Shuffle On" else "Shuffle Off")
+            .setIconResId(R.drawable.ic_shuffle)
+            .setSessionCommand(SessionCommand(ACTION_SHUFFLE, Bundle.EMPTY))
+            .setEnabled(true)
+            .build()
+        mediaSession?.setCustomLayout(listOf(shuffleCommand))
+
         val shuffleIntent = PendingIntent.getService(
             this,
             4,
@@ -228,7 +265,7 @@ class PlaybackService : MediaSessionService() {
         ).build()
 
         val mediaStyle = MediaStyle()
-            .setShowActionsInCompactView(1, 2, 3)
+            .setShowActionsInCompactView(0, 2, 3)
 
         val sessionCompat = mediaSession?.sessionCompatToken
         if (sessionCompat != null) {
@@ -297,7 +334,7 @@ class PlaybackService : MediaSessionService() {
 
     private fun createThemedArtwork(original: Bitmap, color1: Int, color2: Int): Bitmap {
         return try {
-            val size = 256
+            val size = 512
             val output = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
             val canvas = Canvas(output)
 
@@ -308,14 +345,14 @@ class PlaybackService : MediaSessionService() {
                     Shader.TileMode.CLAMP
                 )
             }
-            canvas.drawRoundRect(0f, 0f, size.toFloat(), size.toFloat(), 36f, 36f, gradientPaint)
+            canvas.drawRoundRect(0f, 0f, size.toFloat(), size.toFloat(), 48f, 48f, gradientPaint)
 
-            val inset = 12f
+            val inset = 24f
             val artRect = RectF(inset, inset, size - inset, size - inset)
             val scaledArt = Bitmap.createScaledBitmap(original, (size - inset * 2).toInt(), (size - inset * 2).toInt(), true)
 
             val clipPath = android.graphics.Path().apply {
-                addRoundRect(artRect, 28f, 28f, android.graphics.Path.Direction.CW)
+                addRoundRect(artRect, 40f, 40f, android.graphics.Path.Direction.CW)
             }
             canvas.save()
             canvas.clipPath(clipPath)
