@@ -513,6 +513,24 @@ def api_import_csv(req: CsvImportRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+
+@app.get("/api/lyrics")
+def api_get_lyrics(title: str = Query(...), artist: str = Query("")):
+    """Fetches synced or plain lyrics from lrclib."""
+    import urllib.request, urllib.parse
+    try:
+        q = urllib.parse.urlencode({"track_name": title, "artist_name": artist})
+        url = f"https://lrclib.net/api/get?{q}"
+        req = urllib.request.Request(url, headers={"User-Agent": "SkullBeat/2.0"})
+        with urllib.request.urlopen(req, timeout=3.5) as resp:
+            if resp.status == 200:
+                data = json.loads(resp.read().decode("utf-8"))
+                return {"synced": data.get("syncedLyrics"), "plain": data.get("plainLyrics")}
+    except Exception:
+        pass
+    return {"synced": None, "plain": None}
+
+
 @app.get("/", response_class=HTMLResponse)
 def index_page():
     return HTMLResponse(
@@ -525,2567 +543,712 @@ def index_page():
     )
 
 
-HTML_CONTENT = """<!DOCTYPE html>
+HTML_CONTENT = r"""<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>SKULLBEAT - Pure Audio Experience</title>
-  <link rel="icon" type="image/png" href="/logo.png?v=10">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Chakra+Petch:wght@700;800&display=swap" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            navy: {
-              DEFAULT: '#05070F',
-              bg: '#05070F',
-              surface: '#0E1426',
-              raised: '#172044',
-            },
-            bone: '#F2F5FF',
-            muted: '#7F8BB0',
-            electric: '#3D8BFF',
-            cyan: '#00D4FF',
-            violet: '#8B5CFF',
-            heart: '#FF3B5C',
-            success: '#2DE08A',
-            warning: '#FFB020',
-          }
-        }
-      }
-    }
-  </script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
-  <style>
-    .font-brand {
-      font-family: 'Russo One', 'Chakra Petch', sans-serif;
-      font-weight: 900;
-    }
-    :root {
-      /* Precise Palette Ratios */
-      --color-bg: #05070F;         /* Deep navy 47% */
-      --color-surface: #0E1426;    /* Dark blue cards & sidebar 20% */
-      --color-raised: #172044;     /* Raised blue hover & selection 10% */
-      --color-bone: #F2F5FF;       /* Bone white main text & logo 8% */
-      --color-muted: #7F8BB0;      /* Muted blue-gray secondary text 5% */
-      --color-electric: #3D8BFF;   /* Electric blue accent 5% */
-      --color-cyan: #00D4FF;       /* Cyan gradient partner 3% */
-      --color-violet: #8B5CFF;     /* Violet highlight partner 2% */
-      --color-heart: #FF3B5C;      /* Likes / errors */
-      --color-success: #2DE08A;    /* Success / downloads */
-      --color-warning: #FFB020;    /* Warnings */
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SkullBeat Desktop</title>
+<meta name="color-scheme" content="dark">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@800&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:dark;--bg:#05070F;--s1:#0E1426;--s2:#172044;--tx:#F2F5FF;--mu:#8E99BC;--blue:#3D8BFF;--cyan:#00D4FF;--vio:#8B5CFF;--red:#FF3B5C;--grad:linear-gradient(135deg,#3D8BFF,#8B5CFF);--grad2:linear-gradient(135deg,#3D8BFF,#00D4FF)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--tx);font:14px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.app{height:100%;display:grid;grid-template-columns:232px 1fr 320px;grid-template-rows:1fr 88px;gap:8px;padding:8px;padding-top:calc(8px + env(safe-area-inset-top,0px));padding-bottom:calc(8px + env(safe-area-inset-bottom,0px))}
+.card{background:var(--s1);border-radius:16px;overflow:hidden}
+/* sidebar */
+.side{padding:20px 12px;display:flex;flex-direction:column;gap:4px;overflow-y:auto}
+.logo{position:relative;width:176px;height:40px;border-radius:8px;overflow:hidden;margin:0 0 20px 8px;background:var(--bg);flex:none}
+.logo svg{position:absolute;inset:0;width:176px;height:40px}
+.logo span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:800 20px Orbitron,system-ui,sans-serif;letter-spacing:2px;color:#fff;mix-blend-mode:difference}
+.nb{display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:14px;color:var(--mu);font-weight:600;min-height:44px;text-align:left;transition:color .15s,background .15s}
+.nb:hover{color:var(--tx);background:var(--s2)}
+.nb.on{color:var(--tx);background:var(--grad)}
+.side h3{font-size:12px;color:var(--mu);font-weight:600;letter-spacing:.08em;margin:20px 14px 8px;display:flex;justify-content:space-between;align-items:center}
+.side h3 button{color:var(--cyan);font-size:11px}
+.pl-list{display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+.pl{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;width:100%;text-align:left;color:var(--mu);transition:background .15s,color .15s}
+.pl:hover{background:var(--s2);color:var(--tx)}
+.pl.on{background:rgba(61,139,255,.18);color:var(--tx)}
+.pl i{width:36px;height:36px;border-radius:8px;flex:none;background-size:cover;background-position:center}
+.pl span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* main */
+.main{overflow-y:auto;padding:28px 32px 32px;background:linear-gradient(180deg,#121b3a 0,var(--s1) 260px)}
+.main::-webkit-scrollbar,.right::-webkit-scrollbar,.side::-webkit-scrollbar,.pl-list::-webkit-scrollbar{width:8px}
+.main::-webkit-scrollbar-thumb,.right::-webkit-scrollbar-thumb,.side::-webkit-scrollbar-thumb,.pl-list::-webkit-scrollbar-thumb{background:var(--s2);border-radius:4px}
+.view{display:none}.view.on{display:block}
+h1{font-size:32px;margin-bottom:20px;font-weight:700}
+h2{font-size:20px;margin:32px 0 14px;font-weight:600}
+.t{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.a{font-size:12px;color:var(--mu);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.quick{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.q{display:flex;align-items:center;gap:14px;background:rgba(23,32,68,.6);border-radius:10px;overflow:hidden;text-align:left;transition:background .15s;padding-right:12px}
+.q:hover{background:var(--s2)}
+.q i{width:64px;height:64px;flex:none;background-size:cover;background-position:center}
+.row{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:20px}
+.al{text-align:left;padding:12px;border-radius:14px;transition:background .15s}
+.al:hover{background:var(--s2)}
+.al i{display:block;aspect-ratio:1;border-radius:12px;margin-bottom:10px;box-shadow:0 8px 24px rgba(0,0,0,.4);background-size:cover;background-position:center}
+/* chips + search */
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{padding:8px 16px;border-radius:999px;background:var(--s2);font-size:13px;min-height:36px;transition:background .15s;color:var(--mu)}
+.chip:hover{filter:brightness(1.2);color:var(--tx)}
+.chip.on{background:var(--grad);color:var(--tx);font-weight:600}
+.find{display:flex;align-items:center;gap:10px;background:var(--bg);border-radius:12px;padding:0 14px;color:var(--mu);max-width:540px;margin:16px 0 12px;border:1px solid rgba(255,255,255,.05)}
+.find:focus-within{border-color:var(--blue)}
+.find input{flex:1;height:46px;background:none;border:0;outline:0;color:var(--tx);font-size:14px}
+.range{display:flex;align-items:center;gap:12px;max-width:540px;color:var(--mu);font-size:12px;margin:16px 0}
+.range input{flex:1;accent-color:var(--blue)}
+.bar{display:flex;justify-content:space-between;align-items:center;margin:16px 0 8px}
+.bar-actions{display:flex;gap:12px;align-items:center}
+.bar button{color:var(--cyan);font-size:13px;min-height:36px}
+/* track table */
+.th,.tr{display:grid;grid-template-columns:36px minmax(0,3fr) minmax(0,2fr) 64px 48px;gap:14px;align-items:center;padding:8px 14px;border-radius:10px}
+.th{font-size:12px;color:var(--mu);border-bottom:1px solid var(--s2);border-radius:0;padding-bottom:10px}
+.tr{width:100%;text-align:left;transition:background .15s;cursor:pointer}
+.tr:hover{background:var(--s2)}
+.tr.cur .t{color:var(--cyan)}
+.tr .n{color:var(--mu);text-align:center}
+.tr .nm{display:flex;align-items:center;gap:12px;min-width:0}
+.tr .nm i{width:44px;height:44px;border-radius:8px;flex:none;background-size:cover;background-position:center}
+.tr .nm div,.tr .al2{min-width:0}
+.tr p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.al2,.d{color:var(--mu);font-size:13px}
+.heart{color:var(--mu);display:flex;justify-content:center}
+.heart.on{color:var(--red)}.heart.on svg{fill:var(--red)}
+.empty{color:var(--mu);padding:40px 16px;text-align:center}
+/* right panel */
+.right{padding:20px;overflow-y:auto;display:flex;flex-direction:column;gap:16px}
+.right .lab{font-size:11px;letter-spacing:.1em;color:var(--mu);text-align:center;text-transform:uppercase}
+.art{width:100%;aspect-ratio:1;border-radius:20px;background:var(--grad);box-shadow:0 0 40px rgba(61,139,255,.4);background-size:cover;background-position:center;transition:background .3s}
+.meta{display:flex;align-items:center;gap:10px}.meta>div{flex:1;min-width:0}.meta h3{font-size:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tabs{display:flex;gap:8px}
+.q2{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:10px;width:100%;text-align:left;transition:background .15s}
+.q2:hover{background:var(--s2)}
+.q2 i{width:40px;height:40px;border-radius:8px;flex:none;background-size:cover;background-position:center}
+.q2 div{min-width:0}
+.ly{overflow-y:auto;max-height:360px;padding:4px 0}
+.ly p{color:var(--mu);font-size:15px;font-weight:600;margin:10px 0;transition:color .2s}
+.ly p.hi{color:var(--cyan);transform:scale(1.02)}
+/* player */
+.player{grid-column:1/-1;display:grid;grid-template-columns:1fr minmax(320px,560px) 1fr;align-items:center;gap:16px;padding:0 20px;background:var(--s2)}
+.np{display:flex;align-items:center;gap:12px;min-width:0}.np i{width:56px;height:56px;border-radius:10px;flex:none;background-size:cover;background-position:center}
+.np div{min-width:0}.np p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ctr{display:flex;flex-direction:column;gap:6px}
+.btns{display:flex;justify-content:center;align-items:center;gap:10px}
+.ib{width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:50%;color:var(--mu);transition:color .15s}
+.ib:hover{color:var(--tx)}.ib.act{color:var(--cyan)}
+.play{width:52px;height:52px;border-radius:50%;background:var(--grad2);color:var(--tx);display:flex;align-items:center;justify-content:center;box-shadow:0 0 24px rgba(61,139,255,.5);transition:transform .15s}
+.play:hover{transform:scale(1.06)}
+.prog{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--mu)}
+input[type=range]{-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;background:linear-gradient(to right,var(--cyan) var(--p,0%),var(--bg) var(--p,0%));cursor:pointer;flex:1}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--tx);opacity:0;transition:opacity .15s}
+input[type=range]:hover::-webkit-slider-thumb,input[type=range]:focus-visible::-webkit-slider-thumb{opacity:1}
+input[type=range]::-moz-range-thumb{width:14px;height:14px;border:0;border-radius:50%;background:var(--tx)}
+.vol{display:flex;align-items:center;justify-content:flex-end;gap:8px;color:var(--mu)}.vol input{max-width:110px}
 
-      /* Gradients */
-      --grad-main: linear-gradient(135deg, #3D8BFF 0%, #00D4FF 100%);
-      --grad-highlight: linear-gradient(135deg, #3D8BFF 0%, #8B5CFF 100%);
-      --grad-bg: linear-gradient(180deg, #172044 0%, #05070F 280px, #05070F 100%);
+/* modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(5,7,15,.75);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:99;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-overlay.on{opacity:1;pointer-events:auto}
+.modal{background:var(--s1);border:1px solid var(--s2);border-radius:18px;padding:24px;width:90%;max-width:440px;display:flex;flex-direction:column;gap:14px;box-shadow:0 12px 40px rgba(0,0,0,.6)}
+.modal h3{font-size:18px}
+.modal input{width:100%;height:44px;background:var(--bg);border:1px solid var(--s2);border-radius:10px;padding:0 14px;color:var(--tx);font-size:14px}
+.modal-btns{display:flex;gap:10px;justify-content:flex-end}
+.btn-p{background:var(--grad);padding:10px 18px;border-radius:10px;font-weight:600}
+.btn-s{padding:10px 16px;border-radius:10px;color:var(--mu)}
 
-      /* Legacy variable fallbacks */
-      --pyro-cyan: #3D8BFF;
-      --pyro-blue: #00D4FF;
-      --pyro-glow: rgba(0, 212, 255, 0.45);
-      --pyro-bg: #05070F;
-      --pyro-panel: #0E1426;
-      --pyro-card: #0E1426;
-      --pyro-card-hover: #172044;
-    }
-    body {
-      background: linear-gradient(180deg, #172044 0%, #05070F 280px, #05070F 100%);
-      background-color: #05070F;
-      color: #F2F5FF;
-      font-family: -apple-system, BlinkMacSystemFont, "Circular Spotify Tx T", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
-      overflow: hidden;
-    }
-    .spotify-panel {
-      background-color: #0E1426;
-      border: 1px solid rgba(61, 139, 255, 0.12);
-      border-radius: 12px;
-    }
-    .spotify-card {
-      background-color: #0E1426;
-      border: 1px solid rgba(61, 139, 255, 0.08);
-      border-radius: 10px;
-      transition: background-color 0.2s ease, transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-    }
-    .spotify-card:hover {
-      background-color: #172044;
-      border-color: rgba(61, 139, 255, 0.45);
-      box-shadow: 0 4px 20px rgba(0, 212, 255, 0.2);
-      transform: translateY(-2px);
-    }
-    .text-neutral-400 {
-      color: #7F8BB0 !important;
-    }
-    .text-neutral-500 {
-      color: #556080 !important;
-    }
-    .text-white {
-      color: #F2F5FF !important;
-    }
-    .text-pink-500 {
-      color: #FF3B5C !important;
-    }
-    /* Main Gradient on Seek Slider (Fiery Orange) */
-    .seek-slider {
-      background: linear-gradient(90deg, #FF4500, #FF8800) !important;
-    }
-    .seek-slider::-webkit-slider-thumb {
-      appearance: none;
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      background: #FF8800;
-      box-shadow: 0 0 10px #FF8800, 0 0 4px #FF4500;
-      cursor: pointer;
-      opacity: 0;
-      transition: opacity 0.15s ease, transform 0.15s ease;
-    }
-    .seek-slider:hover::-webkit-slider-thumb {
-      opacity: 1;
-      transform: scale(1.25);
-    }
-    /* Volume Slider Orange Thumb */
-    .volume-slider::-webkit-slider-thumb {
-      appearance: none;
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      background: #FF8800;
-      box-shadow: 0 0 8px #FF8800, 0 0 3px #FF4500;
-      cursor: pointer;
-    }
-    /* Scrollbars */
-    ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(61, 139, 255, 0.22); border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: rgba(0, 212, 255, 0.45); }
+/* spin */
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{animation:spin 1s linear infinite}
 
-    /* Solid Color Monochrome Emojis */
-    .emoji-solid-white {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      line-height: 1;
-      filter: grayscale(100%) brightness(0) invert(1);
-    }
-    .emoji-solid-black {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      line-height: 1;
-      filter: grayscale(100%) brightness(0);
-    }
-  </style>
+/* responsive */
+@media (max-width:1180px){.app{grid-template-columns:232px 1fr}.right{display:none}}
+@media (max-width:820px){
+ .app{grid-template-columns:1fr;grid-template-rows:1fr 76px 64px}
+ .side{order:3;flex-direction:row;padding:6px;gap:6px}.side .logo,.side h3,.side .pl-list{display:none}.nb{flex:1;flex-direction:column;gap:2px;font-size:11px;padding:6px 0;justify-content:center}
+ .main{padding:20px 16px}.player{order:2;grid-template-columns:1fr auto;padding:0 12px}.ctr .prog,.vol,.ctr .sh,.ctr .rp{display:none}
+ .th,.tr{grid-template-columns:minmax(0,1fr) 48px}.th span:nth-child(1),.th span:nth-child(3),.th span:nth-child(4),.tr .n,.tr .al2,.tr .d{display:none}
+}
+</style>
 </head>
-<body class="h-screen w-screen flex flex-col p-2 gap-2 select-none">
+<body>
+<div class="app">
 
-  <!-- ========================================== -->
-  <!-- TOP MAIN CONTAINER (PANEL 1 + PANEL 2/3 + RIGHT PANEL) -->
-  <!-- ========================================== -->
-  <div class="flex-1 flex gap-2 min-h-0 overflow-hidden">
+<aside class="card side">
+  <div class="logo" aria-label="SkullBeat"><svg viewBox="0 0 176 40" aria-hidden="true"><path d="M0 40V22Q11 14 22 22T44 22T66 22T88 22T110 22T132 22T154 22T176 22V40z" fill="#fff"/></svg><span>SKULLBEAT</span></div>
+  <button class="nb on" data-v="home"><svg class="ic" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</button>
+  <button class="nb" data-v="search"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.5-4.5"/></svg>Search</button>
+  <button class="nb" data-v="library"><svg class="ic" viewBox="0 0 24 24"><path d="M5 4v16M10 4v16M15 5l4 15"/></svg>Library</button>
+  <h3>PLAYLISTS <button id="add-pl" title="Import / Add Playlist">+ Import</button></h3>
+  <div class="pl-list" id="side-pl"></div>
+</aside>
 
-    <!-- 1. LEFT SIDEBAR (Panel 1 in diagram) -->
-    <aside class="w-64 sm:w-72 spotify-panel flex flex-col p-4 flex-shrink-0 overflow-hidden">
-      <!-- SKULLBEAT BRAND HEADER -->
-      <div class="flex items-center space-x-3 mb-6 px-1 py-1 cursor-pointer group" onclick="switchTab('home')">
-        <img src="/logo.png?v=10" alt="SKULLBEAT" class="w-11 h-11 object-contain drop-shadow-[0_0_16px_rgba(255,100,0,0.5)] group-hover:scale-110 transition-transform flex-shrink-0">
-        <span class="font-brand text-[25px] tracking-[2px] leading-none text-bone select-none">
-          SKULLBEAT
-        </span>
-      </div>
+<main class="card main" id="main">
+  <section class="view on" id="v-home">
+    <h1 id="greet">Good evening</h1>
+    <div class="quick" id="quick"></div>
+    <h2>Recently played</h2><div class="row" id="recent"></div>
+    <h2>Made for you</h2><div class="row" id="made"></div>
+  </section>
 
-      <!-- Top navigation (Home & Search) - Highlight Gradient for Active Tab -->
-      <div class="space-y-2 mb-4">
-        <button onclick="switchTab('home')" id="side-nav-home" class="w-full flex items-center space-x-3 text-bone font-bold text-sm px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-[#3D8BFF] to-[#8B5CFF] shadow-[0_0_16px_rgba(61,139,255,0.4)] transition">
-          <i class="fa-solid fa-house text-base"></i>
-          <span>Home</span>
-        </button>
-        <button onclick="switchTab('search')" id="side-nav-search" class="w-full flex items-center space-x-3 text-[#7F8BB0] font-bold text-sm px-3.5 py-2.5 rounded-xl hover:text-bone hover:bg-white/5 transition">
-          <i class="fa-solid fa-magnifying-glass text-base"></i>
-          <span>Search</span>
-        </button>
-      </div>
+  <section class="view" id="v-search">
+    <h1>Search</h1>
+    <label class="find"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.5-4.5"/></svg><input id="sq" placeholder="What do you want to play?" autocomplete="off"></label>
+    <div id="sres"></div>
+  </section>
 
-      <!-- Divider -->
-      <div class="border-t border-white/10 my-2"></div>
+  <section class="view" id="v-library">
+    <h1>Library</h1>
+    <div class="chips" id="tabs"><button class="chip on" data-t="all">All</button><button class="chip" data-t="liked">Liked</button><button class="chip" data-t="playlists">Playlists</button><button class="chip" data-t="history">History</button></div>
+    <label class="find"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.5-4.5"/></svg><input id="lq" placeholder="Filter by title, artist or album" autocomplete="off"></label>
+    <div class="chips" id="by"><button class="chip on" data-k="all">Any</button><button class="chip" data-k="artist">Artist</button><button class="chip" data-k="title">Title</button><button class="chip" data-k="album">Album</button></div>
+    <div class="range"><span>Duration</span><input type="range" id="dmin" min="0" max="600" value="0" aria-label="Min duration"><input type="range" id="dmax" min="0" max="600" value="600" aria-label="Max duration"><span id="dlab">0:00 – 10:00</span></div>
+    <div class="bar"><span class="a" id="cnt">0 tracks</span><div class="bar-actions"><button id="exp">Export M3U · CSV · JSON</button></div></div>
+    <div id="lib"></div>
+  </section>
+</main>
 
-      <!-- Library navigation & User Playlists -->
-      <div class="flex-1 flex flex-col min-h-0">
-        <div class="flex items-center justify-between mb-3 text-neutral-400 hover:text-white transition cursor-pointer" onclick="switchTab('library')">
-          <div class="flex items-center space-x-3 text-sm font-bold">
-            <i class="fa-solid fa-lines-leaning text-lg"></i>
-            <span>Your library</span>
-          </div>
-          <button onclick="event.stopPropagation(); openCreatePlaylistModal()" title="Create playlist" class="hover:text-white text-base">
-            <i class="fa-solid fa-plus"></i>
-          </button>
-        </div>
+<aside class="card right" id="right">
+  <p class="lab" id="from">PLAYING FROM PLAYLIST</p>
+  <div class="art" id="rart"></div>
+  <div class="meta"><div><h3 id="rt">Song title</h3><p class="a" id="ra" style="font-size:15px">Artist</p></div><button class="ib heart" id="rlike" aria-label="Like"><svg class="ic" viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg></button></div>
+  <div class="tabs"><button class="chip on" data-p="queue">Queue</button><button class="chip" data-p="lyrics">Lyrics</button></div>
+  <div id="pq"></div>
+</aside>
 
-        <!-- Scrollable playlist list -->
-        <div class="flex-1 overflow-y-auto space-y-2 pr-1 text-xs font-semibold text-neutral-400">
-          <div onclick="filterLibrary('liked'); switchTab('library')" class="flex items-center space-x-3 py-1.5 px-2 rounded-md hover:bg-white/5 hover:text-white cursor-pointer transition">
-            <i class="fa-solid fa-heart text-pink-500 text-sm"></i>
-            <span class="truncate">Liked songs</span>
-          </div>
-
-          <!-- Dynamic User Playlists -->
-          <div id="sidebarUserPlaylists" class="space-y-1 pt-2 border-t border-white/5"></div>
-        </div>
-      </div>
-    </aside>
-
-    <!-- 2 & 3. MAIN WINDOW (Panel 2 Top Bar + Panel 3 Content) -->
-    <main class="flex-1 spotify-panel flex flex-col overflow-hidden relative min-w-0">
-
-      <!-- 2. TOP BAR (Panel 2 in diagram) -->
-      <header class="h-16 px-6 flex items-center justify-between flex-shrink-0 border-b border-white/5">
-        <!-- Back & Forward arrows -->
-        <div class="flex items-center space-x-2 flex-shrink-0">
-          <button onclick="historyBack()" class="w-8 h-8 rounded-full bg-black/60 text-neutral-400 hover:text-white flex items-center justify-center transition">
-            <i class="fa-solid fa-chevron-left text-xs"></i>
-          </button>
-          <button onclick="historyForward()" class="w-8 h-8 rounded-full bg-black/60 text-neutral-400 hover:text-white flex items-center justify-center transition">
-            <i class="fa-solid fa-chevron-right text-xs"></i>
-          </button>
-        </div>
-
-        <!-- Wide Rounded Search Bar -->
-        <div class="max-w-md w-full mx-4">
-          <div class="relative">
-            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-neutral-400 text-sm"></i>
-            <input 
-              id="mainSearchInput" 
-              type="text" 
-              placeholder="What do you want to play?" 
-              oninput="debounceSearch(this.value)"
-              onkeydown="if(event.key === 'Enter'){ if(searchDebounceTimeout) clearTimeout(searchDebounceTimeout); if(this.value.trim()){ switchTab('search'); runSearch(this.value.trim()); } }"
-              class="w-full pl-10 pr-4 py-2 bg-[#05070F] hover:bg-[#05070F]/80 focus:bg-[#05070F] border border-[#3D8BFF]/30 focus:border-[#00D4FF] rounded-full text-xs sm:text-sm text-bone placeholder-[#7F8BB0] focus:outline-none transition shadow-inner"
-            />
-          </div>
-        </div>
-
-        <!-- Right: 3-dot Menu & Profile -->
-        <div class="flex items-center space-x-3 flex-shrink-0">
-          <button onclick="toggleImportModal()" title="Import Spotify or YouTube Library" class="text-bone hover:opacity-90 text-xs hidden sm:inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-[#3D8BFF] to-[#8B5CFF] shadow-[0_0_15px_rgba(61,139,255,0.4)] transition">
-            <i class="fa-brands fa-spotify text-emerald-400"></i>
-            <i class="fa-brands fa-youtube text-red-500 text-[11px]"></i>
-            <span class="font-semibold text-bone">Import</span>
-          </button>
-          <button onclick="openCreatePlaylistModal()" title="Create Playlist" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-xs transition">
-            <i class="fa-solid fa-plus"></i>
-          </button>
-          <button onclick="toggleOptionsMenu()" class="text-neutral-400 hover:text-white text-base pl-1">
-            <i class="fa-solid fa-ellipsis"></i>
-          </button>
-        </div>
-      </header>
-
-      <!-- 3. SCROLLABLE MAIN CONTENT AREA (Panel 3 in diagram) -->
-      <div id="mainContentScroll" class="flex-1 overflow-y-auto p-6">
-
-        <!-- VIEW: HOME (Panel 3 Cards) -->
-        <div id="view-home" class="space-y-6">
-          <h2 id="homeGreeting" class="text-2xl sm:text-3xl font-extrabold text-white">Good evening</h2>
-
-          <!-- 4 Colorful Feature Cards from diagram -->
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <!-- Daily Mix 1 (Blue) -->
-            <div onclick="searchGenre('Daily mix chill acoustic')" class="h-44 rounded-lg p-4 bg-gradient-to-b from-[#1e3264] to-[#121212] flex flex-col justify-between cursor-pointer group hover:scale-[1.02] transition shadow-lg">
-              <div class="flex-1 flex items-center justify-center">
-                <i class="fa-solid fa-music text-3xl text-blue-400/80 group-hover:scale-110 transition-transform"></i>
-              </div>
-              <div>
-                <div class="font-bold text-sm text-white">Daily mix 1</div>
-                <div class="text-xs text-neutral-400">Made for you</div>
-              </div>
-            </div>
-
-            <!-- Discover Weekly (Green) -->
-            <div onclick="searchGenre('Discover weekly top trending')" class="h-44 rounded-lg p-4 bg-gradient-to-b from-[#134e2c] to-[#121212] flex flex-col justify-between cursor-pointer group hover:scale-[1.02] transition shadow-lg">
-              <div class="flex-1 flex items-center justify-center">
-                <i class="fa-solid fa-music text-3xl text-green-400/80 group-hover:scale-110 transition-transform"></i>
-              </div>
-              <div>
-                <div class="font-bold text-sm text-white">Discover weekly</div>
-                <div class="text-xs text-neutral-400">New picks</div>
-              </div>
-            </div>
-
-            <!-- Release Radar (Brown/Amber) -->
-            <div onclick="searchGenre('Release radar new songs')" class="h-44 rounded-lg p-4 bg-gradient-to-b from-[#783c00] to-[#121212] flex flex-col justify-between cursor-pointer group hover:scale-[1.02] transition shadow-lg">
-              <div class="flex-1 flex items-center justify-center">
-                <i class="fa-solid fa-music text-3xl text-amber-400/80 group-hover:scale-110 transition-transform"></i>
-              </div>
-              <div>
-                <div class="font-bold text-sm text-white">Release radar</div>
-                <div class="text-xs text-neutral-400">New releases</div>
-              </div>
-            </div>
-
-            <!-- Top Hits (Red/Crimson) -->
-            <div onclick="searchGenre('Top global hits pop')" class="h-44 rounded-lg p-4 bg-gradient-to-b from-[#841c24] to-[#121212] flex flex-col justify-between cursor-pointer group hover:scale-[1.02] transition shadow-lg">
-              <div class="flex-1 flex items-center justify-center">
-                <i class="fa-solid fa-music text-3xl text-red-400/80 group-hover:scale-110 transition-transform"></i>
-              </div>
-              <div>
-                <div class="font-bold text-sm text-white">Top hits</div>
-                <div class="text-xs text-neutral-400">Playlist</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Recently Played Horizontal Row (history/recent.json) -->
-          <div id="homeRecentSection" class="pt-4 hidden">
-            <div class="flex items-center justify-between mb-3">
-              <h3 class="text-lg font-bold text-white">Recently played</h3>
-              <button onclick="clearHistory()" class="text-xs text-neutral-400 hover:text-white">Clear</button>
-            </div>
-            <div id="homeRecentRow" class="flex space-x-4 overflow-x-auto pb-2 scrollbar-thin"></div>
-          </div>
-
-          <!-- Recommended For You Row -->
-          <div class="pt-4">
-            <h3 class="text-lg font-bold text-white mb-3">Recommended</h3>
-            <div id="homeFeaturedGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"></div>
-          </div>
-        </div>
-
-        <!-- VIEW: SEARCH RESULTS -->
-        <div id="view-search" class="space-y-6 hidden">
-          <h2 id="searchResultsTitle" class="text-xl font-bold text-white">Search Results</h2>
-          <div id="searchResultsGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"></div>
-        </div>
-
-        <!-- VIEW: LIBRARY -->
-        <div id="view-library" class="space-y-6 hidden">
-          <div class="flex items-center justify-between">
-            <h2 class="text-xl font-bold text-white">Your Library</h2>
-            <div class="flex space-x-2 text-xs">
-              <button onclick="filterLibrary('all')" id="lib-btn-all" class="px-3 py-1.5 rounded-full bg-white text-black font-semibold">All</button>
-              <button onclick="filterLibrary('liked')" id="lib-btn-liked" class="px-3 py-1.5 rounded-full bg-white/10 text-white hover:bg-white/20">Liked</button>
-              <button onclick="filterLibrary('playlists')" id="lib-btn-playlists" class="px-3 py-1.5 rounded-full bg-white/10 text-white hover:bg-white/20">Playlists</button>
-              <button onclick="filterLibrary('history')" id="lib-btn-history" class="px-3 py-1.5 rounded-full bg-white/10 text-white hover:bg-white/20">History</button>
-            </div>
-          </div>
-          <div id="libraryListContainer" class="space-y-2"></div>
-        </div>
-
-        <!-- VIEW: AUTHOR / ARTIST FULL PAGE -->
-        <div id="view-artist" class="space-y-6 hidden">
-          <div class="flex items-center space-x-6 p-6 rounded-xl bg-gradient-to-r from-neutral-800 to-transparent">
-            <img id="artistPageAvatar" src="https://via.placeholder.com/150" class="w-32 h-32 rounded-full object-cover shadow-2xl border-2 border-white/20">
-            <div>
-              <div class="text-[11px] font-bold uppercase tracking-widest text-neutral-400 flex items-center space-x-1">
-                <i class="fa-solid fa-circle-check text-blue-400"></i>
-                <span>Verified Artist</span>
-              </div>
-              <h1 id="artistPageName" class="text-3xl sm:text-5xl font-extrabold text-white my-1">Artist Name</h1>
-              <p id="artistPageCount" class="text-xs text-neutral-400">Loading tracks...</p>
-              <div class="mt-4 flex items-center space-x-3">
-                <button onclick="playAllArtistPage()" class="w-12 h-12 rounded-full bg-white hover:scale-105 text-black flex items-center justify-center text-lg shadow-xl transition">
-                  <i class="fa-solid fa-play ml-0.5"></i>
-                </button>
-                <button onclick="toggleShuffle(); playAllArtistPage();" title="Shuffle Artist" class="p-3 text-neutral-400 hover:text-white text-base">
-                  <i class="fa-solid fa-shuffle"></i>
-                </button>
-              </div>
-            </div>
-          </div>
-          <h3 class="text-lg font-bold text-white">Popular Tracks</h3>
-          <div id="artistPageGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"></div>
-        </div>
-
-        <!-- VIEW: PLAYLIST DETAIL (Rename, Update, Delete, Play All) -->
-        <div id="view-playlist" class="space-y-6 hidden">
-          <div class="flex flex-col sm:flex-row sm:items-end space-y-4 sm:space-y-0 sm:space-x-6 p-6 rounded-xl bg-gradient-to-r from-pink-950/40 via-neutral-900 to-transparent border border-white/5">
-            <div id="playlistPageCover" class="w-32 h-32 rounded-lg bg-gradient-to-tr from-pink-600 to-purple-600 flex items-center justify-center text-white text-4xl shadow-2xl flex-shrink-0">
-              <i class="fa-solid fa-compact-disc"></i>
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="text-[11px] font-bold uppercase tracking-widest text-pink-400 font-semibold">PLAYLIST</div>
-              <h1 id="playlistPageTitle" class="text-2xl sm:text-4xl font-extrabold text-white my-1 truncate">Playlist Name</h1>
-              <p id="playlistPageCount" class="text-xs text-neutral-400">0 songs</p>
-              <div class="mt-4 flex flex-wrap items-center gap-2 sm:gap-3">
-                <button onclick="playAllCurrentPlaylist()" title="Play All" class="w-11 h-11 rounded-full bg-white hover:scale-105 active:scale-95 text-black flex items-center justify-center text-base shadow-xl transition">
-                  <i class="fa-solid fa-play ml-0.5"></i>
-                </button>
-                <button onclick="shuffleCurrentPlaylist()" title="Shuffle Play" class="p-2.5 text-neutral-400 hover:text-white text-base transition">
-                  <i class="fa-solid fa-shuffle"></i>
-                </button>
-                <button onclick="renameCurrentPlaylist()" title="Rename Playlist" class="px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-semibold flex items-center space-x-1.5 transition">
-                  <i class="fa-solid fa-pen text-[10px]"></i>
-                  <span>Rename</span>
-                </button>
-                <button onclick="deleteCurrentPlaylist()" title="Delete Playlist" class="px-3.5 py-1.5 rounded-full bg-red-950/40 hover:bg-red-900/60 text-red-400 text-xs font-semibold flex items-center space-x-1.5 border border-red-500/20 transition">
-                  <i class="fa-solid fa-trash text-[10px]"></i>
-                  <span>Delete</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Playlist Tracks Table -->
-          <div id="playlistTrackList" class="space-y-1"></div>
-        </div>
-
-      </div>
-    </main>
-
-    <!-- OPTIONAL RIGHT PANEL: NOW PLAYING DETAILS / AUTHOR SONGS / QUEUE -->
-    <aside id="rightPanel" class="w-72 spotify-panel p-4 flex flex-col overflow-y-auto flex-shrink-0 hidden xl:flex">
-      <div class="flex items-center justify-between pb-3 border-b border-white/10 mb-3">
-        <h3 id="rightPanelTitle" class="text-xs font-bold uppercase tracking-wider text-white truncate">More from Artist</h3>
-        <button onclick="toggleShuffle()" id="rightShuffleBtn" title="Toggle Shuffle" class="text-xs text-neutral-400 hover:text-white px-2 py-1 rounded bg-white/5 border border-white/10">
-          <i class="fa-solid fa-shuffle text-xs"></i>
-          <span id="rightShuffleLabel" class="text-[10px] ml-1">Seq</span>
-        </button>
-      </div>
-      <div id="rightPanelList" class="space-y-2 flex-1 overflow-y-auto pr-1">
-        <div class="text-center text-neutral-500 py-12 text-xs">
-          Play any song to load artist tracks and queue here.
-        </div>
-      </div>
-    </aside>
-
+<footer class="card player">
+  <div class="np"><i id="pa"></i><div><p class="t" id="pt"></p><p class="a" id="pr"></p></div></div>
+  <div class="ctr">
+    <div class="btns">
+      <button class="ib sh" id="shuf" aria-label="Shuffle"><svg class="ic" viewBox="0 0 24 24"><path d="M3 6h4l10 12h4M18 3l3 3-3 3M3 18h4l3-3.5M14 9.5L17 6h4M18 15l3 3-3 3"/></svg></button>
+      <button class="ib" id="prev" aria-label="Previous"><svg class="ic" viewBox="0 0 24 24"><path d="M19 5v14L8 12zM5 5v14"/></svg></button>
+      <button class="play" id="pp" aria-label="Play"></button>
+      <button class="ib" id="next" aria-label="Next"><svg class="ic" viewBox="0 0 24 24"><path d="M5 5v14l11-7zM19 5v14"/></svg></button>
+      <button class="ib rp" id="rep" aria-label="Repeat"><svg class="ic" viewBox="0 0 24 24"><path d="M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3"/></svg></button>
+    </div>
+    <div class="prog"><span id="tc">0:00</span><input type="range" id="seek" min="0" max="100" value="0" aria-label="Seek"><span id="td">0:00</span></div>
   </div>
+  <div class="vol"><button class="ib" id="dl" aria-label="Download"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3v12M7 11l5 5 5-5M4 20h16"/></svg></button><button class="ib" id="mute-btn"><svg class="ic" id="vol-ic" viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4zM15.5 8.5a5 5 0 0 1 0 7"/></svg></button><input type="range" id="vol" min="0" max="100" value="80" aria-label="Volume"></div>
+</footer>
+</div>
 
-  <!-- ========================================== -->
-  <!-- 4, 5, 6. BOTTOM PLAYER BAR (Panels 4, 5, 6 in diagram) -->
-  <!-- ========================================== -->
-  <footer class="h-20 sm:h-22 spotify-panel px-4 flex items-center justify-between flex-shrink-0 select-none">
-    
-    <!-- 4. BOTTOM BAR LEFT: THE CURRENT SONG (Panel 4) -->
-    <div class="flex items-center space-x-3 w-1/4 min-w-[180px]">
-      <!-- Click cover opens larger now playing / artist -->
-      <img id="playerCover" src="https://via.placeholder.com/60" onclick="if(currentTrack) openArtistPage(currentTrack.channel)" class="w-12 h-12 rounded object-cover cursor-pointer hover:opacity-90 flex-shrink-0 shadow">
-      <div class="overflow-hidden pr-2">
-        <!-- Click title or artist leads to author's page -->
-        <div id="playerTitle" onclick="if(currentTrack) openArtistPage(currentTrack.channel)" class="text-xs sm:text-sm font-semibold text-white truncate cursor-pointer hover:underline">Song title</div>
-        <div id="playerArtist" onclick="if(currentTrack) openArtistPage(currentTrack.channel)" class="text-[11px] text-neutral-400 truncate cursor-pointer hover:underline">Artist name</div>
-      </div>
-      <!-- Heart Like Button -->
-      <button onclick="toggleFavoriteCurrent()" id="playerHeartBtn" class="p-2 text-neutral-400 hover:text-pink-500 transition text-sm">
-        <i class="fa-regular fa-heart"></i>
-      </button>
-    </div>
-
-    <!-- 5. BOTTOM BAR CENTER: CONTROLS (Panel 5) -->
-    <div class="flex flex-col items-center w-2/4 max-w-xl px-2 relative">
-      <!-- Buttons row: Shuffle, Prev, White Skull Play/Pause with Flame on Top, Next, Repeat -->
-      <div class="relative flex items-center space-x-5 mb-1.5">
-
-        <!-- Shuffle -->
-        <button onclick="toggleShuffle()" id="playerShuffleBtn" title="Shuffle" class="text-neutral-400 hover:text-white text-sm transition relative z-10">
-          <i class="fa-solid fa-shuffle"></i>
-          <span id="playerShuffleDot" class="w-1.5 h-1.5 rounded-full bg-[#FF7700] shadow-[0_0_8px_#FF4500] absolute -bottom-1.5 left-1/2 transform -translate-x-1/2 hidden"></span>
-        </button>
-
-        <!-- Previous -->
-        <button onclick="playPrevTrack()" title="Previous" class="text-neutral-400 hover:text-white text-base transition relative z-10">
-          <i class="fa-solid fa-backward-step"></i>
-        </button>
-
-        <!-- BONE WHITE SKULL PLAY / PAUSE BUTTON (SOFT BLUE GLOW + ELECTRIC-TO-CYAN PLAY ICON) -->
-        <div class="relative z-10 flex items-center justify-center">
-          <button onclick="togglePlayPause()" id="playerPlayBtn" title="Play / Pause"
-            class="relative z-10 w-12 h-14 sm:w-14 sm:h-16 hover:scale-105 active:scale-95 flex items-center justify-center transition duration-150 select-none focus:outline-none drop-shadow-[0_0_16px_rgba(61,139,255,0.45)] drop-shadow-[0_4px_12px_rgba(5,7,15,0.85)]">
-            <svg viewBox="0 0 100 115" class="w-full h-full pointer-events-none select-none overflow-visible">
-              <defs>
-                <!-- 3D Shaded Bone White #F2F5FF Skull Gradient -->
-                <linearGradient id="skullBoneGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stop-color="#ffffff" />
-                  <stop offset="35%" stop-color="#F2F5FF" />
-                  <stop offset="70%" stop-color="#dce4fc" />
-                  <stop offset="100%" stop-color="#7F8BB0" />
-                </linearGradient>
-                <radialGradient id="craniumHighlight" cx="50%" cy="36%" r="48%">
-                  <stop offset="0%" stop-color="#ffffff" />
-                  <stop offset="55%" stop-color="#F2F5FF" stop-opacity="0.95" />
-                  <stop offset="100%" stop-color="#dce4fc" stop-opacity="0" />
-                </radialGradient>
-              </defs>
-
-              <!-- DEFINED SKULL HEAD & BODY (CLEAN DEEP NAVY #05070F BORDER) -->
-              <path d="M 12,50 
-                       C 12,30 26,14 50,14 
-                       C 74,14 88,30 88,50 
-                       C 88,66 83,75 76,80 
-                       C 73,82 72,86 71,90 
-                       C 69,95 65,97 61,97 
-                       L 39,97 
-                       C 35,97 31,95 29,90 
-                       C 28,86 27,82 24,80 
-                       C 17,75 12,66 12,50 Z" 
-                    fill="url(#skullBoneGrad)" 
-                    stroke="#05070F" 
-                    stroke-width="2.4" />
-
-              <!-- 3D Cranium Highlight -->
-              <ellipse cx="50" cy="42" rx="33" ry="24" fill="url(#craniumHighlight)" />
-
-              <!-- Cheekbone subtle contour lines in Muted Blue-Gray #7F8BB0 -->
-              <path d="M 19,72 Q 25,68 27,61" stroke="#7F8BB0" stroke-width="2.2" stroke-linecap="round" fill="none" opacity="0.8" />
-              <path d="M 81,72 Q 75,68 73,61" stroke="#7F8BB0" stroke-width="2.2" stroke-linecap="round" fill="none" opacity="0.8" />
-
-              <!-- Teeth Ridges on jaw in Deep Navy #05070F -->
-              <line x1="39" y1="86" x2="39" y2="96" stroke="#05070F" stroke-width="2.4" stroke-linecap="round" />
-              <line x1="46" y1="85" x2="46" y2="97" stroke="#05070F" stroke-width="2.4" stroke-linecap="round" />
-              <line x1="54" y1="85" x2="54" y2="97" stroke="#05070F" stroke-width="2.4" stroke-linecap="round" />
-              <line x1="61" y1="86" x2="61" y2="96" stroke="#05070F" stroke-width="2.4" stroke-linecap="round" />
-            </svg>
-
-            <!-- Centered Fiery Orange Gradient Play / Pause Icon -->
-            <div class="absolute inset-0 flex items-center justify-center pointer-events-none" style="margin-top: -8px;">
-              <i id="playerPlayIcon" class="fa-solid fa-play text-sm sm:text-base font-black" style="background: linear-gradient(135deg, #FF4500 0%, #FFAA00 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; transform: translateX(1.5px);"></i>
-            </div>
-          </button>
-        </div>
-
-        <!-- Next -->
-        <button onclick="playNextTrack()" title="Next" class="text-neutral-400 hover:text-white text-base transition relative z-10">
-          <i class="fa-solid fa-forward-step"></i>
-        </button>
-
-        <!-- Repeat -->
-        <button onclick="toggleRepeat()" id="playerRepeatBtn" title="Repeat" class="text-neutral-400 hover:text-white text-sm transition relative z-10">
-          <i id="repeatIcon" class="fa-solid fa-repeat"></i>
-          <span id="playerRepeatDot" class="w-1.5 h-1.5 rounded-full bg-[#FF7700] shadow-[0_0_8px_#FF4500] absolute -bottom-1.5 left-1/2 transform -translate-x-1/2 hidden"></span>
-        </button>
-      </div>
-
-      <!-- Wide Progress Scrub Bar with Times -->
-      <div class="w-full flex items-center space-x-2 text-[11px] font-mono text-neutral-400">
-        <span id="playerCurrentTime" class="w-8 text-right">0:00</span>
-        <input 
-          id="playerSeekBar" 
-          type="range" 
-          min="0" 
-          max="100" 
-          value="0" 
-          oninput="onSeekInput(this.value)" 
-          onchange="onSeekChange(this.value)"
-          class="flex-1 h-1 bg-white/20 hover:bg-white/40 rounded-full appearance-none cursor-pointer seek-slider accent-[#FF7700]"
-        />
-        <span id="playerTotalTime" class="w-8">0:00</span>
-      </div>
-    </div>
-
-    <!-- 6. BOTTOM BAR RIGHT: EXTRA CONTROLS (Panel 6) -->
-    <div class="flex items-center justify-end space-x-3 w-1/4 text-neutral-400 text-sm">
-      <!-- Lyrics -->
-      <button onclick="toggleLyricsModal()" title="Lyrics" class="hover:text-white transition">
-        <i class="fa-solid fa-microphone text-xs"></i>
-      </button>
-
-      <!-- Queue / Right Panel toggle -->
-      <button onclick="toggleRightPanel()" title="Queue & Artist" class="hover:text-white transition">
-        <i class="fa-solid fa-bars-staggered text-xs"></i>
-      </button>
-
-      <!-- Volume Icon & Slider -->
-      <div class="hidden sm:flex items-center space-x-2">
-        <button onclick="toggleMute()" title="Mute/Unmute" class="hover:text-white text-xs">
-          <i id="volumeIcon" class="fa-solid fa-volume-high"></i>
-        </button>
-        <input 
-          id="volumeSlider" 
-          type="range" 
-          min="0" 
-          max="1" 
-          step="0.05" 
-          value="1" 
-          oninput="changeVolume(this.value)" 
-          class="w-20 h-1 bg-white/20 hover:bg-white/40 rounded-full appearance-none cursor-pointer volume-slider accent-[#FF7700]"
-        />
-      </div>
-
-      <!-- Download Button -->
-      <button onclick="downloadCurrent()" title="Download MP3" class="hover:text-white text-xs">
-        <i class="fa-solid fa-download"></i>
-      </button>
-    </div>
-  </footer>
-
-  <!-- MULTI-PLAYLIST PICKER MODAL -->
-  <div id="playlistPickerModal" class="fixed inset-0 bg-[#05070F]/85 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-[#0E1426] max-w-md w-full rounded-2xl p-6 border border-[#3D8BFF]/20 shadow-2xl">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="text-base font-bold text-bone">Add to Playlist</h3>
-        <button onclick="closePlaylistPickerModal()" class="text-[#7F8BB0] hover:text-bone"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-
-      <div class="space-y-2 max-h-60 overflow-y-auto mb-4" id="playlistPickerList"></div>
-
-      <!-- Create New Playlist on the fly -->
-      <div class="pt-3 border-t border-white/10 flex space-x-2">
-        <input id="newPlaylistInput" type="text" placeholder="Create new playlist..." class="flex-1 px-3.5 py-2 bg-[#05070F] border border-[#3D8BFF]/25 rounded-lg text-xs text-bone placeholder-[#7F8BB0] focus:outline-none focus:border-[#00D4FF]">
-        <button onclick="createNewPlaylistFromPicker()" class="px-4 py-2 bg-gradient-to-r from-[#3D8BFF] to-[#00D4FF] text-bone rounded-lg text-xs font-bold hover:scale-105 transition shadow-[0_0_12px_rgba(61,139,255,0.4)]">Create</button>
-      </div>
+<!-- Import Modal -->
+<div class="modal-overlay" id="import-modal">
+  <div class="modal">
+    <h3>Import Playlist / CSV</h3>
+    <input id="import-url" placeholder="Paste Spotify or YouTube playlist URL..." autocomplete="off">
+    <div style="font-size:12px;color:var(--mu);text-align:center">OR</div>
+    <button class="chip" onclick="document.getElementById('csv-in').click()" style="text-align:center">Select Spotify Export CSV file...</button>
+    <input type="file" id="csv-in" accept=".csv" style="display:none">
+    <div class="modal-btns">
+      <button class="btn-s" onclick="closeImport()">Cancel</button>
+      <button class="btn-p" onclick="doImportUrl()">Import URL</button>
     </div>
   </div>
+</div>
 
-  <!-- CREATE / EDIT PLAYLIST MODAL -->
-  <div id="createPlaylistModal" class="fixed inset-0 bg-[#05070F]/85 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-[#0E1426] max-w-lg w-full rounded-2xl p-5 sm:p-6 border border-[#3D8BFF]/20 shadow-2xl space-y-3.5">
-      <div class="flex justify-between items-center">
-        <h3 id="createPlaylistModalTitle" class="text-base font-bold text-bone">Create or Edit Playlist</h3>
-        <button onclick="toggleCreatePlaylistModal()" class="text-[#7F8BB0] hover:text-bone"><i class="fa-solid fa-xmark"></i></button>
-      </div>
+<audio id="audio" preload="auto"></audio>
 
-      <!-- Live Dynamic Playlist Preview Card -->
-      <div class="flex items-center space-x-3.5 p-3 rounded-xl bg-[#172044] border border-[#3D8BFF]/20">
-        <div id="modalCoverPreview" class="w-14 h-14 rounded-lg flex items-center justify-center text-3xl shadow-xl flex-shrink-0 transition-all duration-200" style="background: radial-gradient(circle, #3D8BFF 0%, #05070F 100%); border: 1px solid rgba(61, 139, 255, 0.4);">
-          <span id="modalEmojiPreview" class="emoji-solid-white">🎵</span>
-        </div>
-        <div class="flex-1 min-w-0">
-          <span class="text-[10px] font-bold uppercase tracking-wider text-[#3D8BFF]">PLAYLIST PREVIEW</span>
-          <div id="modalTitlePreview" class="text-sm font-bold text-bone truncate">New Playlist</div>
-          <div id="modalContrastLabel" class="text-[10px] text-[#7F8BB0] mt-0.5">Icon: Solid White on Dark BG</div>
-        </div>
-      </div>
-      
-      <div>
-        <label class="text-[11px] text-[#7F8BB0] uppercase font-semibold block mb-1">Name / URL</label>
-        <input id="playlistNameInput" type="text" oninput="updateModalPreviewTitle(this.value)" placeholder="Playlist name OR Spotify / YouTube playlist link..." class="w-full px-3.5 py-2 bg-[#05070F] border border-[#3D8BFF]/25 rounded-lg text-xs text-bone placeholder-[#7F8BB0] focus:outline-none focus:border-[#00D4FF]">
-      </div>
+<script>
+var G=['#3D8BFF,#8B5CFF','#8B5CFF,#FF3B5C','#3D8BFF,#00D4FF','#172044,#3D8BFF'].map(function(g){return 'linear-gradient(135deg,'+g+')'});
+var $=function(s){return document.querySelector(s)};
+var fmt=function(s){s=Math.round(s||0);return Math.floor(s/60)+':'+('0'+(s%60)).slice(-2)};
+var esc=function(s){return String(s||'').replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})};
+var parseSec=function(d){if(typeof d==='number')return Math.round(d);if(!d)return 180;var s=String(d).trim();if(s.indexOf(':')>-1){var p=s.split(':').map(Number);if(p.length===2)return p[0]*60+p[1];if(p.length===3)return p[0]*3600+p[1]*60+p[2]}var n=Number(s);return isNaN(n)?180:Math.round(n)};
 
-      <!-- Color Selection Swatches with Auto-Contrast Detection -->
-      <div>
-        <div class="flex items-center justify-between mb-1">
-          <label class="text-[11px] text-[#7F8BB0] uppercase font-semibold">Background Theme Color</label>
-          <span id="selectedColorPreview" class="w-4 h-4 rounded-full border border-white/40 inline-block" style="background-color: #3D8BFF;"></span>
-        </div>
-        <div class="flex items-center space-x-2 bg-[#172044] p-2 rounded-lg border border-white/5 overflow-x-auto scrollbar-thin" id="colorPickerList"></div>
-      </div>
+var PLAY='<svg viewBox="0 0 24 24" width="30" height="30"><path d="M12 3a8 8 0 0 0-8 8c0 2.6 1.2 4.3 3 5.4V20h2v-2h2v2h2v-2h2v2h2v-3.6c1.8-1.1 3-2.8 3-5.4a8 8 0 0 0-8-8z" fill="#F2F5FF"/><circle cx="9" cy="11" r="2" fill="#05070F"/><circle cx="15" cy="11" r="2" fill="#05070F"/></svg>';
+var PAUSE='<svg class="ic" viewBox="0 0 24 24" style="width:26px;height:26px"><path d="M7 5v14M17 5v14" stroke-width="3"/></svg>';
+var SPIN='<svg class="ic spin" viewBox="0 0 24 24" style="width:26px;height:26px"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-dasharray="28" stroke-dashoffset="10" stroke-width="2.5" fill="none"/></svg>';
+var HEART='<svg class="ic" viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>';
 
-      <!-- All-Type Emojis: Search, Categories & Solid Black/White Rendering -->
-      <div>
-        <div class="flex items-center justify-between mb-1">
-          <label class="text-[11px] text-[#7F8BB0] uppercase font-semibold">Solid Icon / Emoji</label>
-          <div class="flex items-center space-x-1.5">
-            <span class="text-[10px] text-[#7F8BB0]">Custom:</span>
-            <input id="playlistEmojiCustom" type="text" maxlength="4" value="🎵" oninput="selectPlaylistEmoji(this.value)" class="w-12 text-center px-1 py-0.5 bg-[#05070F] border border-[#3D8BFF]/25 rounded text-sm text-bone focus:outline-none">
-          </div>
-        </div>
+var audio=document.getElementById('audio');
+var S={cur:null,playing:false,pos:0,shuf:false,rep:false,panel:'queue',tab:'all',by:'all',queue:[],history:[],playlists:{},likedIds:new Set(),allTracks:[],searchTracks:[],streamCache:{}};
 
-        <!-- Category Filter Pills -->
-        <div class="flex items-center space-x-1 overflow-x-auto pb-1 mb-1.5 text-[10px] scrollbar-thin" id="emojiCategoryPills">
-          <button type="button" onclick="filterEmojiCategory('All')" class="emoji-cat-btn px-2 py-0.5 rounded-full bg-[#3D8BFF] text-bone font-semibold flex-shrink-0" data-cat="All">All</button>
-          <button type="button" onclick="filterEmojiCategory('Music')" class="emoji-cat-btn px-2 py-0.5 rounded-full bg-white/5 text-[#7F8BB0] hover:text-bone flex-shrink-0" data-cat="Music">🎵 Music</button>
-          <button type="button" onclick="filterEmojiCategory('Vibes')" class="emoji-cat-btn px-2 py-0.5 rounded-full bg-white/5 text-[#7F8BB0] hover:text-bone flex-shrink-0" data-cat="Vibes">⚡ Vibes</button>
-          <button type="button" onclick="filterEmojiCategory('Faces')" class="emoji-cat-btn px-2 py-0.5 rounded-full bg-white/5 text-[#7F8BB0] hover:text-bone flex-shrink-0" data-cat="Faces">💀 Faces</button>
-          <button type="button" onclick="filterEmojiCategory('Nature')" class="emoji-cat-btn px-2 py-0.5 rounded-full bg-white/5 text-[#7F8BB0] hover:text-bone flex-shrink-0" data-cat="Nature">🪐 Nature</button>
-          <button type="button" onclick="filterEmojiCategory('Animals')" class="emoji-cat-btn px-2 py-0.5 rounded-full bg-white/5 text-[#7F8BB0] hover:text-bone flex-shrink-0" data-cat="Animals">🐺 Animals</button>
-          <button type="button" onclick="filterEmojiCategory('Sports')" class="emoji-cat-btn px-2 py-0.5 rounded-full bg-white/5 text-[#7F8BB0] hover:text-bone flex-shrink-0" data-cat="Sports">🎮 Sports</button>
-          <button type="button" onclick="filterEmojiCategory('Objects')" class="emoji-cat-btn px-2 py-0.5 rounded-full bg-white/5 text-[#7F8BB0] hover:text-bone flex-shrink-0" data-cat="Objects">💎 Objects</button>
-          <button type="button" onclick="filterEmojiCategory('Symbols')" class="emoji-cat-btn px-2 py-0.5 rounded-full bg-white/5 text-[#7F8BB0] hover:text-bone flex-shrink-0" data-cat="Symbols">♾️ Symbols</button>
-        </div>
+function show(v){
+  document.querySelectorAll('.view').forEach(function(e){e.classList.toggle('on',e.id==='v-'+v)});
+  document.querySelectorAll('.nb').forEach(function(b){b.classList.toggle('on',b.dataset.v===v)});
+  $('#main').scrollTop=0; if(location.hash!=='#'+v)history.replaceState(null,'','#'+v);
+  if(v==='search')setTimeout(function(){$('#sq').focus()},0);
+}
+document.querySelectorAll('.nb').forEach(function(b){b.onclick=function(){show(b.dataset.v)}});
 
-        <!-- Search bar inside emoji picker -->
-        <div class="relative mb-1.5">
-          <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2 text-[10px] text-[#7F8BB0]"></i>
-          <input id="emojiSearchInput" type="text" placeholder="Search emojis or paste any character..." oninput="searchEmojiCatalog(this.value)" class="w-full pl-7 pr-3 py-1 bg-[#05070F] border border-[#3D8BFF]/25 rounded-md text-[11px] text-bone placeholder-[#7F8BB0] focus:outline-none focus:border-[#00D4FF]">
-        </div>
+function isLiked(id){return S.likedIds.has(id)}
+function trackBg(t,i){return t&&t.thumbnail?'url("'+t.thumbnail+'") center/cover no-repeat':(t&&t.g?t.g:G[(i||0)%G.length])}
 
-        <!-- Scrollable Grid of All Emojis -->
-        <div class="grid grid-cols-8 sm:grid-cols-10 gap-1 bg-[#172044] p-2 rounded-lg border border-white/5 max-h-36 overflow-y-auto scrollbar-thin" id="emojiPickerList"></div>
-      </div>
+function rows(list,empty){
+  if(!list||!list.length)return'<p class="empty">'+empty+'</p>';
+  return'<div class="th"><span>#</span><span>Title</span><span>Album</span><span>Time</span><span></span></div>'+list.map(function(t,i){
+    var cur=S.cur&&((S.cur.videoId&&S.cur.videoId===t.videoId)||(S.cur.id===t.id));
+    var bg=trackBg(t,i);
+    var liked=isLiked(t.videoId||t.id);
+    return'<div class="tr'+(cur?' cur':'')+'" role="button" tabindex="0" data-tid="'+esc(t.videoId||t.id)+'"><span class="n">'+(i+1)+'</span><div class="nm"><i style="background:'+bg+'"></i><div><p class="t">'+esc(t.t)+'</p><p class="a">'+esc(t.a)+'</p></div></div><p class="al2">'+esc(t.al||'Single')+'</p><span class="d">'+fmt(t.d)+'</span><button class="heart'+(liked?' on':'')+'" data-like="'+esc(t.videoId||t.id)+'" aria-label="Like">'+HEART+'</button></div>'}).join('');
+}
 
-      <button onclick="saveNewPlaylistAction()" id="createPlaylistBtn" class="w-full py-2.5 bg-gradient-to-r from-[#3D8BFF] to-[#00D4FF] text-bone rounded-lg text-xs font-bold hover:scale-105 transition shadow-[0_0_14px_rgba(61,139,255,0.4)]">Save Playlist</button>
-    </div>
-  </div>
+function match(t,q,k){
+  if(!q)return true;q=q.toLowerCase();
+  var f={artist:t.a,title:t.t,album:t.al,all:(t.t+' '+t.a+' '+(t.al||''))}[k];
+  return f.toLowerCase().indexOf(q)>-1;
+}
 
-  <!-- IMPORT PLAYLIST MODAL (SPOTIFY & YOUTUBE) -->
-  <div id="importModal" class="fixed inset-0 bg-[#05070F]/85 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-[#0E1426] max-w-md w-full rounded-2xl p-6 border border-[#3D8BFF]/20 shadow-2xl space-y-4">
-      <div class="flex justify-between items-center">
-        <div class="flex items-center space-x-2.5">
-          <div class="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-sm space-x-1">
-            <i class="fa-brands fa-spotify text-emerald-400"></i>
-            <i class="fa-brands fa-youtube text-red-500 text-xs"></i>
-          </div>
-          <div>
-            <h3 class="text-base font-bold text-bone leading-tight">Import Library</h3>
-            <p class="text-[10px] text-[#7F8BB0]">Spotify & YouTube Supported</p>
-          </div>
-        </div>
-        <button onclick="toggleImportModal()" class="text-[#7F8BB0] hover:text-bone transition"><i class="fa-solid fa-xmark"></i></button>
-      </div>
+function renderLib(){
+  var lo=+$('#dmin').value,hi=+$('#dmax').value;if(lo>hi){var x=lo;lo=hi;hi=x}
+  $('#dlab').textContent=fmt(lo)+' – '+fmt(hi);
+  
+  if(S.tab==='playlists'){
+    var plKeys=Object.keys(S.playlists);
+    if(!plKeys.length){$('#cnt').textContent='0 playlists';$('#lib').innerHTML='<p class="empty">No playlists yet. Click "+ Import" to add one.</p>';return}
+    $('#cnt').textContent=plKeys.length+' playlists';
+    $('#lib').innerHTML='<div class="quick">'+plKeys.map(function(k,i){
+      var val=S.playlists[k];
+      var list=Array.isArray(val)?val:(val&&val.songs?val.songs:[]);
+      var count=list.length;
+      return'<button class="q" data-pl="'+esc(k)+'"><i style="background:'+G[i%G.length]+'"></i><div><p class="t">'+esc(k)+'</p><p class="a">'+count+' tracks</p></div></button>';
+    }).join('')+'</div>';
+    return;
+  }
 
-      <div class="bg-[#05070F] p-3.5 rounded-xl border border-white/5 space-y-2">
-        <div class="flex items-center space-x-2 text-emerald-400 font-semibold text-xs">
-          <i class="fa-brands fa-spotify text-sm"></i>
-          <span>Spotify Playlist, Album or Track</span>
-        </div>
-        <div class="flex items-center space-x-2 text-red-400 font-semibold text-xs">
-          <i class="fa-brands fa-youtube text-sm"></i>
-          <span>YouTube or YouTube Music Playlist</span>
-        </div>
-        <p class="text-[11px] text-[#7F8BB0] pt-1 leading-relaxed">
-          Paste any link below. SKULLBEAT matches tracks to pure audio streams with zero ads and saves them into your playlists!
-        </p>
-      </div>
+  var list=S.allTracks;
+  if(S.tab==='liked')list=S.allTracks.filter(function(t){return isLiked(t.videoId||t.id)});
+  if(S.tab==='history')list=S.history;
 
-      <input id="playlistUrlInput" type="text" placeholder="https://open.spotify.com/playlist/... or https://youtube.com/..." class="w-full px-4 py-3 bg-[#05070F] border border-[#3D8BFF]/25 rounded-xl text-xs text-bone placeholder-[#7F8BB0] focus:outline-none focus:border-[#00D4FF] focus:ring-1 focus:ring-[#00D4FF] transition">
-      
-      <button onclick="importPlaylistAction()" class="w-full py-3 bg-gradient-to-r from-[#3D8BFF] to-[#00D4FF] text-bone font-bold rounded-xl text-xs hover:scale-[1.02] active:scale-95 transition shadow-[0_0_16px_rgba(61,139,255,0.4)] flex items-center justify-center space-x-2">
-        <i class="fa-solid fa-cloud-arrow-down"></i>
-        <span>Import Library</span>
-      </button>
+  var q=$('#lq').value.trim();
+  var filtered=list.filter(function(t){
+    return match(t,q,S.by)&&t.d>=lo&&t.d<=hi;
+  });
+  $('#cnt').textContent=filtered.length+' tracks';
+  $('#lib').innerHTML=rows(filtered,'No tracks match your filters');
+}
 
-      <!-- Or Import CSV File -->
-      <div class="relative flex py-1 items-center">
-        <div class="flex-grow border-t border-white/10"></div>
-        <span class="flex-shrink mx-3 text-[10px] uppercase font-bold tracking-wider text-[#7F8BB0]">or upload csv</span>
-        <div class="flex-grow border-t border-white/10"></div>
-      </div>
+$('#tabs').onclick=function(e){var b=e.target.closest('.chip');if(!b)return;S.tab=b.dataset.t;this.querySelectorAll('.chip').forEach(function(c){c.classList.toggle('on',c===b)});renderLib()};
+$('#by').onclick=function(e){var b=e.target.closest('.chip');if(!b)return;S.by=b.dataset.k;this.querySelectorAll('.chip').forEach(function(c){c.classList.toggle('on',c===b)});renderLib()};
+['#lq','#dmin','#dmax'].forEach(function(s){$(s).oninput=renderLib});
 
-      <input type="file" id="csvFileInput" accept=".csv" class="hidden" onchange="handleCsvFileSelected(this)">
-      <button onclick="document.getElementById('csvFileInput').click()" class="w-full py-2.5 bg-[#172044] hover:bg-[#1e2a56] border border-[#3D8BFF]/30 text-bone text-xs font-semibold rounded-xl flex items-center justify-center space-x-2 transition shadow-sm hover:scale-[1.01] active:scale-95">
-        <i class="fa-solid fa-file-csv text-[#00D4FF] text-base"></i>
-        <span>Upload Spotify CSV (Exportify / Liked Songs)</span>
-      </button>
-    </div>
-  </div>
-
-  <!-- LYRICS MODAL -->
-  <div id="lyricsModal" class="fixed inset-0 bg-[#05070F] z-50 p-6 flex flex-col hidden">
-    <div class="flex items-center justify-between pb-4 border-b border-white/10 max-w-xl w-full mx-auto">
-      <div>
-        <h2 class="text-lg font-bold text-bone">Lyrics</h2>
-        <p id="lyricsTrackInfo" class="text-xs text-[#7F8BB0]">Loading...</p>
-      </div>
-      <button onclick="toggleLyricsModal()" class="text-[#7F8BB0] hover:text-bone text-lg"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-    <div id="lyricsContent" class="flex-1 overflow-y-auto max-w-xl w-full mx-auto py-8 text-center text-xl font-bold text-neutral-300 space-y-6">
-      <p class="text-neutral-500">Sing along with the music!</p>
-    </div>
-  </div>
-
-  <!-- Hidden native HTML5 Audio (no-cors mode enabled) -->
-  <audio id="nativeAudio" class="hidden"></audio>
-
-  <script>
-    // State management
-    const trackCache = {};
-    const streamUrlCache = {};
-    let currentTrack = null;
-    let queue = [];
-    let currentIndex = -1;
-    let favorites = [];
-    let userPlaylists = {};
-    let isShuffle = false;
-    let repeatMode = 'off';
-    let isDraggingSeek = false;
-    let artistSongs = [];
-    let artistCurrentIndex = -1;
-    let currentArtistPageSongs = [];
-    let pendingSongForPlaylist = null;
-    let searchDebounceTimeout = null;
-    let navHistory = ['home'];
-    let navHistoryIndex = 0;
-
-    // Spotify-Grade Playback Context (Locks auto-play to active playlist)
-    let playbackContext = {
-      type: 'queue', // 'playlist' | 'artist' | 'queue'
-      name: '',
-      tracks: [],
-      currentIndex: -1
-    };
-
-    // Comprehensive All-Type Categorized Emojis (170+ icons)
-    const EMOJI_CATEGORIES = {
-      "Music": ["🎵", "🎶", "🎧", "🎤", "🎙️", "🎸", "🎹", "🥁", "🎷", "🎺", "🎻", "📻", "📼", "💿", "📀", "🎼", "🔊", "📢", "🔔", "🎚️", "🎛️", "🪕"],
-      "Vibes": ["🖤", "🤍", "💔", "❤️‍🔥", "💫", "⭐", "✨", "🌙", "☀️", "⚡", "🔥", "💤", "🕶️", "☕", "🍷", "🍸", "🚬", "🕯️", "🎭", "🔮", "🪐", "🌌"],
-      "Faces": ["💀", "👽", "🤖", "👾", "👻", "🤡", "😈", "🤠", "🧐", "😎", "🥺", "😤", "🤯", "🤫", "😴", "🥳", "🤩", "🫠", "🫡", "😶‍🌫️", "🤐", "👀"],
-      "Nature": ["🌊", "🌧️", "❄️", "🌪️", "🌲", "🌴", "🌵", "🌸", "🌹", "🍁", "🍃", "🍄", "🌋", "🏔️", "🌅", "🌠", "☄️", "🛸", "🚀", "🌍", "🌕", "⛅"],
-      "Animals": ["🐺", "🦁", "🐯", "🦅", "🦇", "🐍", "🐉", "🕷️", "🦂", "🦉", "🦈", "🐬", "🦋", "🐝", "🐾", "🦄", "🦊", "🐗", "🐆", "🐙", "🐈", "🐕"],
-      "Sports": ["🏃", "🛹", "🏄", "🏋️", "🥊", "🏎️", "🏍️", "🎮", "🎲", "🎱", "🎯", "🎳", "🎾", "⚽", "🏀", "🚗", "✈️", "⛵", "🧗", "🚴", "🏆", "🥇"],
-      "Objects": ["💎", "👑", "🗡️", "🛡️", "🏹", "🔑", "🗝️", "⛓️", "💣", "⏳", "⌛", "📡", "💻", "🕹️", "📷", "🏮", "💡", "💵", "💰", "📦", "🏷️", "🔒"],
-      "Symbols": ["♾️", "☯️", "☮️", "☣️", "☢️", "👁️", "👁️‍🗨️", "🔱", "♠️", "♣️", "♥️", "♦️", "✖️", "➕", "➖", "🔲", "🔳", "🔘", "🏁", "🚩", "⚡", "⭐"]
-    };
-
-    const PLAYLIST_COLORS = [
-      '#1db954', '#ec4899', '#8b5cf6', '#06b6d4', '#3b82f6', 
-      '#f97316', '#ef4444', '#eab308', '#94a3b8', '#ffffff', '#121212'
-    ];
-    let selectedPlaylistEmoji = '🎵';
-    let selectedPlaylistColor = '#1db954';
-    let selectedEmojiCategory = 'All';
-    let emojiSearchFilter = '';
-    let editingPlaylistTarget = null; // null when creating, string name when editing
-
-    // Relative luminance calculation for auto-contrast (solid black vs solid white)
-    function isColorLight(hexColor) {
-      if (!hexColor) return false;
-      let c = String(hexColor).replace('#', '').trim();
-      if (c.length === 3) c = c.split('').map(x => x + x).join('');
-      if (c.length !== 6) return false;
-      const r = parseInt(c.substr(0, 2), 16);
-      const g = parseInt(c.substr(2, 2), 16);
-      const b = parseInt(c.substr(4, 2), 16);
-      const lum = (r * 299 + g * 587 + b * 114) / 1000;
-      return lum > 145; // light background if > 145
-    }
-
-    function getEmojiClassForBg(hexColor) {
-      return isColorLight(hexColor) ? 'emoji-solid-black' : 'emoji-solid-white';
-    }
-
-    const audio = document.getElementById('nativeAudio');
-
-    function escapeQuotes(str) {
-      if (!str) return '';
-      return String(str).split("'").join("&apos;").split('"').join('&quot;');
-    }
-
-    // Universal Heart / Like Management for ALL songs
-    function isFavorite(videoId) {
-      if (!videoId || !favorites) return false;
-      return favorites.some(f => f && f.videoId === videoId);
-    }
-
-    function toggleFavoriteTrack(videoId) {
-      if (!videoId) return;
-      const track = trackCache[videoId] || (currentTrack && currentTrack.videoId === videoId ? currentTrack : null);
-      const idx = favorites.findIndex(f => f && f.videoId === videoId);
-      if (idx >= 0) {
-        favorites.splice(idx, 1);
-      } else if (track) {
-        favorites.unshift(track);
-      } else {
-        favorites.unshift({
-          videoId: videoId,
-          title: "Liked Song",
-          channel: "Artist",
-          thumbnail: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
-          duration: "--:--"
-        });
-      }
-      localStorage.setItem('audiotube_favs', JSON.stringify(favorites));
-
-      if (userPlaylists["Favorites"]) {
-        userPlaylists["Favorites"].songs = favorites;
-        localStorage.setItem('audiotube_user_playlists', JSON.stringify(userPlaylists));
-      }
-
-      const isFav = isFavorite(videoId);
-      document.querySelectorAll(`.heart-btn-${videoId}`).forEach(btn => {
-        if (btn.classList.contains('recent-heart')) {
-          btn.className = `heart-btn-${videoId} recent-heart absolute top-1.5 right-1.5 p-1 rounded-full bg-black/60 text-xs transition ${isFav ? 'text-pink-500' : 'text-white/70 hover:text-pink-500'}`;
-        } else {
-          btn.className = `heart-btn-${videoId} p-1 text-sm transition hover:scale-110 ${isFav ? 'text-pink-500' : 'text-neutral-400 hover:text-pink-500'}`;
-        }
-        btn.innerHTML = `<i class="${isFav ? 'fa-solid fa-heart' : 'fa-regular fa-heart'}"></i>`;
+/* Search */
+var searchTimer=null;
+function renderSearch(){
+  var q=$('#sq').value.trim();
+  if(!q){$('#sres').innerHTML='<p class="empty">Search songs, artists and albums</p>';return}
+  clearTimeout(searchTimer);
+  $('#sres').innerHTML='<p class="empty">Searching...</p>';
+  searchTimer=setTimeout(async function(){
+    try{
+      var res=await fetch('/api/search?q='+encodeURIComponent(q));
+      if(!res.ok)throw new Error('Search failed');
+      var data=await res.json();
+      S.searchTracks=data.map(function(item,i){
+        return{
+          id:'s_'+(item.videoId||i),
+          videoId:item.videoId,
+          t:item.title,
+          a:item.channel,
+          al:'YouTube',
+          d:parseSec(item.duration),
+          thumbnail:item.thumbnail,
+          g:G[i%G.length]
+        };
       });
-
-      if (currentTrack && currentTrack.videoId === videoId) {
-        updateHeartUI();
-      }
-
-      const libLikedBtn = document.getElementById('lib-btn-liked');
-      if (libLikedBtn && libLikedBtn.classList.contains('bg-white')) {
-        renderLibraryList(favorites, 'Liked songs');
-      }
+      $('#sres').innerHTML=rows(S.searchTracks,'No results for “'+esc(q)+'”');
+    }catch(err){
+      $('#sres').innerHTML='<p class="empty">Search error. Try again.</p>';
     }
+  },300);
+}
+$('#sq').oninput=renderSearch;
 
-    function toggleFavoriteCurrent() {
-      if (!currentTrack) return;
-      toggleFavoriteTrack(currentTrack.videoId);
+/* Player & Right Panel */
+function paintPlayer(){
+  var t=S.cur;
+  if(!t){
+    $('#pt').textContent='SkullBeat';$('#pr').textContent='Select a track';
+    $('#rt').textContent='No track playing';$('#ra').textContent='-';
+    $('#rart').style.background='var(--grad)';$('#pa').style.background='var(--grad)';
+    $('#pp').innerHTML=PLAY;
+    return;
+  }
+  var bg=trackBg(t,0);
+  $('#pa').style.background=bg;$('#pt').textContent=t.t;$('#pr').textContent=t.a;
+  $('#rart').style.background=bg;$('#rt').textContent=t.t;$('#ra').textContent=t.a;
+  var liked=isLiked(t.videoId||t.id);
+  $('#rlike').classList.toggle('on',liked);
+  $('#td').textContent=fmt(t.d);
+  $('#pp').innerHTML=S.loading?SPIN:(S.playing?PAUSE:PLAY);
+  $('#shuf').classList.toggle('act',S.shuf);$('#rep').classList.toggle('act',S.rep);
+  paintProg();
+  paintPanel();
+  document.querySelectorAll('.tr').forEach(function(r){
+    var match=S.cur&&r.dataset.tid===(S.cur.videoId||S.cur.id);
+    r.classList.toggle('cur',match);
+  });
+}
+
+function paintProg(){
+  var d=(audio.duration&&!isNaN(audio.duration))?audio.duration:(S.cur?S.cur.d:0);
+  var p=d>0?(S.pos/d*100):0;
+  $('#seek').max=d||100;$('#seek').value=S.pos;
+  $('#seek').style.setProperty('--p',p+'%');
+  $('#tc').textContent=fmt(S.pos);
+  if(d>0)$('#td').textContent=fmt(d);
+  
+  if(S.panel==='lyrics'){
+    var ps=document.querySelectorAll('.ly p');
+    if(ps.length){
+      var idx=Math.floor(S.pos/Math.max(1,d)*ps.length);
+      ps.forEach(function(p,j){p.classList.toggle('hi',j===idx)});
     }
+  }
+}
 
-    function updateHeartUI() {
-      if (!currentTrack) return;
-      const isFav = isFavorite(currentTrack.videoId);
-      const btn = document.getElementById('playerHeartBtn');
-      if (btn) {
-        btn.innerHTML = isFav ? '<i class="fa-solid fa-heart text-pink-500"></i>' : '<i class="fa-regular fa-heart"></i>';
-      }
+function paintPanel(){
+  document.querySelectorAll('.tabs .chip').forEach(function(c){c.classList.toggle('on',c.dataset.p===S.panel)});
+  if(S.panel==='queue'){
+    var q=S.queue.slice(0,8);
+    if(!q.length)$('#pq').innerHTML='<p class="a" style="padding:16px;text-align:center">Queue is empty</p>';
+    else $('#pq').innerHTML='<p class="a" style="margin-bottom:6px">NEXT UP</p>'+q.map(function(t,i){
+      var bg=trackBg(t,i);
+      return'<button class="q2" data-tid="'+esc(t.videoId||t.id)+'"><i style="background:'+bg+'"></i><div><p class="t">'+esc(t.t)+'</p><p class="a">'+esc(t.a)+'</p></div></button>';
+    }).join('');
+  }else{
+    $('#pq').className='ly';
+    if(S.lyricsList&&S.lyricsList.length){
+      $('#pq').innerHTML=S.lyricsList.map(function(l){return'<p>'+esc(l)+'</p>'}).join('');
+    }else{
+      var L=['Neon on the bone, we drift','Through the static and the haze','Hearts keep time in the dark','Pulse of a thousand days','Skull beat, skull beat','Don’t let the signal fade'];
+      $('#pq').innerHTML=L.map(function(l){return'<p>'+l+'</p>'}).join('');
     }
+    return;
+  }
+  $('#pq').className='';
+}
 
-    // Audio stream URL pre-fetching for instant continuous auto-play (no pause)
-    async function prefetchTrackStream(track) {
-      if (!track || !track.videoId || streamUrlCache[track.videoId]) return;
-      try {
-        const res = await fetch(`/api/stream/${track.videoId}`);
-        const data = await res.json();
-        if (data && data.stream_url) {
-          streamUrlCache[track.videoId] = data.stream_url;
+/* Audio Playback Engine */
+async function playTrack(track,origin){
+  if(!track)return;
+  S.cur=track;S.pos=0;S.playing=false;S.loading=true;
+  if(origin)$('#from').textContent='PLAYING FROM '+(origin.toUpperCase());
+  paintPlayer();
+
+  if(!track.videoId||track.videoId.startsWith('pending_')){
+    try{
+      var q=(track.t+' '+(track.a||'')).trim();
+      var rRes=await fetch('/api/resolve_track?q='+encodeURIComponent(q));
+      if(rRes.ok){
+        var matched=await rRes.json();
+        if(matched&&matched.videoId){
+          track.videoId=matched.videoId;
+          track.thumbnail=matched.thumbnail||track.thumbnail;
+          track.d=parseSec(matched.duration)||track.d;
         }
-      } catch (e) {}
-    }
-
-    function prefetchUpcomingTracks() {
-      // 1. If playing from playlist, prefetch next playlist songs
-      if (playbackContext.type === 'playlist') {
-        const liveTracks = (playbackContext.name === 'Liked songs' ? favorites : getPlaylistSongs(playbackContext.name));
-        if (liveTracks && liveTracks.length > 0) playbackContext.tracks = liveTracks;
-        const list = playbackContext.tracks;
-        if (!list || list.length === 0) return;
-        const nextIdx = isShuffle ? Math.floor(Math.random() * list.length) : (playbackContext.currentIndex + 1) % list.length;
-        prefetchTrackStream(list[nextIdx]);
-        if (list.length > 2) {
-          const nextIdx2 = (nextIdx + 1) % list.length;
-          prefetchTrackStream(list[nextIdx2]);
-        }
-        return;
       }
+    }catch(e){console.warn('Resolve error:',e)}
+  }
 
-      // 2. If playing from artist page
-      if (playbackContext.type === 'artist' && playbackContext.tracks.length > 0) {
-        const list = playbackContext.tracks;
-        const nextIdx = isShuffle ? Math.floor(Math.random() * list.length) : (playbackContext.currentIndex + 1) % list.length;
-        prefetchTrackStream(list[nextIdx]);
-        return;
-      }
+  if(!track.videoId||track.videoId.startsWith('pending_')){
+    S.loading=false;paintPlayer();
+    alert('Could not find stream for: '+track.t);
+    return;
+  }
 
-      // 3. Fallback to artistSongs or queue
-      if (artistSongs.length > 0) {
-        const nextIdx = isShuffle ? Math.floor(Math.random() * artistSongs.length) : (artistCurrentIndex + 1) % artistSongs.length;
-        prefetchTrackStream(artistSongs[nextIdx]);
-        if (artistSongs.length > 2) {
-          const nextIdx2 = (artistCurrentIndex + 2) % artistSongs.length;
-          prefetchTrackStream(artistSongs[nextIdx2]);
-        }
-      } else if (queue.length > 0) {
-        const nextIdx = isShuffle ? Math.floor(Math.random() * queue.length) : (currentIndex + 1) % queue.length;
-        prefetchTrackStream(queue[nextIdx]);
-      }
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-      initPlaylistCustomizationUI();
-      loadFavorites();
-      loadUserPlaylists();
-      loadQueue();
-      setGreeting();
-      loadHistory();
-      renderRecommended();
-      setupAudioListeners();
-      setupKeyboard();
-      restoreLastPlayback();
+  if('mediaSession' in navigator){
+    navigator.mediaSession.metadata=new MediaMetadata({
+      title:track.t,artist:track.a,album:track.al||'SKULLBEAT',
+      artwork:[{src:track.thumbnail||'/logo.png',sizes:'512x512',type:'image/jpeg'}]
     });
+  }
 
-    function setGreeting() {
-      const hour = new Date().getHours();
-      let greeting = 'Good evening';
-      if (hour < 12) greeting = 'Good morning';
-      else if (hour < 18) greeting = 'Good afternoon';
-      document.getElementById('homeGreeting').innerText = greeting;
+  try{fetch('/api/history',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({videoId:track.videoId,title:track.t,channel:track.a,thumbnail:track.thumbnail,duration:fmt(track.d)})})}catch(e){}
+
+  try{
+    var streamUrl=S.streamCache[track.videoId];
+    if(!streamUrl){
+      var res=await fetch('/api/stream/'+track.videoId);
+      var data=await res.json();
+      streamUrl=data.stream_url;
+      if(streamUrl)S.streamCache[track.videoId]=streamUrl;
     }
-
-    // View Navigation
-    function switchTab(tab, recordNav = true) {
-      ['home', 'search', 'library', 'artist', 'playlist'].forEach(t => {
-        const view = document.getElementById(`view-${t}`);
-        if (view) view.classList.add('hidden');
+    if(streamUrl){
+      audio.src=streamUrl;
+      audio.play().then(function(){
+        S.playing=true;S.loading=false;paintPlayer();
+      }).catch(function(err){
+        console.warn('Play error:',err);
+        S.playing=false;S.loading=false;paintPlayer();
       });
+    }else{
+      S.loading=false;paintPlayer();
+    }
+  }catch(err){
+    console.error('Stream fetch error:',err);
+    S.loading=false;paintPlayer();
+  }
 
-      const sideHome = document.getElementById('side-nav-home');
-      const sideSearch = document.getElementById('side-nav-search');
-      if (sideHome) {
-        sideHome.className = (tab === 'home') 
-          ? 'w-full flex items-center space-x-3 text-bone font-bold text-sm px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-[#3D8BFF] to-[#8B5CFF] shadow-[0_0_16px_rgba(61,139,255,0.4)] transition' 
-          : 'w-full flex items-center space-x-3 text-[#7F8BB0] font-bold text-sm px-3.5 py-2.5 rounded-xl hover:text-bone hover:bg-white/5 transition';
-      }
-      if (sideSearch) {
-        sideSearch.className = (tab === 'search') 
-          ? 'w-full flex items-center space-x-3 text-bone font-bold text-sm px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-[#3D8BFF] to-[#8B5CFF] shadow-[0_0_16px_rgba(61,139,255,0.4)] transition' 
-          : 'w-full flex items-center space-x-3 text-[#7F8BB0] font-bold text-sm px-3.5 py-2.5 rounded-xl hover:text-bone hover:bg-white/5 transition';
-      }
+  fetchLyrics(track);
+}
 
-      const activeView = document.getElementById(`view-${tab}`);
-      if (activeView) activeView.classList.remove('hidden');
-
-      if (recordNav && (navHistory[navHistoryIndex] !== tab)) {
-        navHistory = navHistory.slice(0, navHistoryIndex + 1);
-        navHistory.push(tab);
-        navHistoryIndex = navHistory.length - 1;
+async function fetchLyrics(track){
+  S.lyricsList=null;
+  try{
+    var res=await fetch('/api/lyrics?title='+encodeURIComponent(track.t)+'&artist='+encodeURIComponent(track.a||''));
+    if(res.ok){
+      var data=await res.json();
+      if(data.synced){
+        S.lyricsList=data.synced.split('\n').map(function(l){return l.replace(/^\[.*?\]/,'').trim()}).filter(Boolean);
+      }else if(data.plain){
+        S.lyricsList=data.plain.split('\n').map(function(l){return l.trim()}).filter(Boolean);
       }
     }
+  }catch(e){}
+  if(S.panel==='lyrics')paintPanel();
+}
 
-    function historyBack() {
-      if (navHistoryIndex > 0) {
-        navHistoryIndex--;
-        switchTab(navHistory[navHistoryIndex], false);
-      }
+audio.ontimeupdate=function(){
+  S.pos=Math.round(audio.currentTime);
+  paintProg();
+};
+audio.onplay=function(){S.playing=true;S.loading=false;paintPlayer()};
+audio.onpause=function(){S.playing=false;paintPlayer()};
+audio.onended=function(){if(S.rep){audio.currentTime=0;audio.play()}else{step(1)}};
+
+function step(d){
+  if(!S.queue.length&&S.allTracks.length){S.queue=S.allTracks.slice()}
+  if(!S.queue.length)return;
+  var nextIdx=0;
+  if(S.shuf){nextIdx=Math.floor(Math.random()*S.queue.length)}
+  var t=S.queue.splice(nextIdx,1)[0];
+  playTrack(t,'Queue');
+}
+
+/* Controls */
+$('#pp').onclick=function(){
+  if(!S.cur){if(S.allTracks.length)playTrack(S.allTracks[0],'Library');return}
+  if(audio.paused)audio.play();else audio.pause();
+};
+$('#next').onclick=function(){step(1)};
+$('#prev').onclick=function(){if(audio.currentTime>4){audio.currentTime=0}else step(-1)};
+$('#shuf').onclick=function(){S.shuf=!S.shuf;paintPlayer()};
+$('#rep').onclick=function(){S.rep=!S.rep;paintPlayer()};
+$('#seek').oninput=function(){audio.currentTime=+this.value;S.pos=+this.value;paintProg()};
+$('#vol').oninput=function(){
+  var v=+this.value/100;audio.volume=v;
+  this.style.setProperty('--p',this.value+'%');
+};
+$('#vol').style.setProperty('--p','80%');
+$('#mute-btn').onclick=function(){
+  audio.muted=!audio.muted;
+  $('#vol-ic').style.opacity=audio.muted?'.3':'1';
+};
+$('#dl').onclick=function(){
+  if(!S.cur||!S.cur.videoId)return;
+  window.open('/api/download/'+S.cur.videoId,'_blank');
+};
+
+/* Clicks */
+document.addEventListener('click',function(e){
+  var l=e.target.closest('[data-like]');
+  if(l){
+    e.stopPropagation();
+    var id=l.dataset.like;
+    if(S.likedIds.has(id))S.likedIds.delete(id);else S.likedIds.add(id);
+    l.classList.toggle('on',S.likedIds.has(id));
+    paintPlayer();
+    return;
+  }
+  var r=e.target.closest('[data-tid]');
+  if(r){
+    var id=r.dataset.tid;
+    var t=[].concat(S.allTracks,S.searchTracks,S.history).find(function(x){return(x.videoId||x.id)===id});
+    if(t)playTrack(t,'Selection');
+    return;
+  }
+  var qb=e.target.closest('[data-pl]');
+  if(qb){
+    var plName=qb.dataset.pl;
+    playPlaylist(plName);
+  }
+});
+
+$('#rlike').onclick=function(){
+  if(!S.cur)return;
+  var id=S.cur.videoId||S.cur.id;
+  if(S.likedIds.has(id))S.likedIds.delete(id);else S.likedIds.add(id);
+  paintPlayer();
+};
+
+document.querySelector('.tabs').onclick=function(e){
+  var b=e.target.closest('[data-p]');
+  if(b){S.panel=b.dataset.p;paintPanel()}
+};
+
+/* Export */
+$('#exp').onclick=function(){
+  var list=S.allTracks.filter(function(t){return S.tab==='liked'?isLiked(t.videoId||t.id):true});
+  var csv='title,artist,album,duration,videoId\n'+list.map(function(t){return[t.t,t.a,t.al||'',t.d,t.videoId||''].map(function(v){return'"'+String(v).replace(/"/g,'""')+'"'}).join(',')}).join('\n');
+  var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='skullbeat-library.csv';a.click();
+};
+
+/* Import Modal */
+function openImport(){$('#import-modal').classList.add('on')}
+function closeImport(){$('#import-modal').classList.remove('on')}
+$('#add-pl').onclick=openImport;
+
+async function doImportUrl(){
+  var url=$('#import-url').value.trim();
+  if(!url)return;
+  closeImport();
+  alert('Importing playlist...');
+  try{
+    var res=await fetch('/api/playlist?url='+encodeURIComponent(url));
+    if(res.ok){
+      var data=await res.json();
+      await loadLibrary();
+      alert('Imported playlist with '+(data.tracks?data.tracks.length:0)+' songs!');
     }
+  }catch(e){alert('Import failed: '+e)}
+}
 
-    function historyForward() {
-      if (navHistoryIndex < navHistory.length - 1) {
-        navHistoryIndex++;
-        switchTab(navHistory[navHistoryIndex], false);
+$('#csv-in').onchange=function(e){
+  var file=e.target.files[0];
+  if(!file)return;
+  closeImport();
+  var reader=new FileReader();
+  reader.onload=async function(evt){
+    try{
+      var res=await fetch('/api/import_csv',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          filename:file.name,
+          content:evt.target.result,
+          playlist_name:file.name.replace(/\.csv$/i,'').replace(/_/g,' ')
+        })
+      });
+      if(res.ok){
+        var data=await res.json();
+        await loadLibrary();
+        alert('Imported '+data.count+' tracks into '+data.playlist_name);
       }
-    }
+    }catch(err){alert('CSV import error: '+err)}
+  };
+  reader.readAsText(file);
+};
 
-    function isPlaylistUrl(str) {
-      if (!str || typeof str !== 'string') return false;
-      const s = str.trim().toLowerCase();
-      const isHttp = s.startsWith('http://') || s.startsWith('https://') || s.startsWith('spotify:');
-      return isHttp && (
-        s.includes('spotify.com/playlist') ||
-        s.includes('spotify.com/album') ||
-        s.includes('spotify.com/track') ||
-        s.startsWith('spotify:') ||
-        s.includes('youtube.com/playlist') ||
-        s.includes('music.youtube.com/playlist') ||
-        s.includes('list=') ||
-        s.includes('playlist')
-      );
-    }
+function playPlaylist(name){
+  var val=S.playlists[name];
+  var list=Array.isArray(val)?val:(val&&val.songs?val.songs:[]);
+  if(!list||!list.length)return;
+  var mapped=list.map(function(item,i){
+    return{
+      id:item.videoId||('pl_'+i),
+      videoId:item.videoId,
+      t:item.title,
+      a:item.channel||item.artist||'Unknown',
+      al:item.album||name,
+      d:parseSec(item.duration),
+      thumbnail:item.thumbnail,
+      g:G[i%G.length]
+    };
+  });
+  S.queue=mapped.slice(1);
+  playTrack(mapped[0],name);
+}
 
-    // Debounced Search as user types or pastes YouTube playlist URL
-    function debounceSearch(val) {
-      if (searchDebounceTimeout) clearTimeout(searchDebounceTimeout);
-      if (isPlaylistUrl(val)) {
-        importPlaylistFromUrl(val.trim());
-        return;
-      }
-      searchDebounceTimeout = setTimeout(() => {
-        if (val.trim()) {
-          switchTab('search');
-          runSearch(val.trim());
-        } else {
-          switchTab('home');
-        }
-      }, 350);
-    }
+/* Init / Data Loading */
+async function loadLibrary(){
+  try{
+    var res=await fetch('/api/user_library');
+    if(res.ok){
+      var data=await res.json();
+      S.playlists=data.playlists||{};
+      var favs=data.favorites||[];
+      favs.forEach(function(f){if(f.videoId)S.likedIds.add(f.videoId)});
 
-    async function runSearch(query) {
-      document.getElementById('searchResultsTitle').innerText = `Results for "${query}"`;
-      const grid = document.getElementById('searchResultsGrid');
-      grid.innerHTML = '<div class="col-span-full text-center text-neutral-400 py-12"><i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Searching...</div>';
-
-      try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-        const data = await res.json();
-        if (!data.results || data.results.length === 0) {
-          grid.innerHTML = '<div class="col-span-full text-center text-neutral-400 py-12">No music found.</div>';
-          return;
-        }
-        grid.innerHTML = data.results.map(item => createCardHTML(item)).join('');
-      } catch (e) {
-        grid.innerHTML = `<div class="col-span-full text-center text-red-400 py-12">${e.message}</div>`;
-      }
-    }
-
-    function searchGenre(query) {
-      document.getElementById('mainSearchInput').value = query;
-      switchTab('search');
-      runSearch(query);
-    }
-
-    // Open Author / Artist Page
-    async function openArtistPage(artistNameOrId) {
-      if (!artistNameOrId) return;
-      const artistName = (trackCache[artistNameOrId] ? trackCache[artistNameOrId].channel : artistNameOrId);
-      switchTab('artist');
-      document.getElementById('artistPageName').innerText = artistName;
-      document.getElementById('artistPageCount').innerText = 'Loading tracks...';
-      const grid = document.getElementById('artistPageGrid');
-      grid.innerHTML = '<div class="col-span-full text-center text-neutral-400 py-12"><i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Loading author tracks...</div>';
-
-      try {
-        const res = await fetch(`/api/artist_page?artist=${encodeURIComponent(artistName)}`);
-        const data = await res.json();
-        currentArtistPageSongs = data.songs || [];
-        document.getElementById('artistPageName').innerText = data.artist || artistName;
-        document.getElementById('artistPageAvatar').src = data.avatar || 'https://via.placeholder.com/300';
-        document.getElementById('artistPageCount').innerText = `${currentArtistPageSongs.length} tracks`;
-
-        if (currentArtistPageSongs.length === 0) {
-          grid.innerHTML = '<div class="col-span-full text-center text-neutral-400 py-12">No tracks found.</div>';
-          return;
-        }
-
-        grid.innerHTML = currentArtistPageSongs.map(item => createCardHTML(item)).join('');
-      } catch (e) {
-        grid.innerHTML = `<div class="col-span-full text-center text-red-400 py-12">${e.message}</div>`;
-      }
-    }
-
-    function playAllArtistPage() {
-      if (!currentArtistPageSongs || currentArtistPageSongs.length === 0) return;
-      artistSongs = [...currentArtistPageSongs];
-      artistCurrentIndex = 0;
-      playTrack(artistSongs[0], `Artist: ${artistSongs[0].channel}`);
-      renderRightPanel();
-    }
-
-    // Card Renderer: Click picture plays song; Click title/channel opens author page; Button changes color; Love heart symbol on all songs
-    function createCardHTML(item) {
-      if (!item || !item.videoId) return '';
-      trackCache[item.videoId] = item;
-      const inPlaylist = isSongInAnyPlaylist(item.videoId);
-      const isFav = isFavorite(item.videoId);
-      return `
-        <div class="spotify-card p-3 flex flex-col justify-between group cursor-pointer" onclick="quickPlayCard('${item.videoId}')">
-          <!-- Click Picture plays song immediately -->
-          <div class="relative aspect-square rounded-md overflow-hidden bg-neutral-900 mb-3">
-            <img src="${item.thumbnail}" class="w-full h-full object-cover">
-            <!-- Round Play Button on Hover (like diagram specification) -->
-            <div class="absolute bottom-2 right-2 w-10 h-10 rounded-full bg-white text-black flex items-center justify-center shadow-2xl opacity-0 group-hover:opacity-100 group-hover:translate-y-0 translate-y-2 transition-all duration-200">
-              <i class="fa-solid fa-play text-sm ml-0.5"></i>
-            </div>
-            <span class="absolute top-1.5 left-1.5 px-1.5 py-0.5 text-[9px] font-bold rounded bg-black/70 text-neutral-300">
-              ${item.duration}
-            </span>
-          </div>
-
-          <!-- Click song title or channel leads to author page -->
-          <div class="overflow-hidden">
-            <div class="text-xs sm:text-sm font-bold text-white truncate hover:underline" title="${escapeQuotes(item.title)}" onclick="event.stopPropagation(); openArtistPage('${item.videoId}')">${item.title}</div>
-            <div class="text-[11px] text-neutral-400 truncate mt-0.5 hover:underline" onclick="event.stopPropagation(); openArtistPage('${item.videoId}')">${item.channel}</div>
-          </div>
-
-          <!-- Action bar: always '+ Add', Love Heart Symbol, Download button -->
-          <div class="mt-3 pt-2 border-t border-white/5 flex items-center justify-between text-xs text-neutral-400">
-            <button onclick="event.stopPropagation(); openAddToPlaylistDialog('${item.videoId}')" class="add-btn-${item.videoId} px-2.5 py-1 rounded-full text-[11px] font-semibold flex items-center space-x-1.5 transition-all ${inPlaylist ? 'text-[#00D4FF] bg-[#172044] border border-[#3D8BFF]/60 shadow-[0_0_12px_rgba(61,139,255,0.35)]' : 'text-neutral-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10'}">
-              <i class="fa-solid fa-plus text-[10px]"></i>
-              <span>Add</span>
-            </button>
-            <div class="flex items-center space-x-1">
-              <button onclick="event.stopPropagation(); toggleFavoriteTrack('${item.videoId}')" title="Like song" class="heart-btn-${item.videoId} p-1 text-sm transition hover:scale-110 ${isFav ? 'text-pink-500' : 'text-neutral-400 hover:text-pink-500'}">
-                <i class="${isFav ? 'fa-solid fa-heart' : 'fa-regular fa-heart'}"></i>
-              </button>
-              <button onclick="event.stopPropagation(); downloadTrack('${item.videoId}')" title="Download MP3" class="hover:text-white p-1">
-                <i class="fa-solid fa-download"></i>
-              </button>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    function quickPlayCard(itemOrId) {
-      const item = (typeof itemOrId === 'string') ? trackCache[itemOrId] : itemOrId;
-      if (!item) return;
-      addToQueue(item);
-      playbackContext = {
-        type: 'queue',
-        name: 'Queue',
-        tracks: [...queue],
-        currentIndex: queue.findIndex(t => t.videoId === item.videoId)
-      };
-      playTrack(item, 'Selected Track');
-    }
-
-    function playTrackFromPlaylist(playlistName, trackIdx) {
-      const songs = (playlistName === 'Liked songs' ? favorites : getPlaylistSongs(playlistName));
-      if (!songs || songs.length === 0) return;
-      playbackContext = {
-        type: 'playlist',
-        name: playlistName,
-        tracks: [...songs],
-        currentIndex: trackIdx
-      };
-      playTrack(playbackContext.tracks[trackIdx], `Playlist: ${playlistName}`, false);
-      renderRightPanel();
-    }
-
-    function playTrackFromArtist(idx) {
-      if (!currentArtistPageSongs || currentArtistPageSongs.length === 0) return;
-      const artistName = document.getElementById('artistPageName').innerText || 'Artist';
-      playbackContext = {
-        type: 'artist',
-        name: artistName,
-        tracks: [...currentArtistPageSongs],
-        currentIndex: idx
-      };
-      playTrack(playbackContext.tracks[idx], `Artist: ${artistName}`, false);
-      renderRightPanel();
-    }
-
-    // Centered Play/Pause Icon State Manager (Fiery Orange Theme)
-    function setPlayerPlayIcon(state) {
-      const el = document.getElementById('playerPlayIcon');
-      if (!el) return;
-      el.style.background = 'linear-gradient(135deg, #FF4500 0%, #FFAA00 100%)';
-      el.style.webkitBackgroundClip = 'text';
-      el.style.webkitTextFillColor = 'transparent';
-      if (state === 'pause') {
-        el.className = 'fa-solid fa-pause text-sm sm:text-base font-black';
-        el.style.transform = 'none';
-      } else if (state === 'play') {
-        el.className = 'fa-solid fa-play text-sm sm:text-base font-black';
-        el.style.transform = 'translateX(1.5px)';
-      } else if (state === 'spin') {
-        el.className = 'fa-solid fa-circle-notch fa-spin text-sm';
-        el.style.background = 'none';
-        el.style.webkitTextFillColor = '#FF7700';
-        el.style.color = '#FF7700';
-        el.style.transform = 'none';
-      }
-    }
-
-    // Playback Engine - Continuous, gapless, no-pause auto-advance
-    async function playTrack(track, origin = 'SKULLBEAT', isAutoPlay = false) {
-      if (!track) return;
-
-      // Handle on-demand resolution for tracks imported from Spotify CSV
-      if (!track.videoId || track.videoId.startsWith('pending_')) {
-        setPlayerPlayIcon('spin');
-        document.getElementById('playerTitle').innerText = track.title;
-        document.getElementById('playerArtist').innerText = (track.channel || track.artist || 'Resolving audio stream...');
-        document.getElementById('playerCover').src = track.thumbnail || '/logo.png';
-        try {
-          const q = `${track.title} ${track.channel || track.artist || ''}`.trim();
-          const rRes = await fetch(`/api/resolve_track?q=${encodeURIComponent(q)}`);
-          if (rRes.ok) {
-            const matched = await rRes.json();
-            if (matched && matched.videoId) {
-              const oldId = track.videoId;
-              track.videoId = matched.videoId;
-              track.thumbnail = matched.thumbnail || track.thumbnail;
-              track.channel = matched.channel || track.channel;
-              track.duration = matched.duration || track.duration;
-              trackCache[track.videoId] = track;
-              for (const pl of Object.values(userPlaylists)) {
-                if (pl && pl.songs) {
-                  const s = pl.songs.find(x => x.videoId === oldId);
-                  if (s) {
-                    s.videoId = matched.videoId;
-                    s.thumbnail = matched.thumbnail;
-                    s.duration = matched.duration;
-                  }
-                }
-              }
-              const fav = favorites.find(x => x.videoId === oldId);
-              if (fav) {
-                fav.videoId = matched.videoId;
-                fav.thumbnail = matched.thumbnail;
-                fav.duration = matched.duration;
-              }
-              saveUserPlaylists();
-            }
-          }
-        } catch(e) {
-          console.warn('Audio stream resolution error:', e);
-        }
-      }
-
-      if (!track.videoId || track.videoId.startsWith('pending_')) {
-        setPlayerPlayIcon('play');
-        alert(`Could not find audio stream for "${track.title}".`);
-        return;
-      }
-
-      trackCache[track.videoId] = track;
-      currentTrack = track;
-      document.getElementById('playerTitle').innerText = track.title;
-      document.getElementById('playerArtist').innerText = track.channel;
-      document.getElementById('playerCover').src = track.thumbnail;
-      setPlayerPlayIcon('spin');
-
-      updateHeartUI();
-      // Only fetch author tracks if NOT playing inside a playlist context (prevents queue hijacking)
-      if (playbackContext.type !== 'playlist') {
-        loadArtistSongs(track.channel, track.videoId);
-      }
-
-      if ('mediaSession' in navigator) {
-        navigator.mediaSession.metadata = new MediaMetadata({
-          title: track.title,
-          artist: track.channel,
-          album: track.album || 'SKULLBEAT',
-          artwork: [{ src: track.thumbnail, sizes: '512x512', type: 'image/jpeg' }]
-        });
-      }
-
-      // Fast-path: Instant continuous playback without pausing if stream URL is already prefetched!
-      if (streamUrlCache[track.videoId]) {
-        audio.src = streamUrlCache[track.videoId];
-        const p = audio.play();
-        if (p !== undefined) {
-          p.then(() => {
-            setPlayerPlayIcon('pause');
-          }).catch(err => {
-            console.warn('Audio play() promise error:', err);
-          });
-        }
-        recordHistory(track);
-        localStorage.setItem('audiotube_last_track', JSON.stringify(track));
-        setTimeout(prefetchUpcomingTracks, 1000);
-        return;
-      }
-
-      // If stream not cached, do NOT pause audio during auto-advance so browser media context stays active
-      if (!isAutoPlay) {
-        audio.pause();
-      }
-
-      try {
-        const res = await fetch(`/api/stream/${track.videoId}`);
-        const data = await res.json();
-        if (data.stream_url) {
-          streamUrlCache[track.videoId] = data.stream_url;
-          audio.src = data.stream_url;
-          const p = audio.play();
-          if (p !== undefined) {
-            p.then(() => {
-              setPlayerPlayIcon('pause');
-            }).catch(err => {
-              console.warn('Audio play() promise error:', err);
-            });
-          }
-          recordHistory(track);
-          localStorage.setItem('audiotube_last_track', JSON.stringify(track));
-          setTimeout(prefetchUpcomingTracks, 1000);
-        } else {
-          setPlayerPlayIcon('play');
-        }
-      } catch (e) {
-        setPlayerPlayIcon('play');
-        console.error('Playback fetch error:', e);
-      }
-    }
-
-    function togglePlayPause() {
-      if (!audio.src) {
-        if (currentTrack) {
-          playTrack(currentTrack);
-          return;
-        }
-        const cached = Object.values(trackCache);
-        if (cached.length > 0) {
-          quickPlayCard(cached[0]);
-          return;
-        }
-        searchGenre('Top hits');
-        return;
-      }
-      if (audio.paused) {
-        audio.play().then(() => {
-          setPlayerPlayIcon('pause');
-        }).catch(e => console.log('play error:', e));
-      } else {
-        audio.pause();
-        setPlayerPlayIcon('play');
-      }
-    }
-
-    function playNextTrack(isAutoPlay = false) {
-      // 1. PLAYLIST CONTEXT: ONLY advance within the active playlist (Spotify behavior)
-      if (playbackContext.type === 'playlist') {
-        const liveTracks = (playbackContext.name === 'Liked songs' ? favorites : getPlaylistSongs(playbackContext.name));
-        if (liveTracks && liveTracks.length > 0) {
-          playbackContext.tracks = liveTracks;
-        }
-        const list = playbackContext.tracks;
-        if (!list || list.length === 0) return;
-
-        let nextIdx = 0;
-        if (isShuffle) {
-          if (list.length > 1) {
-            do {
-              nextIdx = Math.floor(Math.random() * list.length);
-            } while (nextIdx === playbackContext.currentIndex && list.length > 1);
-          } else {
-            nextIdx = 0;
-          }
-        } else {
-          // Spotify continuous loop through playlist
-          nextIdx = (playbackContext.currentIndex + 1) % list.length;
-        }
-        playbackContext.currentIndex = nextIdx;
-        playTrack(list[nextIdx], `Playlist: ${playbackContext.name}`, isAutoPlay);
-        renderRightPanel();
-        return;
-      }
-
-      // 2. ARTIST CONTEXT:
-      if (playbackContext.type === 'artist' && playbackContext.tracks.length > 0) {
-        const list = playbackContext.tracks;
-        let nextIdx = isShuffle ? Math.floor(Math.random() * list.length) : (playbackContext.currentIndex + 1) % list.length;
-        playbackContext.currentIndex = nextIdx;
-        playTrack(list[nextIdx], `Artist: ${playbackContext.name}`, isAutoPlay);
-        renderRightPanel();
-        return;
-      }
-
-      // 3. Fallback to artistSongs:
-      if (artistSongs.length > 0) {
-        if (isShuffle) {
-          artistCurrentIndex = Math.floor(Math.random() * artistSongs.length);
-        } else {
-          artistCurrentIndex = (artistCurrentIndex + 1) % artistSongs.length;
-        }
-        const nextSong = artistSongs[artistCurrentIndex];
-        playTrack(nextSong, `Artist: ${nextSong.channel}`, isAutoPlay);
-        renderRightPanel();
-        return;
-      }
-
-      // 4. Fallback to queue:
-      if (queue.length > 0) {
-        if (isShuffle) {
-          currentIndex = Math.floor(Math.random() * queue.length);
-        } else if (currentIndex + 1 < queue.length) {
-          currentIndex++;
-        } else {
-          currentIndex = 0;
-        }
-        playTrack(queue[currentIndex], 'Queue', isAutoPlay);
-        return;
-      }
-
-      const cached = Object.values(trackCache);
-      if (cached.length > 0) {
-        const rand = cached[Math.floor(Math.random() * cached.length)];
-        playTrack(rand, 'Cached', isAutoPlay);
-      }
-    }
-
-    function playPrevTrack() {
-      if (playbackContext.type === 'playlist') {
-        const liveTracks = (playbackContext.name === 'Liked songs' ? favorites : getPlaylistSongs(playbackContext.name));
-        if (liveTracks && liveTracks.length > 0) {
-          playbackContext.tracks = liveTracks;
-        }
-        const list = playbackContext.tracks;
-        if (!list || list.length === 0) return;
-
-        let prevIdx = playbackContext.currentIndex - 1;
-        if (prevIdx < 0) prevIdx = list.length - 1;
-        playbackContext.currentIndex = prevIdx;
-        playTrack(list[prevIdx], `Playlist: ${playbackContext.name}`, false);
-        renderRightPanel();
-        return;
-      }
-
-      if (playbackContext.type === 'artist' && playbackContext.tracks.length > 0) {
-        const list = playbackContext.tracks;
-        let prevIdx = playbackContext.currentIndex - 1;
-        if (prevIdx < 0) prevIdx = list.length - 1;
-        playbackContext.currentIndex = prevIdx;
-        playTrack(list[prevIdx], `Artist: ${playbackContext.name}`, false);
-        renderRightPanel();
-        return;
-      }
-
-      if (artistSongs.length > 0) {
-        if (artistCurrentIndex - 1 >= 0) {
-          artistCurrentIndex--;
-        } else {
-          artistCurrentIndex = artistSongs.length - 1;
-        }
-        const prevSong = artistSongs[artistCurrentIndex];
-        playTrack(prevSong, `Artist: ${prevSong.channel}`, false);
-        renderRightPanel();
-        return;
-      }
-
-      if (queue.length > 0) {
-        if (currentIndex - 1 >= 0) {
-          currentIndex--;
-        } else {
-          currentIndex = queue.length - 1;
-        }
-        playTrack(queue[currentIndex], 'Queue', false);
-      }
-    }
-
-    // Load other songs by author
-    async function loadArtistSongs(artist, currentVideoId) {
-      const titleElem = document.getElementById('rightPanelTitle');
-      const cleanArtist = (artist || 'Artist').split(',')[0].split('&')[0].trim();
-      if (titleElem && playbackContext.type !== 'playlist') titleElem.innerText = `More from ${cleanArtist}`;
-
-      try {
-        const res = await fetch(`/api/artist_songs?artist=${encodeURIComponent(cleanArtist)}&exclude_id=${encodeURIComponent(currentVideoId || '')}`);
-        const data = await res.json();
-        artistSongs = data.songs || [];
-        artistCurrentIndex = -1;
-        if (playbackContext.type !== 'playlist') {
-          renderRightPanel();
-        }
-        // Prefetch first upcoming author songs for instant zero-pause auto-play
-        if (artistSongs.length > 0 && playbackContext.type !== 'playlist') {
-          prefetchTrackStream(artistSongs[0]);
-          if (artistSongs.length > 1) prefetchTrackStream(artistSongs[1]);
-        }
-      } catch (e) {}
-    }
-
-    function renderRightPanel() {
-      const container = document.getElementById('rightPanelList');
-      const titleElem = document.getElementById('rightPanelTitle');
-      if (!container) return;
-
-      // 1. If playing from playlist -> display upcoming playlist tracks
-      if (playbackContext.type === 'playlist' && playbackContext.tracks.length > 0) {
-        if (titleElem) titleElem.innerText = `Playlist: ${playbackContext.name}`;
-        const list = playbackContext.tracks;
-        container.innerHTML = list.map((t, idx) => {
-          const isCurrent = (idx === playbackContext.currentIndex);
-          const isFav = isFavorite(t.videoId);
-          return `
-            <div class="p-2 rounded-md hover:bg-white/5 flex items-center justify-between group cursor-pointer transition ${isCurrent ? 'bg-[#172044] text-bone border-l-2 border-[#3D8BFF] shadow-[0_0_12px_rgba(61,139,255,0.25)]' : 'text-neutral-300'}" onclick="playTrackFromPlaylist('${escapeQuotes(playbackContext.name)}', ${idx})">
-              <div class="flex items-center space-x-2.5 overflow-hidden flex-1">
-                <span class="text-[10px] ${isCurrent ? 'text-[#00D4FF] font-bold' : 'text-neutral-500'} w-4 text-center">${isCurrent ? '▶' : idx + 1}</span>
-                <img src="${t.thumbnail}" class="w-9 h-9 rounded object-cover flex-shrink-0">
-                <div class="overflow-hidden">
-                  <div class="text-xs font-semibold truncate hover:underline ${isCurrent ? 'text-[#00D4FF]' : ''}" onclick="event.stopPropagation(); openArtistPage('${escapeQuotes(t.channel)}')">${t.title}</div>
-                  <div class="text-[10px] text-neutral-400 truncate hover:underline" onclick="event.stopPropagation(); openArtistPage('${escapeQuotes(t.channel)}')">${t.channel}</div>
-                </div>
-              </div>
-              <div class="flex items-center space-x-1.5 ml-2">
-                <button onclick="event.stopPropagation(); toggleFavoriteTrack('${t.videoId}')" title="Like song" class="heart-btn-${t.videoId} text-xs transition hover:scale-110 ${isFav ? 'text-pink-500' : 'text-neutral-400 hover:text-pink-500'}">
-                  <i class="${isFav ? 'fa-solid fa-heart' : 'fa-regular fa-heart'}"></i>
-                </button>
-                <span class="text-[10px] text-neutral-500">${t.duration}</span>
-              </div>
-            </div>
-          `;
-        }).join('');
-        return;
-      }
-
-      // 2. Otherwise artist songs or queue
-      if (titleElem) titleElem.innerText = (currentTrack ? `More from ${currentTrack.channel}` : 'More from Artist');
-      if (artistSongs.length === 0) {
-        container.innerHTML = '<div class="text-center text-neutral-500 py-12 text-xs">Play any song to load artist tracks and queue here.</div>';
-        return;
-      }
-
-      container.innerHTML = artistSongs.map((t, idx) => {
-        const isFav = isFavorite(t.videoId);
-        const isCurrent = (idx === artistCurrentIndex);
-        return `
-          <div class="p-2 rounded-md hover:bg-white/5 flex items-center justify-between group cursor-pointer transition ${isCurrent ? 'bg-[#172044] text-bone border-l-2 border-[#3D8BFF] shadow-[0_0_12px_rgba(61,139,255,0.25)]' : 'text-neutral-300'}" onclick="playArtistRightTrack(${idx})">
-            <div class="flex items-center space-x-2.5 overflow-hidden flex-1">
-              <img src="${t.thumbnail}" class="w-9 h-9 rounded object-cover flex-shrink-0">
-              <div class="overflow-hidden">
-                <div class="text-xs font-semibold truncate hover:underline ${isCurrent ? 'text-[#00D4FF]' : ''}" onclick="event.stopPropagation(); openArtistPage('${escapeQuotes(t.channel)}')">${t.title}</div>
-                <div class="text-[10px] text-neutral-400 truncate hover:underline" onclick="event.stopPropagation(); openArtistPage('${escapeQuotes(t.channel)}')">${t.channel}</div>
-              </div>
-            </div>
-            <div class="flex items-center space-x-1.5 ml-2">
-              <button onclick="event.stopPropagation(); toggleFavoriteTrack('${t.videoId}')" title="Like song" class="heart-btn-${t.videoId} text-xs transition hover:scale-110 ${isFav ? 'text-pink-500' : 'text-neutral-400 hover:text-pink-500'}">
-                <i class="${isFav ? 'fa-solid fa-heart' : 'fa-regular fa-heart'}"></i>
-              </button>
-              <span class="text-[10px] text-neutral-500">${t.duration}</span>
-            </div>
-          </div>
-        `;
+      // Side playlists
+      var plKeys=Object.keys(S.playlists);
+      $('#side-pl').innerHTML=plKeys.map(function(p,i){
+        return'<button class="pl" data-pl="'+esc(p)+'"><i style="background:'+G[i%G.length]+'"></i><span>'+esc(p)+'</span></button>';
       }).join('');
-    }
 
-    function playArtistRightTrack(idx) {
-      artistCurrentIndex = idx;
-      playTrack(artistSongs[idx], `Artist: ${artistSongs[idx].channel}`);
-      renderRightPanel();
-    }
+      // Quick play cards
+      $('#quick').innerHTML=plKeys.slice(0,6).map(function(p,i){
+        var bg=G[i%G.length];
+        return'<button class="q" data-pl="'+esc(p)+'"><i style="background:'+bg+'"></i><span class="t">'+esc(p)+'</span></button>';
+      }).join('');
 
-    // Shuffle & Repeat (Orange Active Accent)
-    function toggleShuffle() {
-      isShuffle = !isShuffle;
-      const btn = document.getElementById('playerShuffleBtn');
-      const dot = document.getElementById('playerShuffleDot');
-      const rightLabel = document.getElementById('rightShuffleLabel');
-
-      if (isShuffle) {
-        if (btn) btn.classList.add('text-[#FF7700]');
-        if (dot) dot.classList.remove('hidden');
-        if (rightLabel) rightLabel.innerText = 'Shuffle';
-      } else {
-        if (btn) btn.classList.remove('text-[#FF7700]');
-        if (dot) dot.classList.add('hidden');
-        if (rightLabel) rightLabel.innerText = 'Seq';
-      }
-    }
-
-    function toggleRepeat() {
-      const btn = document.getElementById('playerRepeatBtn');
-      const dot = document.getElementById('playerRepeatDot');
-      const icon = document.getElementById('repeatIcon');
-
-      if (repeatMode === 'off') {
-        repeatMode = 'all';
-        btn.classList.add('text-[#FF7700]');
-        dot.classList.remove('hidden');
-        icon.className = 'fa-solid fa-repeat';
-      } else if (repeatMode === 'all') {
-        repeatMode = 'one';
-        icon.className = 'fa-solid fa-repeat text-[#FF7700]';
-      } else {
-        repeatMode = 'off';
-        btn.classList.remove('text-[#FF7700]');
-        dot.classList.add('hidden');
-        icon.className = 'fa-solid fa-repeat';
-      }
-    }
-
-    // Seek Bar Logic
-    function onSeekInput(val) {
-      isDraggingSeek = true;
-      if (audio.duration) {
-        const target = (val / 100) * audio.duration;
-        document.getElementById('playerCurrentTime').innerText = formatTime(target);
-      }
-    }
-
-    function onSeekChange(val) {
-      isDraggingSeek = false;
-      if (audio.duration) {
-        audio.currentTime = (val / 100) * audio.duration;
-      }
-    }
-
-    function formatTime(sec) {
-      if (!sec || isNaN(sec)) return "0:00";
-      const s = Math.floor(sec);
-      const m = Math.floor(s / 60);
-      const remain = s % 60;
-      return `${m}:${remain < 10 ? '0' : ''}${remain}`;
-    }
-
-    // Volume & Audio Setup
-    function changeVolume(val) {
-      audio.volume = parseFloat(val);
-      const icon = document.getElementById('volumeIcon');
-      if (audio.volume === 0) icon.className = 'fa-solid fa-volume-xmark text-red-400';
-      else if (audio.volume < 0.5) icon.className = 'fa-solid fa-volume-low';
-      else icon.className = 'fa-solid fa-volume-high';
-    }
-
-    function toggleMute() {
-      audio.muted = !audio.muted;
-      const icon = document.getElementById('volumeIcon');
-      if (audio.muted) icon.className = 'fa-solid fa-volume-xmark text-red-400';
-      else changeVolume(audio.volume);
-    }
-
-    function setupAudioListeners() {
-      audio.addEventListener('play', () => {
-        setPlayerPlayIcon('pause');
-      });
-
-      audio.addEventListener('playing', () => {
-        setPlayerPlayIcon('pause');
-      });
-
-      audio.addEventListener('pause', () => {
-        setPlayerPlayIcon('play');
-      });
-
-      audio.addEventListener('waiting', () => {
-        setPlayerPlayIcon('spin');
-      });
-
-      audio.addEventListener('error', (e) => {
-        console.error('Audio playback error:', audio.error);
-        setPlayerPlayIcon('play');
-      });
-
-      audio.addEventListener('timeupdate', () => {
-        if (!isNaN(audio.currentTime) && audio.duration) {
-          const pct = (audio.currentTime / audio.duration) * 100;
-          if (!isDraggingSeek) {
-            document.getElementById('playerSeekBar').value = pct;
-            document.getElementById('playerCurrentTime').innerText = formatTime(audio.currentTime);
+      // Flatten tracks
+      var map={};
+      plKeys.forEach(function(k){
+        var val=S.playlists[k];
+        var list=Array.isArray(val)?val:(val&&val.songs?val.songs:[]);
+        list.forEach(function(item){
+          var key=item.videoId||item.title;
+          if(!map[key]){
+            map[key]={
+              id:item.videoId||key,
+              videoId:item.videoId,
+              t:item.title,
+              a:item.channel||item.artist||'Unknown',
+              al:item.album||k||'Single',
+              d:parseSec(item.duration),
+              thumbnail:item.thumbnail,
+              g:G[Object.keys(map).length%G.length]
+            };
           }
-          document.getElementById('playerTotalTime').innerText = formatTime(audio.duration);
-          localStorage.setItem('audiotube_last_pos', audio.currentTime);
-
-          // Proactively prefetch upcoming stream URL if nearing end of song (< 20s remaining)
-          if (audio.duration - audio.currentTime < 20) {
-            prefetchUpcomingTracks();
-          }
-        }
+        });
       });
+      S.allTracks=Object.values(map);
+      
+      // Made for you
+      $('#made').innerHTML=S.allTracks.slice(0,10).map(function(t){
+        return'<button class="al" data-tid="'+esc(t.videoId||t.id)+'"><i style="background:'+trackBg(t,0)+'"></i><p class="t">'+esc(t.t)+'</p><p class="a">'+esc(t.a)+'</p></button>';
+      }).join('');
 
-      audio.addEventListener('ended', () => {
-        if (repeatMode === 'one') {
-          audio.currentTime = 0;
-          audio.play();
-        } else {
-          playNextTrack(true);
-        }
-      });
-
-      if ('mediaSession' in navigator) {
-        navigator.mediaSession.setActionHandler('play', () => audio.play());
-        navigator.mediaSession.setActionHandler('pause', () => audio.pause());
-        navigator.mediaSession.setActionHandler('previoustrack', () => playPrevTrack());
-        navigator.mediaSession.setActionHandler('nexttrack', () => playNextTrack());
-      }
+      renderLib();
     }
+  }catch(e){console.warn('Library load error:',e)}
+}
 
-    function restoreLastPlayback() {
-      try {
-        const last = JSON.parse(localStorage.getItem('audiotube_last_track'));
-        if (last) {
-          currentTrack = last;
-          document.getElementById('playerTitle').innerText = last.title;
-          document.getElementById('playerArtist').innerText = last.channel;
-          document.getElementById('playerCover').src = last.thumbnail;
-          updateHeartUI();
-        }
-      } catch (e) {}
-    }
-
-    // MULTIPLE CUSTOM PLAYLIST MANAGEMENT & ALL-TYPE SOLID EMOJIS
-    function initPlaylistCustomizationUI() {
-      renderEmojiPickerGrid();
-
-      const colorList = document.getElementById('colorPickerList');
-      if (colorList) {
-        colorList.innerHTML = PLAYLIST_COLORS.map(c => `
-          <button type="button" onclick="selectPlaylistColor('${c}')" class="w-6 h-6 rounded-full transition-transform hover:scale-110 flex-shrink-0 color-btn ${c === selectedPlaylistColor ? 'scale-125 ring-2 ring-white ring-offset-2 ring-offset-black' : ''}" style="background-color: ${c}; border: 1px solid rgba(255,255,255,0.2);" data-color="${c}" title="${c}">
-          </button>
-        `).join('');
-      }
-      updateModalPreview();
-    }
-
-    function getAllEmojis() {
-      const all = [];
-      for (const list of Object.values(EMOJI_CATEGORIES)) {
-        for (const em of list) {
-          if (!all.includes(em)) all.push(em);
-        }
-      }
-      return all;
-    }
-
-    function renderEmojiPickerGrid() {
-      const emojiList = document.getElementById('emojiPickerList');
-      if (!emojiList) return;
-
-      let list = [];
-      if (selectedEmojiCategory === 'All') {
-        list = getAllEmojis();
-      } else if (EMOJI_CATEGORIES[selectedEmojiCategory]) {
-        list = EMOJI_CATEGORIES[selectedEmojiCategory];
-      }
-
-      if (emojiSearchFilter.trim()) {
-        const q = emojiSearchFilter.trim().toLowerCase();
-        list = list.filter(em => em.includes(q));
-        if (q && !list.includes(q)) {
-          list.unshift(q);
-        }
-      }
-
-      emojiList.innerHTML = list.map(em => `
-        <button type="button" onclick="selectPlaylistEmoji('${escapeQuotes(em)}')" class="w-8 h-8 rounded hover:bg-white/10 flex items-center justify-center transition text-base emoji-btn ${em === selectedPlaylistEmoji ? 'bg-white/20 ring-1 ring-white' : ''}" data-emoji="${escapeQuotes(em)}" title="${escapeQuotes(em)}">
-          <span class="emoji-solid-white">${em}</span>
-        </button>
-      `).join('');
-    }
-
-    function filterEmojiCategory(cat) {
-      selectedEmojiCategory = cat;
-      document.querySelectorAll('.emoji-cat-btn').forEach(btn => {
-        if (btn.dataset.cat === cat) {
-          btn.className = 'emoji-cat-btn px-2 py-0.5 rounded-full bg-white text-black font-semibold flex-shrink-0';
-        } else {
-          btn.className = 'emoji-cat-btn px-2 py-0.5 rounded-full bg-white/5 text-neutral-400 hover:text-white flex-shrink-0';
-        }
-      });
-      renderEmojiPickerGrid();
-    }
-
-    function searchEmojiCatalog(val) {
-      emojiSearchFilter = val || '';
-      renderEmojiPickerGrid();
-      if (val && val.trim().length > 0) {
-        selectPlaylistEmoji(val.trim());
-      }
-    }
-
-    function updateModalPreviewTitle(val) {
-      const titleEl = document.getElementById('modalTitlePreview');
-      if (titleEl) {
-        titleEl.innerText = val.trim() || 'New Playlist';
-      }
-    }
-
-    function updateModalPreview() {
-      const cover = document.getElementById('modalCoverPreview');
-      const emojiSpan = document.getElementById('modalEmojiPreview');
-      const contrastLabel = document.getElementById('modalContrastLabel');
-      const isLight = isColorLight(selectedPlaylistColor);
-
-      if (cover) {
-        cover.style.background = `radial-gradient(circle, ${selectedPlaylistColor} 0%, #121212 100%)`;
-        cover.style.border = `1px solid ${selectedPlaylistColor}50`;
-      }
-      if (emojiSpan) {
-        emojiSpan.innerText = selectedPlaylistEmoji || '🎵';
-        emojiSpan.className = isLight ? 'emoji-solid-black' : 'emoji-solid-white';
-      }
-      if (contrastLabel) {
-        contrastLabel.innerText = isLight ? 'Icon: Solid Black on Light BG' : 'Icon: Solid White on Dark BG';
-      }
-      const previewDot = document.getElementById('selectedColorPreview');
-      if (previewDot) {
-        previewDot.style.backgroundColor = selectedPlaylistColor;
-      }
-    }
-
-    function selectPlaylistEmoji(em) {
-      selectedPlaylistEmoji = em || '🎵';
-      const customInput = document.getElementById('playlistEmojiCustom');
-      if (customInput && customInput.value !== selectedPlaylistEmoji) {
-        customInput.value = selectedPlaylistEmoji;
-      }
-      document.querySelectorAll('.emoji-btn').forEach(btn => {
-        const isMatch = btn.dataset.emoji === selectedPlaylistEmoji;
-        btn.className = `w-8 h-8 rounded hover:bg-white/10 flex items-center justify-center transition text-base emoji-btn ${isMatch ? 'bg-white/20 ring-1 ring-white' : ''}`;
-      });
-      updateModalPreview();
-    }
-
-    function selectPlaylistColor(col) {
-      selectedPlaylistColor = col || '#1db954';
-      document.querySelectorAll('.color-btn').forEach(btn => {
-        const isMatch = btn.dataset.color === selectedPlaylistColor;
-        btn.className = `w-6 h-6 rounded-full transition-transform hover:scale-110 flex-shrink-0 color-btn ${isMatch ? 'scale-125 ring-2 ring-white ring-offset-2 ring-offset-black' : ''}`;
-      });
-      updateModalPreview();
-    }
-
-    function getPlaylistSongs(name) {
-      const pl = userPlaylists[name];
-      if (!pl) return [];
-      return Array.isArray(pl) ? pl : (pl.songs || []);
-    }
-
-    function getPlaylistEmoji(name) {
-      const pl = userPlaylists[name];
-      if (!pl || Array.isArray(pl)) return '🎵';
-      return pl.emoji || '🎵';
-    }
-
-    function getPlaylistColor(name) {
-      const pl = userPlaylists[name];
-      if (!pl || Array.isArray(pl)) return '#1db954';
-      return pl.color || '#1db954';
-    }
-
-    async function loadUserPlaylists() {
-      try {
-        userPlaylists = JSON.parse(localStorage.getItem('audiotube_user_playlists')) || {
-          "Favorites": { songs: favorites, emoji: "🖤", color: "#ec4899" }
+async function loadHistory(){
+  try{
+    var res=await fetch('/api/history');
+    if(res.ok){
+      var data=await res.json();
+      var list=Array.isArray(data)?data:(data.history||[]);
+      S.history=list.map(function(item,i){
+        return{
+          id:item.videoId||i,
+          videoId:item.videoId,
+          t:item.title,
+          a:item.channel||'Artist',
+          al:'Recent',
+          d:parseSec(item.duration),
+          thumbnail:item.thumbnail,
+          g:G[i%G.length]
         };
-      } catch (e) {
-        userPlaylists = { "Favorites": { songs: favorites, emoji: "🖤", color: "#ec4899" } };
-      }
-      // Purge demo/hardcoded playlists
-      delete userPlaylists["Late night drive"];
-      delete userPlaylists["Workout mix"];
-      delete userPlaylists["Study focus"];
-      for (const [k, v] of Object.entries(userPlaylists)) {
-        if (Array.isArray(v)) {
-          userPlaylists[k] = { songs: v, emoji: "🎵", color: "#1db954" };
-        }
-      }
-      renderSidebarUserPlaylists();
-
-      // Async sync from local persistent storage (history/user_library.json)
-      try {
-        const sRes = await fetch('/api/user_library');
-        if (sRes.ok) {
-          const sData = await sRes.json();
-          let updated = false;
-          if (sData.playlists) {
-            for (const [name, pl] of Object.entries(sData.playlists)) {
-              if (!userPlaylists[name] || !userPlaylists[name].songs || userPlaylists[name].songs.length < pl.songs.length) {
-                userPlaylists[name] = pl;
-                updated = true;
-              }
-            }
-          }
-          if (sData.favorites && sData.favorites.length > 0) {
-            if (!favorites || favorites.length < sData.favorites.length) {
-              favorites = sData.favorites;
-              localStorage.setItem('audiotube_favs', JSON.stringify(favorites));
-              updated = true;
-            }
-          }
-          if (updated) {
-            localStorage.setItem('audiotube_user_playlists', JSON.stringify(userPlaylists));
-            renderSidebarUserPlaylists();
-          }
-        }
-      } catch(e) {
-        console.warn('Sync user library notice:', e);
-      }
-    }
-
-    function updateAddButtonsState(videoId) {
-      if (!videoId) return;
-      const inPl = isSongInAnyPlaylist(videoId);
-      document.querySelectorAll(`.add-btn-${videoId}`).forEach(btn => {
-        btn.className = `add-btn-${videoId} px-2.5 py-1 rounded-full text-[11px] font-semibold flex items-center space-x-1.5 transition-all ${inPl ? 'text-[#00D4FF] bg-[#172044] border border-[#3D8BFF]/60 shadow-[0_0_12px_rgba(61,139,255,0.35)]' : 'text-neutral-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10'}`;
       });
-    }
-
-    function saveUserPlaylists(affectedVideoId) {
-      localStorage.setItem('audiotube_user_playlists', JSON.stringify(userPlaylists));
-      renderSidebarUserPlaylists();
-      if (affectedVideoId) {
-        updateAddButtonsState(affectedVideoId);
-      } else {
-        document.querySelectorAll('[class*="add-btn-"]').forEach(btn => {
-          const m = btn.className.match(/add-btn-([A-Za-z0-9_-]+)/);
-          if (m && m[1]) updateAddButtonsState(m[1]);
-        });
-      }
-      try {
-        fetch('/api/user_library', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ playlists: userPlaylists, favorites: favorites })
-        }).catch(() => {});
-      } catch(e) {}
-    }
-
-    async function handleCsvFileSelected(input) {
-      if (!input.files || input.files.length === 0) return;
-      const file = input.files[0];
-      const filename = file.name;
-      const cleanName = filename.replace(/[.][^.]+$/, "").replace(/_/g, " ").trim();
-
-      toggleImportModal();
-      switchTab('search');
-      document.getElementById('searchResultsTitle').innerText = `Importing "${cleanName}"...`;
-      const grid = document.getElementById('searchResultsGrid');
-      grid.innerHTML = `
-        <div class="col-span-full text-center text-neutral-400 py-20">
-          <i class="fa-solid fa-circle-notch fa-spin text-3xl mb-4 text-[#3D8BFF]"></i>
-          <h3 class="text-base font-bold text-white mb-1.5">Importing ${cleanName}</h3>
-          <p class="text-xs text-neutral-400 max-w-sm mx-auto leading-relaxed">
-            Parsing Spotify CSV tracklist and pre-resolving audio streams...
-          </p>
-        </div>
-      `;
-
-      try {
-        const text = await file.text();
-        const res = await fetch('/api/import_csv', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            filename: filename,
-            content: text,
-            playlist_name: cleanName
-          })
-        });
-        const data = await res.json();
-        if (data.status === 'success' && data.playlist) {
-          userPlaylists[data.playlist_name] = data.playlist;
-          if (cleanName.toLowerCase().includes('liked') || cleanName.toLowerCase().includes('favorite')) {
-            favorites = data.playlist.songs;
-            localStorage.setItem('audiotube_favs', JSON.stringify(favorites));
-          }
-          saveUserPlaylists();
-          viewSpecificPlaylist(data.playlist_name);
-        } else {
-          grid.innerHTML = `<div class="col-span-full text-center text-red-400 py-16">${data.detail || 'Import failed'}</div>`;
-        }
-      } catch(e) {
-        grid.innerHTML = `<div class="col-span-full text-center text-red-400 py-16">CSV Import error: ${e.message}</div>`;
-      }
-      input.value = '';
-    }
-
-    function renderSidebarUserPlaylists() {
-      const container = document.getElementById('sidebarUserPlaylists');
-      if (!container) return;
-      const names = Object.keys(userPlaylists).filter(n => n !== "Favorites");
-      container.innerHTML = names.map(name => {
-        const emoji = getPlaylistEmoji(name);
-        const color = getPlaylistColor(name);
-        const songs = getPlaylistSongs(name);
-        return `
-          <div onclick="viewSpecificPlaylist('${escapeQuotes(name)}')" class="flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-white/5 hover:text-white cursor-pointer transition group">
-            <span class="truncate flex items-center space-x-2.5">
-              <span class="text-xs flex-shrink-0 emoji-solid-white" style="filter: grayscale(100%) brightness(0) invert(1) drop-shadow(0 0 6px ${color}80);">${emoji}</span>
-              <span class="truncate text-xs font-semibold">${name}</span>
-            </span>
-            <span class="text-[10px] text-neutral-500">${songs.length}</span>
-          </div>
-        `;
+      $('#recent').innerHTML=S.history.slice(0,6).map(function(t){
+        return'<button class="al" data-tid="'+esc(t.videoId||t.id)+'"><i style="background:'+trackBg(t,0)+'"></i><p class="t">'+esc(t.t)+'</p><p class="a">'+esc(t.a)+'</p></button>';
       }).join('');
     }
+  }catch(e){console.warn('History load error:',e)}
+}
 
-    function isSongInAnyPlaylist(videoId) {
-      if (!videoId || !userPlaylists) return false;
-      try {
-        for (const pl of Object.values(userPlaylists)) {
-          const songs = Array.isArray(pl) ? pl : (pl?.songs || []);
-          if (songs.some(t => t && t.videoId === videoId)) return true;
-        }
-      } catch (e) {}
-      return false;
-    }
+(function initGreeting(){
+  var h=new Date().getHours();
+  $('#greet').textContent=h<12?'Good morning':h<18?'Good afternoon':'Good evening';
+})();
 
-    function openAddToPlaylistDialog(trackOrId) {
-      const track = (typeof trackOrId === 'string') ? trackCache[trackOrId] : trackOrId;
-      if (!track) return;
-      pendingSongForPlaylist = track;
-      const modal = document.getElementById('playlistPickerModal');
-      const list = document.getElementById('playlistPickerList');
-      modal.classList.remove('hidden');
+paintPlayer();
+loadLibrary().then(loadHistory);
 
-      const names = Object.keys(userPlaylists);
-      list.innerHTML = names.map(name => {
-        const songs = getPlaylistSongs(name);
-        const inPl = songs.some(t => t.videoId === track.videoId);
-        const emoji = getPlaylistEmoji(name);
-        const color = getPlaylistColor(name);
-        const emojiClass = getEmojiClassForBg(color);
-        return `
-          <div class="flex items-center justify-between p-3 rounded-lg bg-[#181818] hover:bg-[#282828] cursor-pointer transition" onclick="toggleSongInPlaylist('${escapeQuotes(name)}')">
-            <div class="flex items-center space-x-3">
-              <span class="w-7 h-7 rounded-md flex items-center justify-center text-sm" style="background: radial-gradient(circle, ${color} 0%, #121212 100%); border: 1px solid ${color}40;">
-                <span class="${emojiClass}">${emoji}</span>
-              </span>
-              <span class="text-xs font-semibold text-white">${name}</span>
-              <span class="text-[10px] text-neutral-400">(${songs.length})</span>
-            </div>
-            <i class="${inPl ? 'fa-solid fa-circle-check text-emerald-400 text-base' : 'fa-regular fa-circle text-neutral-600 text-base'}"></i>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function closePlaylistPickerModal() {
-      document.getElementById('playlistPickerModal').classList.add('hidden');
-      pendingSongForPlaylist = null;
-    }
-
-    function toggleSongInPlaylist(name) {
-      if (!pendingSongForPlaylist || !userPlaylists[name]) return;
-      const vid = pendingSongForPlaylist.videoId;
-      const songs = getPlaylistSongs(name);
-      const idx = songs.findIndex(t => t.videoId === vid);
-      if (idx >= 0) songs.splice(idx, 1);
-      else songs.unshift(pendingSongForPlaylist);
-      if (Array.isArray(userPlaylists[name])) {
-        userPlaylists[name] = { songs: songs, emoji: '🎵', color: '#1db954' };
-      } else {
-        userPlaylists[name].songs = songs;
-      }
-      saveUserPlaylists(vid);
-      openAddToPlaylistDialog(pendingSongForPlaylist);
-      if (currentViewingPlaylist === name) {
-        viewSpecificPlaylist(name);
-      }
-    }
-
-    function createNewPlaylistFromPicker() {
-      const input = document.getElementById('newPlaylistInput');
-      const name = input.value.trim();
-      if (!name) return;
-      if (!userPlaylists[name]) {
-        const vid = pendingSongForPlaylist ? pendingSongForPlaylist.videoId : null;
-        userPlaylists[name] = {
-          songs: pendingSongForPlaylist ? [pendingSongForPlaylist] : [],
-          emoji: '🎵',
-          color: '#1db954'
-        };
-        saveUserPlaylists(vid);
-        input.value = '';
-        openAddToPlaylistDialog(pendingSongForPlaylist);
-      }
-    }
-
-    function openCreatePlaylistModal() {
-      editingPlaylistTarget = null;
-      document.getElementById('createPlaylistModalTitle').innerText = 'Create or Import Playlist';
-      document.getElementById('playlistNameInput').value = '';
-      document.getElementById('createPlaylistBtn').innerText = 'Create Playlist';
-      updateModalPreviewTitle('New Playlist');
-      selectPlaylistEmoji('🎵');
-      selectPlaylistColor('#1db954');
-      filterEmojiCategory('All');
-      const searchBox = document.getElementById('emojiSearchInput');
-      if (searchBox) searchBox.value = '';
-      emojiSearchFilter = '';
-      renderEmojiPickerGrid();
-      document.getElementById('createPlaylistModal').classList.remove('hidden');
-    }
-
-    function openEditPlaylistModal(name) {
-      editingPlaylistTarget = name;
-      document.getElementById('createPlaylistModalTitle').innerText = `Edit Playlist "${name}"`;
-      document.getElementById('playlistNameInput').value = name;
-      document.getElementById('createPlaylistBtn').innerText = 'Save Changes';
-      updateModalPreviewTitle(name);
-      selectPlaylistEmoji(getPlaylistEmoji(name));
-      selectPlaylistColor(getPlaylistColor(name));
-      filterEmojiCategory('All');
-      const searchBox = document.getElementById('emojiSearchInput');
-      if (searchBox) searchBox.value = '';
-      emojiSearchFilter = '';
-      renderEmojiPickerGrid();
-      document.getElementById('createPlaylistModal').classList.remove('hidden');
-    }
-
-    function toggleCreatePlaylistModal() {
-      document.getElementById('createPlaylistModal').classList.toggle('hidden');
-      if (document.getElementById('createPlaylistModal').classList.contains('hidden')) {
-        editingPlaylistTarget = null;
-      }
-    }
-
-    function saveNewPlaylistAction() {
-      const input = document.getElementById('playlistNameInput');
-      const val = input.value.trim();
-      if (!val) return;
-      toggleCreatePlaylistModal();
-      input.value = '';
-
-      if (editingPlaylistTarget) {
-        const oldName = editingPlaylistTarget;
-        const newName = val;
-        const songs = getPlaylistSongs(oldName);
-        if (newName !== oldName) {
-          delete userPlaylists[oldName];
-        }
-        userPlaylists[newName] = {
-          songs: songs,
-          emoji: selectedPlaylistEmoji,
-          color: selectedPlaylistColor
-        };
-        saveUserPlaylists();
-        viewSpecificPlaylist(newName);
-        editingPlaylistTarget = null;
-        return;
-      }
-
-      if (isPlaylistUrl(val)) {
-        importPlaylistFromUrl(val, selectedPlaylistEmoji, selectedPlaylistColor);
-      } else {
-        if (!userPlaylists[val]) {
-          userPlaylists[val] = {
-            songs: [],
-            emoji: selectedPlaylistEmoji,
-            color: selectedPlaylistColor
-          };
-          saveUserPlaylists();
-        }
-        viewSpecificPlaylist(val);
-      }
-    }
-
-    async function importPlaylistFromUrl(url, emoji = null, color = null) {
-      if (!url) return;
-      const isSpotify = url.toLowerCase().includes('spotify');
-      const platformName = isSpotify ? 'Spotify' : 'YouTube';
-      const defaultEmoji = isSpotify ? '🟢' : '🎵';
-      const defaultColor = isSpotify ? '#1db954' : '#3D8BFF';
-
-      switchTab('search');
-      document.getElementById('searchResultsTitle').innerText = `Importing ${platformName} Library...`;
-      const grid = document.getElementById('searchResultsGrid');
-      grid.innerHTML = `
-        <div class="col-span-full text-center text-neutral-400 py-20">
-          <i class="fa-solid fa-circle-notch fa-spin text-3xl mb-4 ${isSpotify ? 'text-emerald-400' : 'text-[#3D8BFF]'}"></i>
-          <h3 class="text-base font-bold text-white mb-1.5">Importing ${platformName} Library</h3>
-          <p class="text-xs text-neutral-400 max-w-sm mx-auto leading-relaxed">
-            ${isSpotify ? 'Extracting Spotify tracks and matching pure audio streams... This takes just a few seconds.' : 'Fetching playlist tracks from YouTube...'}
-          </p>
-        </div>
-      `;
-
-      try {
-        const res = await fetch(`/api/playlist?url_or_id=${encodeURIComponent(url)}`);
-        const data = await res.json();
-        if (data.tracks && data.tracks.length > 0) {
-          let baseName = data.title || `${platformName} Playlist`;
-          let finalName = baseName;
-          let counter = 1;
-          while (userPlaylists[finalName]) {
-            finalName = `${baseName} (${counter++})`;
-          }
-          userPlaylists[finalName] = {
-            songs: data.tracks,
-            emoji: emoji || defaultEmoji,
-            color: color || defaultColor
-          };
-          saveUserPlaylists();
-          data.tracks.forEach(t => { if (t && t.videoId) trackCache[t.videoId] = t; });
-          viewSpecificPlaylist(finalName);
-        } else {
-          grid.innerHTML = `<div class="col-span-full text-center text-red-400 py-16">${data.detail || 'No tracks found in playlist URL.'}</div>`;
-        }
-      } catch (e) {
-        grid.innerHTML = `<div class="col-span-full text-center text-red-400 py-16">Import failed: ${e.message}</div>`;
-      }
-    }
-
-    let currentViewingPlaylist = '';
-
-    function viewSpecificPlaylist(name) {
-      currentViewingPlaylist = name;
-      switchTab('playlist');
-      document.getElementById('playlistPageTitle').innerText = name;
-      const songs = getPlaylistSongs(name);
-      const emoji = getPlaylistEmoji(name);
-      const color = getPlaylistColor(name);
-      document.getElementById('playlistPageCount').innerText = `${songs.length} tracks`;
-
-      const coverEl = document.getElementById('playlistPageCover');
-      coverEl.style.background = `radial-gradient(circle, ${color} 0%, #121212 100%)`;
-      coverEl.style.border = `1px solid ${color}40`;
-      const emojiClass = getEmojiClassForBg(color);
-      coverEl.innerHTML = `<span class="${emojiClass}">${emoji}</span>`;
-
-      const container = document.getElementById('playlistTrackList');
-      if (songs.length === 0) {
-        container.innerHTML = `<div class="text-center text-neutral-500 py-16 text-sm">This playlist is empty.<br><span class="text-xs text-neutral-600 mt-1 inline-block">Search songs to add or paste a YouTube playlist URL in the search bar!</span></div>`;
-        return;
-      }
-      songs.forEach(t => { if (t && t.videoId) trackCache[t.videoId] = t; });
-      container.innerHTML = songs.map((t, idx) => {
-        const isFav = isFavorite(t.videoId);
-        return `
-          <div class="p-2.5 rounded-lg bg-[#181818] hover:bg-[#282828] flex items-center justify-between group cursor-pointer transition" onclick="playTrackFromPlaylist('${escapeQuotes(name)}', ${idx})">
-            <div class="flex items-center space-x-3 overflow-hidden flex-1">
-              <span class="text-xs text-neutral-500 w-6 text-center">${idx + 1}</span>
-              <img src="${t.thumbnail}" class="w-10 h-10 rounded object-cover flex-shrink-0">
-              <div class="overflow-hidden">
-                <div class="text-sm font-bold text-white truncate hover:underline" onclick="event.stopPropagation(); openArtistPage('${t.videoId}')">${t.title}</div>
-                <div class="text-xs text-neutral-400 truncate hover:underline" onclick="event.stopPropagation(); openArtistPage('${t.videoId}')">${t.channel}</div>
-              </div>
-            </div>
-            <div class="flex items-center space-x-2 text-xs text-neutral-400">
-              <span class="text-neutral-500 mr-1">${t.duration}</span>
-              <button onclick="event.stopPropagation(); toggleFavoriteTrack('${t.videoId}')" title="Like song" class="heart-btn-${t.videoId} p-1 text-sm transition hover:scale-110 ${isFav ? 'text-pink-500' : 'text-neutral-400 hover:text-pink-500'}">
-                <i class="${isFav ? 'fa-solid fa-heart' : 'fa-regular fa-heart'}"></i>
-              </button>
-              <button onclick="event.stopPropagation(); removeSongFromPlaylist('${escapeQuotes(name)}', '${t.videoId}')" title="Remove song from playlist" class="hover:text-red-400 p-1.5 transition">
-                <i class="fa-solid fa-trash-can text-neutral-500 hover:text-red-400 text-xs"></i>
-              </button>
-              <button onclick="event.stopPropagation(); downloadTrack('${t.videoId}')" title="Download MP3" class="hover:text-white p-1.5">
-                <i class="fa-solid fa-download"></i>
-              </button>
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function playAllCurrentPlaylist() {
-      if (!currentViewingPlaylist) return;
-      playTrackFromPlaylist(currentViewingPlaylist, 0);
-    }
-
-    function shuffleCurrentPlaylist() {
-      if (!currentViewingPlaylist) return;
-      const songs = (currentViewingPlaylist === 'Liked songs' ? favorites : getPlaylistSongs(currentViewingPlaylist));
-      if (!songs || songs.length === 0) return;
-      isShuffle = true;
-      const dot = document.getElementById('playerShuffleDot');
-      if (dot) dot.classList.remove('hidden');
-      const rightLabel = document.getElementById('rightShuffleLabel');
-      if (rightLabel) rightLabel.innerText = 'Shuffle';
-      const randIdx = Math.floor(Math.random() * songs.length);
-      playTrackFromPlaylist(currentViewingPlaylist, randIdx);
-    }
-
-    function renameCurrentPlaylist() {
-      if (!currentViewingPlaylist) return;
-      openEditPlaylistModal(currentViewingPlaylist);
-    }
-
-    function deleteCurrentPlaylist() {
-      if (!currentViewingPlaylist) return;
-      const name = currentViewingPlaylist;
-      if (!confirm(`Delete playlist "${name}"? This cannot be undone.`)) return;
-      delete userPlaylists[name];
-      saveUserPlaylists();
-      switchTab('library');
-      filterLibrary('playlists');
-    }
-
-    function removeSongFromPlaylist(playlistName, videoId) {
-      if (!userPlaylists[playlistName]) return;
-      const songs = getPlaylistSongs(playlistName).filter(t => t.videoId !== videoId);
-      if (Array.isArray(userPlaylists[playlistName])) {
-        userPlaylists[playlistName] = { songs: songs, emoji: '🎵', color: '#1db954' };
-      } else {
-        userPlaylists[playlistName].songs = songs;
-      }
-      saveUserPlaylists(videoId);
-      viewSpecificPlaylist(playlistName);
-    }
-
-    // Favorites
-    function loadFavorites() {
-      try {
-        favorites = JSON.parse(localStorage.getItem('audiotube_favs')) || [];
-      } catch (e) { favorites = []; }
-      favorites.forEach(t => { if (t && t.videoId) trackCache[t.videoId] = t; });
-    }
-
-    // Queue
-    function loadQueue() {
-      try {
-        queue = JSON.parse(localStorage.getItem('audiotube_queue')) || [];
-      } catch (e) { queue = []; }
-    }
-
-    function addToQueue(track) {
-      if (!queue.some(t => t.videoId === track.videoId)) {
-        queue.push(track);
-        localStorage.setItem('audiotube_queue', JSON.stringify(queue));
-      }
-    }
-
-    // Library Views
-    function filterLibrary(mode) {
-      ['all', 'liked', 'playlists', 'history'].forEach(m => {
-        const btn = document.getElementById(`lib-btn-${m}`);
-        if (btn) btn.className = (m === mode) ? 'px-3 py-1.5 rounded-full bg-white text-black font-semibold' : 'px-3 py-1.5 rounded-full bg-white/10 text-white hover:bg-white/20';
-      });
-
-      if (mode === 'playlists') {
-        renderPlaylistsCards();
-        return;
-      }
-      if (mode === 'liked') {
-        renderLibraryList(favorites, 'Liked songs');
-        return;
-      }
-      if (mode === 'history') {
-        fetch('/api/history').then(r => r.json()).then(d => renderLibraryList(d.history || []));
-        return;
-      }
-      renderLibraryList([...favorites, ...queue]);
-    }
-
-    function renderPlaylistsCards() {
-      const container = document.getElementById('libraryListContainer');
-      const names = Object.keys(userPlaylists).filter(n => n !== "Favorites");
-      if (names.length === 0) {
-        container.innerHTML = '<div class="text-center text-neutral-500 py-16 text-sm">No custom playlists yet.<br><span class="text-xs text-neutral-600 mt-1 inline-block">Click "+ Create Playlist" or paste a YouTube playlist URL!</span></div>';
-        return;
-      }
-      container.innerHTML = names.map(name => {
-        const songs = getPlaylistSongs(name);
-        const emoji = getPlaylistEmoji(name);
-        const color = getPlaylistColor(name);
-        return `
-          <div class="p-3 rounded-lg bg-[#181818] hover:bg-[#282828] flex items-center justify-between cursor-pointer transition" onclick="viewSpecificPlaylist('${escapeQuotes(name)}')">
-            <div class="flex items-center space-x-3">
-              <div class="w-10 h-10 rounded-lg flex items-center justify-center text-xl shadow-md flex-shrink-0" style="background: radial-gradient(circle, ${color} 0%, #121212 100%); border: 1px solid ${color}40;">
-                <span class="${getEmojiClassForBg(color)}">${emoji}</span>
-              </div>
-              <div>
-                <div class="text-sm font-bold text-white">${name}</div>
-                <div class="text-xs text-neutral-400">${songs.length} tracks</div>
-              </div>
-            </div>
-            <div class="flex items-center space-x-2">
-              <button onclick="event.stopPropagation(); openEditPlaylistModal('${escapeQuotes(name)}')" title="Edit Playlist" class="text-xs px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 text-white transition"><i class="fa-solid fa-pen text-[10px]"></i></button>
-              <button onclick="event.stopPropagation(); currentViewingPlaylist = '${escapeQuotes(name)}'; deleteCurrentPlaylist()" title="Delete Playlist" class="text-xs px-2.5 py-1 rounded bg-red-950/40 hover:bg-red-900/60 text-red-400 transition"><i class="fa-solid fa-trash text-[10px]"></i></button>
-              <button class="text-xs px-3 py-1 rounded bg-white text-black font-semibold">Open</button>
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function renderLibraryList(items, subtitle = '') {
-      const container = document.getElementById('libraryListContainer');
-      if (!items || items.length === 0) {
-        container.innerHTML = `<div class="text-center text-neutral-500 py-12 text-sm">${subtitle ? subtitle + ' is empty.' : 'No tracks.'}</div>`;
-        return;
-      }
-      items.forEach(t => { if (t && t.videoId) trackCache[t.videoId] = t; });
-      container.innerHTML = `
-        ${subtitle ? `
-          <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/5">
-            <div>
-              <div class="text-base font-bold text-white flex items-center space-x-2">
-                <i class="fa-solid fa-heart text-pink-500 text-sm"></i>
-                <span>${subtitle}</span>
-              </div>
-              <div class="text-xs text-neutral-400">${items.length} songs</div>
-            </div>
-            ${subtitle === 'Liked songs' && items.length > 0 ? `
-              <div class="flex items-center space-x-2">
-                <button onclick="playTrackFromPlaylist('Liked songs', 0)" class="w-9 h-9 rounded-full bg-gradient-to-r from-[#3D8BFF] to-[#00D4FF] text-bone shadow-[0_0_12px_rgba(61,139,255,0.4)] hover:scale-105 active:scale-95 flex items-center justify-center text-sm transition" title="Play All">
-                  <i class="fa-solid fa-play ml-0.5"></i>
-                </button>
-                <button onclick="isShuffle=true; const dot=document.getElementById('playerShuffleDot'); if(dot) dot.classList.remove('hidden'); playTrackFromPlaylist('Liked songs', Math.floor(Math.random() * ${items.length}))" class="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-bone flex items-center justify-center text-xs transition" title="Shuffle Play">
-                  <i class="fa-solid fa-shuffle"></i>
-                </button>
-              </div>
-            ` : ''}
-          </div>
-        ` : ''}
-        ${items.map((t, idx) => {
-          const isFav = isFavorite(t.videoId);
-          return `
-            <div class="p-2.5 rounded-lg bg-[#0E1426] hover:bg-[#172044] border border-[#3D8BFF]/15 flex items-center justify-between group cursor-pointer transition" onclick="${subtitle === 'Liked songs' ? `playTrackFromPlaylist('Liked songs', ${idx})` : `quickPlayCard('${t.videoId}')`}">
-              <div class="flex items-center space-x-3 overflow-hidden flex-1">
-                <span class="text-xs text-neutral-500 w-5">${idx + 1}</span>
-                <img src="${t.thumbnail}" class="w-10 h-10 rounded object-cover flex-shrink-0">
-                <div class="overflow-hidden">
-                  <div class="text-sm font-bold text-bone truncate hover:underline" onclick="event.stopPropagation(); openArtistPage('${t.videoId}')">${t.title}</div>
-                  <div class="text-xs text-[#7F8BB0] truncate hover:underline" onclick="event.stopPropagation(); openArtistPage('${t.videoId}')">${t.channel}</div>
-                </div>
-              </div>
-              <div class="flex items-center space-x-2 text-xs text-[#7F8BB0]">
-                <button onclick="event.stopPropagation(); openAddToPlaylistDialog('${t.videoId}')" class="add-btn-${t.videoId} px-2.5 py-1 rounded-full text-[11px] font-semibold flex items-center space-x-1.5 transition-all ${isSongInAnyPlaylist(t.videoId) ? 'text-[#00D4FF] bg-[#172044] border border-[#3D8BFF]/60 shadow-[0_0_12px_rgba(61,139,255,0.35)]' : 'text-neutral-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10'}">
-                  <i class="fa-solid fa-plus text-[10px]"></i>
-                  <span>Add</span>
-                </button>
-                <button onclick="event.stopPropagation(); toggleFavoriteTrack('${t.videoId}')" title="Like song" class="heart-btn-${t.videoId} p-1 text-sm transition hover:scale-110 ${isFav ? 'text-pink-500' : 'text-neutral-400 hover:text-pink-500'}">
-                  <i class="${isFav ? 'fa-solid fa-heart' : 'fa-regular fa-heart'}"></i>
-                </button>
-                <button onclick="event.stopPropagation(); downloadTrack('${t.videoId}')" class="hover:text-white p-1"><i class="fa-solid fa-download"></i></button>
-                <span class="text-neutral-500 ml-1">${t.duration}</span>
-              </div>
-            </div>
-          `;
-        }).join('')}
-      `;
-    }
-
-    // Recommended & History
-    async function loadHistory() {
-      try {
-        const res = await fetch('/api/history');
-        const data = await res.json();
-        const sec = document.getElementById('homeRecentSection');
-        const row = document.getElementById('homeRecentRow');
-        if (!data.history || data.history.length === 0) {
-          sec.classList.add('hidden');
-          return;
-        }
-        sec.classList.remove('hidden');
-        data.history.forEach(item => { if (item && item.videoId) trackCache[item.videoId] = item; });
-        row.innerHTML = data.history.map(item => {
-          const isFav = isFavorite(item.videoId);
-          return `
-            <div class="flex-shrink-0 w-36 spotify-card p-2.5 cursor-pointer group" onclick="quickPlayCard('${item.videoId}')">
-              <div class="relative aspect-square rounded-md overflow-hidden mb-2">
-                <img src="${item.thumbnail}" class="w-full h-full object-cover">
-                <div class="absolute bottom-1.5 right-1.5 w-8 h-8 rounded-full bg-white text-black flex items-center justify-center opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-play text-xs ml-0.5"></i></div>
-                <button onclick="event.stopPropagation(); toggleFavoriteTrack('${item.videoId}')" title="Like song" class="heart-btn-${item.videoId} recent-heart absolute top-1.5 right-1.5 p-1 rounded-full bg-black/60 text-xs transition ${isFav ? 'text-pink-500' : 'text-white/70 hover:text-pink-500'}">
-                  <i class="${isFav ? 'fa-solid fa-heart' : 'fa-regular fa-heart'}"></i>
-                </button>
-              </div>
-              <div class="text-xs font-bold text-white truncate hover:underline" onclick="event.stopPropagation(); openArtistPage('${item.videoId}')">${item.title}</div>
-              <div class="text-[10px] text-neutral-400 truncate hover:underline" onclick="event.stopPropagation(); openArtistPage('${item.videoId}')">${item.channel}</div>
-            </div>
-          `;
-        }).join('');
-      } catch (e) {}
-    }
-
-    async function recordHistory(track) {
-      try {
-        await fetch('/api/history', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(track)
-        });
-        loadHistory();
-      } catch (e) {}
-    }
-
-    async function clearHistory() {
-      if (confirm('Clear history?')) {
-        await fetch('/api/history', { method: 'DELETE' });
-        loadHistory();
-      }
-    }
-
-    async function renderRecommended() {
-      try {
-        const res = await fetch('/api/search?q=Top%20Trending%20Hits&limit=10');
-        const data = await res.json();
-        if (data.results) {
-          document.getElementById('homeFeaturedGrid').innerHTML = data.results.map(item => createCardHTML(item)).join('');
-        }
-      } catch (e) {}
-    }
-
-    // Right panel toggle
-    function toggleRightPanel() {
-      const p = document.getElementById('rightPanel');
-      p.classList.toggle('hidden');
-    }
-
-    function toggleLyricsModal() {
-      const modal = document.getElementById('lyricsModal');
-      modal.classList.toggle('hidden');
-      if (!modal.classList.contains('hidden') && currentTrack) {
-        document.getElementById('lyricsTrackInfo').innerText = `${currentTrack.title} — ${currentTrack.channel}`;
-      }
-    }
-
-    function toggleImportModal() {
-      document.getElementById('importModal').classList.toggle('hidden');
-    }
-
-    async function importPlaylistAction() {
-      const input = document.getElementById('playlistUrlInput');
-      const val = input.value.trim();
-      if (!val) return;
-      toggleImportModal();
-      input.value = '';
-      importPlaylistFromUrl(val);
-    }
-
-    async function downloadTrack(videoId) {
-      try {
-        if (videoId && videoId.startsWith('pending_')) {
-          const t = trackCache[videoId];
-          if (t) {
-            const q = `${t.title} ${t.channel || t.artist || ''}`.trim();
-            const rRes = await fetch(`/api/resolve_track?q=${encodeURIComponent(q)}`);
-            if (rRes.ok) {
-              const matched = await rRes.json();
-              if (matched && matched.videoId) {
-                videoId = matched.videoId;
-                t.videoId = matched.videoId;
-                trackCache[videoId] = t;
-              }
-            }
-          }
-        }
-        alert('Starting MP3 download to your Downloads folder...');
-        const res = await fetch(`/api/download/${videoId}`);
-        const data = await res.json();
-        alert(data.message || 'Saved to Downloads folder!');
-      } catch (e) {
-        alert('Download error: ' + e.message);
-      }
-    }
-
-    function downloadCurrent() {
-      if (currentTrack) downloadTrack(currentTrack.videoId);
-    }
-
-    function setupKeyboard() {
-      document.addEventListener('keydown', (e) => {
-        if (['input', 'textarea'].includes(document.activeElement.tagName.toLowerCase())) return;
-        if (e.code === 'Space') { e.preventDefault(); togglePlayPause(); }
-        else if (e.code === 'ArrowRight') { e.preventDefault(); playNextTrack(); }
-        else if (e.code === 'ArrowLeft') { e.preventDefault(); playPrevTrack(); }
-      });
-    }
-  </script>
+var h=location.hash.slice(1);
+if(['home','search','library'].indexOf(h)>-1)show(h);
+</script>
 </body>
-</html>
-"""
+</html>"""
 
 if __name__ == "__main__":
     print("Starting AudioTube server on http://localhost:8000 ...")
