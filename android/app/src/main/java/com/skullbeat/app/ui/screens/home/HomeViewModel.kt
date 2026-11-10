@@ -28,16 +28,23 @@ class HomeViewModel @Inject constructor(
     val favorites: StateFlow<List<Track>> = repository.getFavorites()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val playlists = repository.getPlaylists()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val playbackState = playerManager.playbackState
 
     private val _featuredTracks = MutableStateFlow<List<Track>>(emptyList())
     val featuredTracks: StateFlow<List<Track>> = _featuredTracks.asStateFlow()
+
+    private val _madeForYouTracks = MutableStateFlow<List<Track>>(emptyList())
+    val madeForYouTracks: StateFlow<List<Track>> = _madeForYouTracks.asStateFlow()
 
     private val _isLoadingFeatured = MutableStateFlow(false)
     val isLoadingFeatured: StateFlow<Boolean> = _isLoadingFeatured.asStateFlow()
 
     init {
         loadFeatured()
+        loadMadeForYou()
     }
 
     fun getGreeting(): String {
@@ -58,6 +65,16 @@ class HomeViewModel @Inject constructor(
             } catch (_: Throwable) {
             } finally {
                 _isLoadingFeatured.value = false
+            }
+        }
+    }
+
+    fun loadMadeForYou() {
+        viewModelScope.launch {
+            try {
+                val results = repository.search("Cyberpunk dark synth")
+                _madeForYouTracks.value = results.take(12)
+            } catch (_: Throwable) {
             }
         }
     }
