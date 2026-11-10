@@ -74,6 +74,7 @@ fun MiniPlayer(
             .fillMaxWidth()
             .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
             .background(bgBrush)
+            .clickable(onClick = onClick)
     ) {
         Column {
             LinearProgressIndicator(
@@ -107,9 +108,7 @@ fun MiniPlayer(
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .clickable {
-                            if (!isPlaying) onTogglePlayPause() else onClick()
-                        }
+                        .clickable(onClick = onClick)
                 ) {
                     Text(
                         text = currentTrack.title,

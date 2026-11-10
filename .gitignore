@@ -52,6 +52,8 @@ pc/history/*.json
 *.wav
 *.m3u
 *.csv
+ui.xml
+scratch/
 
 # APK handling (keep release apk in download_apk)
 *.apk

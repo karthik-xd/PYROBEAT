@@ -340,9 +340,40 @@ def api_stream_url(video_id: str, q: Optional[str] = None, redirect: bool = Fals
     }
 
 
-def api_download(video_id: str):
-    """Downloads audio-only track to user's Downloads folder if requested."""
-    out_template = str(DOWNLOADS_DIR / "%(title)s.%(ext)s")
+@app.get("/api/download/{video_id}")
+def api_download(video_id: str, q: Optional[str] = None):
+    """Downloads audio-only track as MP3 and streams to browser as attachment."""
+    target_vid = (video_id or "").strip()
+    if not target_vid or target_vid.startswith("pending") or target_vid in ("undefined", "null"):
+        if q and q.strip():
+            try:
+                results = search_music(q.strip(), limit=1)
+                if results and results[0].get("videoId"):
+                    target_vid = results[0]["videoId"]
+                else:
+                    raise HTTPException(status_code=404, detail="Track audio not found")
+            except HTTPException:
+                raise
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Resolve failed: {e}")
+        else:
+            raise HTTPException(status_code=400, detail="Missing video ID or search query")
+
+    DOWNLOADS_DIR.mkdir(parents=True, exist_ok=True)
+
+    # Check if file is already downloaded
+    existing = list(DOWNLOADS_DIR.glob(f"*{target_vid}*.mp3"))
+    if existing and existing[0].is_file():
+        mp3_file = existing[0]
+        safe_name = mp3_file.name
+        return FileResponse(
+            str(mp3_file),
+            media_type="audio/mpeg",
+            filename=safe_name,
+            headers={"Content-Disposition": f'attachment; filename="{safe_name}"'}
+        )
+
+    out_template = str(DOWNLOADS_DIR / f"%(title)s [{target_vid}].%(ext)s")
     ydl_opts = {
         "format": "bestaudio/best",
         "outtmpl": out_template,
@@ -351,16 +382,32 @@ def api_download(video_id: str):
             "preferredcodec": "mp3",
             "preferredquality": "192",
         }],
-        "quiet": True
+        "quiet": True,
+        "js_runtimes": {"node": {}},
     }
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(video_id, download=True)
-            saved_name = f"{info.get('title')}.mp3"
+            info = ydl.extract_info(target_vid, download=True)
+            raw_title = info.get("title") or "SkullBeat Track"
+            safe_title = re.sub(r'[\\/*?:"<>|]', "", raw_title)
+            candidates = list(DOWNLOADS_DIR.glob(f"*{target_vid}*.mp3"))
+            if candidates and candidates[0].is_file():
+                mp3_file = candidates[0]
+            else:
+                mp3_file = DOWNLOADS_DIR / f"{safe_title}.mp3"
+
+            if mp3_file.is_file():
+                return FileResponse(
+                    str(mp3_file),
+                    media_type="audio/mpeg",
+                    filename=f"{safe_title}.mp3",
+                    headers={"Content-Disposition": f'attachment; filename="{safe_title}.mp3"'}
+                )
+
             return {
                 "status": "success",
-                "message": f"Saved to {DOWNLOADS_DIR / saved_name}",
-                "path": str(DOWNLOADS_DIR / saved_name)
+                "message": f"Saved to {DOWNLOADS_DIR}",
+                "title": raw_title
             }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Download failed: {e}")
@@ -602,9 +649,9 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--cyan);outline-o
 .card{background:var(--s1);border-radius:16px;overflow:hidden}
 /* sidebar */
 .side{padding:20px 12px;display:flex;flex-direction:column;gap:4px;overflow-y:auto}
-.logo{position:relative;width:176px;height:40px;border-radius:8px;overflow:hidden;margin:0 0 20px 8px;background:var(--bg);flex:none}
-.logo svg{position:absolute;inset:0;width:176px;height:40px}
-.logo span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:800 20px Orbitron,system-ui,sans-serif;letter-spacing:2px;color:#fff;mix-blend-mode:difference}
+.logo{position:relative;display:flex;align-items:center;height:44px;margin:0 0 20px 6px;flex:none;cursor:pointer}
+.logo img{width:38px;height:38px;border-radius:10px;object-fit:cover;box-shadow:0 0 16px rgba(0,212,255,.5);margin-right:10px;border:1px solid rgba(0,212,255,.3)}
+.logo span{font:800 18px Orbitron,system-ui,sans-serif;letter-spacing:2px;color:#fff}
 .nb{display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:14px;color:var(--mu);font-weight:600;min-height:44px;text-align:left;transition:color .15s,background .15s}
 .nb:hover{color:var(--tx);background:var(--s2)}
 .nb.on{color:var(--tx);background:var(--grad)}
@@ -746,7 +793,7 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border:0;border-radiu
 <div class="app">
 
 <aside class="card side">
-  <div class="logo" aria-label="SkullBeat"><svg viewBox="0 0 176 40" aria-hidden="true"><path d="M0 40V22Q11 14 22 22T44 22T66 22T88 22T110 22T132 22T154 22T176 22V40z" fill="#fff"/></svg><span>SKULLBEAT</span></div>
+  <div class="logo" aria-label="SkullBeat" onclick="show('home')"><img src="/logo.png" alt="SkullBeat"><span>SKULLBEAT</span></div>
   <button class="nb on" data-v="home"><svg class="ic" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</button>
   <button class="nb" data-v="search"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.5-4.5"/></svg>Search</button>
   <button class="nb" data-v="library"><svg class="ic" viewBox="0 0 24 24"><path d="M5 4v16M10 4v16M15 5l4 15"/></svg>Library</button>
@@ -824,6 +871,7 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border:0;border-radiu
   <button class="ctx-item" id="ctx-play"><svg class="ic" style="width:16px;height:16px" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>Play Now</button>
   <button class="ctx-item" id="ctx-queue"><svg class="ic" style="width:16px;height:16px" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add to Queue (FIFO)</button>
   <button class="ctx-item" id="ctx-like"><svg class="ic" style="width:16px;height:16px" viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>Like / Favorite</button>
+  <button class="ctx-item" id="ctx-dl"><svg class="ic" style="width:16px;height:16px" viewBox="0 0 24 24"><path d="M12 3v13m0 0l4-4m-4 4l-4-4M4 17v4h16v-4"/></svg>Download MP3</button>
 </div>
 
 <!-- Repeat Popover -->
@@ -847,7 +895,7 @@ var fmt=function(s){s=Math.round(s||0);return Math.floor(s/60)+':'+('0'+(s%60)).
 var esc=function(s){return String(s||'').replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})};
 var parseSec=function(d){if(typeof d==='number')return Math.round(d);if(!d)return 180;var s=String(d).trim();if(s.indexOf(':')>-1){var p=s.split(':').map(Number);if(p.length===2)return p[0]*60+p[1];if(p.length===3)return p[0]*3600+p[1]*60+p[2]}var n=Number(s);return isNaN(n)?180:Math.round(n)};
 
-var PLAY='<svg viewBox="0 0 24 24" width="30" height="30"><path d="M12 3a8 8 0 0 0-8 8c0 2.6 1.2 4.3 3 5.4V20h2v-2h2v2h2v-2h2v2h2v-3.6c1.8-1.1 3-2.8 3-5.4a8 8 0 0 0-8-8z" fill="#F2F5FF"/><circle cx="9" cy="11" r="2" fill="#05070F"/><circle cx="15" cy="11" r="2" fill="#05070F"/></svg>';
+var PLAY='<svg viewBox="0 0 100 100" width="32" height="32"><path d="M28 14 L72 14 L86 28 L86 64 L72 72 L72 88 L60 88 L60 78 L54 78 L54 88 L46 88 L46 78 L40 78 L40 88 L28 88 L28 72 L14 64 L14 28 Z" fill="#F2F5FF"/><circle cx="37" cy="46" r="13" fill="#181B2C"/><circle cx="63" cy="46" r="13" fill="#181B2C"/><polygon points="50,56 44,66 56,66" fill="#181B2C"/><rect x="36" y="80" width="8" height="10" fill="#05070F"/><rect x="56" y="80" width="8" height="10" fill="#05070F"/></svg>';
 var PAUSE='<svg class="ic" viewBox="0 0 24 24" style="width:26px;height:26px"><path d="M7 5v14M17 5v14" stroke-width="3"/></svg>';
 var SPIN='<svg class="ic spin" viewBox="0 0 24 24" style="width:26px;height:26px"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-dasharray="28" stroke-dashoffset="10" stroke-width="2.5" fill="none"/></svg>';
 var HEART='<svg class="ic" viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>';
@@ -1484,9 +1532,9 @@ $('#mute-btn').onclick=function(){
 
 $('#dl').onclick=function(){
   if(!S.cur)return;
-  var vid=S.cur.videoId;
-  if(!vid||vid.startsWith('pending_'))return;
-  window.open('/api/download/'+vid,'_blank');
+  var vid=S.cur.videoId||'';
+  var q=encodeURIComponent((S.cur.title||'')+' '+(S.cur.artist||''));
+  window.open('/api/download/'+(vid?encodeURIComponent(vid):'pending')+'?q='+q,'_blank');
 };
 
 /* Playlist Navigation & Context Setting */
@@ -1560,6 +1608,14 @@ $('#ctx-like').onclick=function(){
     var id=ctxTargetTrack.videoId||ctxTargetTrack.id;
     if(S.likedIds.has(id))S.likedIds.delete(id);else S.likedIds.add(id);
     paintPlayer();
+  }
+};
+$('#ctx-dl').onclick=function(){
+  ctxMenu.classList.remove('on');
+  if(ctxTargetTrack){
+    var vid=ctxTargetTrack.videoId||'';
+    var q=encodeURIComponent((ctxTargetTrack.title||'')+' '+(ctxTargetTrack.artist||''));
+    window.open('/api/download/'+(vid?encodeURIComponent(vid):'pending')+'?q='+q,'_blank');
   }
 };
 

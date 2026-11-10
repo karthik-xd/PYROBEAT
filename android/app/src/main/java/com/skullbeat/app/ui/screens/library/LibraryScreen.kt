@@ -1,5 +1,6 @@
 package com.skullbeat.app.ui.screens.library
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -60,6 +61,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.skullbeat.app.domain.models.Playlist
 import com.skullbeat.app.domain.models.Track
+import com.skullbeat.app.ui.components.SwipeToQueueBox
 import com.skullbeat.app.domain.util.FilterCriteria
 import com.skullbeat.app.domain.util.TimeUtils
 import com.skullbeat.app.ui.theme.CyanAccent
@@ -83,6 +85,7 @@ fun LibraryScreen(
     viewModel: LibraryViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val selectedTab by viewModel.selectedTab.collectAsState()
     val filterCriteria by viewModel.filterCriteria.collectAsState()
     val filteredTracks by viewModel.filteredTracks.collectAsState()
@@ -421,12 +424,19 @@ fun LibraryScreen(
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     items(filteredTracks, key = { "lib_${it.videoId}" }) { track ->
-                        LibraryTrackRow(
-                            track = track,
-                            isCurrentTrack = playbackState.currentTrack?.videoId == track.videoId,
-                            onClick = { onTrackClick(track, filteredTracks) },
-                            onArtistClick = onArtistClick
-                        )
+                        SwipeToQueueBox(
+                            onSwipeToQueue = {
+                                viewModel.addToQueue(track)
+                                Toast.makeText(context, "Added to queue: ${track.title}", Toast.LENGTH_SHORT).show()
+                            }
+                        ) {
+                            LibraryTrackRow(
+                                track = track,
+                                isCurrentTrack = playbackState.currentTrack?.videoId == track.videoId,
+                                onClick = { onTrackClick(track, filteredTracks) },
+                                onArtistClick = onArtistClick
+                            )
+                        }
                     }
                 }
             }

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.skullbeat.app.data.storage.RepeatState
 import com.skullbeat.app.domain.models.Track
 import com.skullbeat.app.domain.repository.MusicRepository
+import com.skullbeat.app.player.manager.LoopMode
 import com.skullbeat.app.player.manager.PlayerManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -35,6 +36,10 @@ class NowPlayingViewModel @Inject constructor(
     fun seekTo(positionMs: Long) = playerManager.seekTo(positionMs)
     fun toggleShuffle() = playerManager.toggleShuffle()
     fun toggleRepeat() = playerManager.toggleRepeat()
+    fun setLoopMode(mode: LoopMode) = playerManager.setLoopMode(mode)
+    fun removeFromUserQueue(index: Int) = playerManager.removeFromUserQueue(index)
+    fun clearUserQueue() = playerManager.clearUserQueue()
+    fun addToQueue(track: Track) = playerManager.addToUserQueue(track)
     fun setVolume(volume: Float) = playerManager.setVolume(volume)
 
     fun toggleFavorite() {

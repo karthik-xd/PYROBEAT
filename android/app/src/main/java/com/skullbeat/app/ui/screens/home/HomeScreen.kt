@@ -110,7 +110,7 @@ fun HomeScreen(
                         .padding(horizontal = 10.dp, vertical = 5.dp)
                 ) {
                     Text(
-                        text = "v1.1.0",
+                        text = "v1.2.0",
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                         color = ElectricBlue
                     )

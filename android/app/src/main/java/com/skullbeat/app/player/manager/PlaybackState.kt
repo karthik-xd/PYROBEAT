@@ -9,6 +9,13 @@ enum class PlaybackContextType {
     QUEUE
 }
 
+enum class LoopMode {
+    OFF,
+    INFINITE,
+    ONE_TIME,
+    TWO_TIMES
+}
+
 data class PlaybackState(
     val currentTrack: Track? = null,
     val isPlaying: Boolean = false,
@@ -23,6 +30,9 @@ data class PlaybackState(
     val shufflePosition: Int = 0,
     val isShuffle: Boolean = false,
     val repeatMode: RepeatState = RepeatState.OFF,
+    val loopMode: LoopMode = LoopMode.OFF,
+    val remainingLoops: Int = 0,
+    val userQueue: List<Track> = emptyList(),
     val volume: Float = 1.0f,
     val error: String? = null,
     val primaryColor: Long? = null,

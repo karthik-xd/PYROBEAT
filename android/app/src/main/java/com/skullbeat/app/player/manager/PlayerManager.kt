@@ -214,7 +214,8 @@ class PlayerManager @Inject constructor(
         track: Track,
         contextTracks: List<Track>,
         contextType: PlaybackContextType = PlaybackContextType.QUEUE,
-        contextId: String? = null
+        contextId: String? = null,
+        isUserQueued: Boolean = false
     ) {
         val current = _playbackState.value.currentTrack
         if (current?.videoId == track.videoId) {
@@ -236,12 +237,17 @@ class PlayerManager @Inject constructor(
         }
 
         val tracks = if (contextTracks.isEmpty()) listOf(track) else contextTracks
-        val index = tracks.indexOfFirst { it.videoId == track.videoId }.let { if (it >= 0) it else 0 }
+        val index = if (isUserQueued) {
+            val found = tracks.indexOfFirst { it.videoId == track.videoId }
+            if (found >= 0) found else _playbackState.value.currentIndex
+        } else {
+            tracks.indexOfFirst { it.videoId == track.videoId }.let { if (it >= 0) it else 0 }
+        }
 
-        val shuffleOrder = if (_playbackState.value.isShuffle) {
+        val shuffleOrder = if (_playbackState.value.isShuffle && !isUserQueued) {
             QueueHelper.generateShuffleOrder(tracks.size, index)
         } else {
-            emptyList()
+            _playbackState.value.shuffleOrder
         }
 
         _playbackState.update {
@@ -252,7 +258,7 @@ class PlayerManager @Inject constructor(
                 contextType = contextType,
                 contextId = contextId,
                 shuffleOrder = shuffleOrder,
-                shufflePosition = 0,
+                shufflePosition = if (isUserQueued) it.shufflePosition else 0,
                 isPlaying = true,
                 isLoading = true,
                 error = null
@@ -309,20 +315,69 @@ class PlayerManager @Inject constructor(
         _playbackState.update { it.copy(currentPositionMs = positionMs) }
     }
 
-    fun next() {
-        val state = _playbackState.value
-        val tracks = state.tracks
-        if (tracks.isEmpty()) return
+    fun addToUserQueue(track: Track) {
+        _playbackState.update { state ->
+            state.copy(userQueue = state.userQueue + track)
+        }
+        prefetchNextTracks()
+    }
 
-        when (state.repeatMode) {
-            RepeatState.ONE -> {
-                exoPlayer.seekTo(0)
-                exoPlayer.play()
-                return
-            }
-            else -> Unit
+    fun removeFromUserQueue(index: Int) {
+        _playbackState.update { state ->
+            val list = state.userQueue.toMutableList()
+            if (index in list.indices) list.removeAt(index)
+            state.copy(userQueue = list)
+        }
+    }
+
+    fun clearUserQueue() {
+        _playbackState.update { it.copy(userQueue = emptyList()) }
+    }
+
+    fun setLoopMode(mode: LoopMode) {
+        val count = when (mode) {
+            LoopMode.OFF -> 0
+            LoopMode.INFINITE -> -1
+            LoopMode.ONE_TIME -> 1
+            LoopMode.TWO_TIMES -> 2
+        }
+        _playbackState.update { it.copy(loopMode = mode, remainingLoops = count) }
+    }
+
+    fun next() {
+        // User manual skip turns off active single/double loop
+        if (_playbackState.value.loopMode != LoopMode.OFF) {
+            _playbackState.update { it.copy(loopMode = LoopMode.OFF, remainingLoops = 0) }
+        }
+        advanceToNext()
+    }
+
+    private fun advanceToNext() {
+        val state = _playbackState.value
+
+        // 1. Priority Spotify User Queue
+        if (state.userQueue.isNotEmpty()) {
+            val nextTrack = state.userQueue.first()
+            val remainingQueue = state.userQueue.drop(1)
+            _playbackState.update { it.copy(userQueue = remainingQueue) }
+            playTrack(
+                track = nextTrack,
+                contextTracks = state.tracks,
+                contextType = state.contextType,
+                contextId = state.contextId,
+                isUserQueued = true
+            )
+            return
         }
 
+        // 2. Fallback to Playlist when Queue is empty
+        val tracks = state.tracks
+        if (tracks.isEmpty()) {
+            exoPlayer.pause()
+            return
+        }
+
+        // If random / shuffle selected -> pick random song in playlist
         if (state.isShuffle && state.shuffleOrder.isNotEmpty()) {
             val nextShufflePos = state.shufflePosition + 1
             if (nextShufflePos < state.shuffleOrder.size) {
@@ -339,6 +394,7 @@ class PlayerManager @Inject constructor(
                 return
             }
         } else {
+            // If random is not selected -> go by playlist order
             val nextIndex = state.currentIndex + 1
             if (nextIndex < tracks.size) {
                 playTrack(tracks[nextIndex], tracks, state.contextType, state.contextId)
@@ -454,24 +510,63 @@ class PlayerManager @Inject constructor(
     }
 
     private fun handleTrackEnded() {
-        next()
+        val state = _playbackState.value
+
+        // Check loop button rules:
+        // 1. Infinite loop: continuous replay
+        // 2. Loop 1 time: replay once, then turn loop off
+        // 3. Loop 2 times: replay twice, then turn loop off
+        when (state.loopMode) {
+            LoopMode.INFINITE -> {
+                exoPlayer.seekTo(0)
+                exoPlayer.play()
+                return
+            }
+            LoopMode.ONE_TIME -> {
+                _playbackState.update { it.copy(loopMode = LoopMode.OFF, remainingLoops = 0) }
+                exoPlayer.seekTo(0)
+                exoPlayer.play()
+                return
+            }
+            LoopMode.TWO_TIMES -> {
+                _playbackState.update { it.copy(loopMode = LoopMode.ONE_TIME, remainingLoops = 1) }
+                exoPlayer.seekTo(0)
+                exoPlayer.play()
+                return
+            }
+            LoopMode.OFF -> {
+                // If legacy repeat ONE was set
+                if (state.repeatMode == RepeatState.ONE) {
+                    exoPlayer.seekTo(0)
+                    exoPlayer.play()
+                    return
+                }
+            }
+        }
+
+        advanceToNext()
     }
 
     private fun prefetchNextTracks() {
         val state = _playbackState.value
-        val tracks = state.tracks
-        if (tracks.isEmpty()) return
-
-        val nextIndex = if (state.isShuffle && state.shuffleOrder.isNotEmpty()) {
-            val pos = state.shufflePosition + 1
-            if (pos < state.shuffleOrder.size) state.shuffleOrder[pos] else null
+        val nextTrack = if (state.userQueue.isNotEmpty()) {
+            state.userQueue.first()
         } else {
-            val idx = state.currentIndex + 1
-            if (idx < tracks.size) idx else null
+            val tracks = state.tracks
+            if (tracks.isEmpty()) null
+            else {
+                val nextIndex = if (state.isShuffle && state.shuffleOrder.isNotEmpty()) {
+                    val pos = state.shufflePosition + 1
+                    if (pos < state.shuffleOrder.size) state.shuffleOrder[pos] else null
+                } else {
+                    val idx = state.currentIndex + 1
+                    if (idx < tracks.size) idx else null
+                }
+                if (nextIndex != null && nextIndex in tracks.indices) tracks[nextIndex] else null
+            }
         }
 
-        if (nextIndex != null && nextIndex in tracks.indices) {
-            val nextTrack = tracks[nextIndex]
+        if (nextTrack != null) {
             scope.launch(Dispatchers.IO) {
                 try {
                     extractor.resolveStreamUrl(nextTrack.videoId)

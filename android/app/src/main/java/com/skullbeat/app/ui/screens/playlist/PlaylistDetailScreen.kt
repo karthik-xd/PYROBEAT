@@ -1,5 +1,6 @@
 package com.skullbeat.app.ui.screens.playlist
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -63,6 +64,7 @@ fun PlaylistDetailScreen(
     viewModel: PlaylistViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val playlist by viewModel.playlist.collectAsState()
     val tracks by viewModel.tracks.collectAsState()
     val favorites by viewModel.favorites.collectAsState()
@@ -247,7 +249,11 @@ fun PlaylistDetailScreen(
                         onToggleFavorite = { viewModel.toggleFavorite(track) },
                         onAddToPlaylist = { onAddToPlaylist(track) },
                         onDownload = { onDownload(track) },
-                        onArtistClick = onArtistClick
+                        onArtistClick = onArtistClick,
+                        onSwipeToQueue = {
+                            viewModel.addToQueue(track)
+                            Toast.makeText(context, "Added to queue: ${track.title}", Toast.LENGTH_SHORT).show()
+                        }
                     )
                 }
             }

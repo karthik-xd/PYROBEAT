@@ -47,6 +47,10 @@ class PlaylistViewModel @Inject constructor(
         }
     }
 
+    fun addToQueue(track: Track) {
+        playerManager.addToUserQueue(track)
+    }
+
     fun playTrack(track: Track) {
         playerManager.playTrack(track, tracks.value, PlaybackContextType.PLAYLIST, playlistId.toString())
     }

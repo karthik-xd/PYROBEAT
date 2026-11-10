@@ -51,112 +51,135 @@ fun TrackListItem(
     onAddToPlaylist: () -> Unit = {},
     onDownload: () -> Unit = {},
     onArtistClick: ((String) -> Unit)? = null,
+    onSwipeToQueue: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .background(if (isCurrentTrack) RaisedDark else androidx.compose.ui.graphics.Color.Transparent)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        AsyncImage(
-            model = track.thumbnailUrl,
-            contentDescription = track.title,
-            modifier = Modifier
-                .size(48.dp)
-                .clip(RoundedCornerShape(6.dp))
-                .background(RaisedDark)
-                .clickable {
-                    if (onArtistClick != null) {
-                        onArtistClick(track.cleanArtist)
-                    } else {
-                        onClick()
-                    }
-                },
-            contentScale = ContentScale.Crop
-        )
-
-        Spacer(modifier = Modifier.width(12.dp))
-
-        Column(
-            modifier = Modifier.weight(1f)
+    val itemContent = @Composable {
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .background(if (isCurrentTrack) RaisedDark else androidx.compose.ui.graphics.Color.Transparent)
+                .clickable(onClick = onClick)
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = track.title,
-                style = MaterialTheme.typography.titleMedium.copy(
-                    color = if (isCurrentTrack) ElectricBlue else TextBone,
-                    fontWeight = if (isCurrentTrack) FontWeight.Bold else FontWeight.Medium
-                ),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+            AsyncImage(
+                model = track.thumbnailUrl,
+                contentDescription = track.title,
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(RaisedDark)
+                    .clickable {
+                        if (onArtistClick != null) {
+                            onArtistClick(track.cleanArtist)
+                        } else {
+                            onClick()
+                        }
+                    },
+                contentScale = ContentScale.Crop
             )
-            Row(verticalAlignment = Alignment.CenterVertically) {
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
                 Text(
-                    text = track.artist,
-                    style = MaterialTheme.typography.bodyMedium,
+                    text = track.title,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        color = if (isCurrentTrack) ElectricBlue else TextBone,
+                        fontWeight = if (isCurrentTrack) FontWeight.Bold else FontWeight.Medium
+                    ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                if (track.durationFormatted.isNotBlank()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = " • ${track.durationFormatted}",
-                        style = MaterialTheme.typography.labelSmall
+                        text = track.artist,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
+                    if (track.durationFormatted.isNotBlank()) {
+                        Text(
+                            text = " • ${track.durationFormatted}",
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
                 }
             }
-        }
 
-        IconButton(onClick = onToggleFavorite) {
-            Icon(
-                imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                contentDescription = "Favorite",
-                tint = if (isFavorite) HeartRed else TextMuted,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-
-        Box {
-            IconButton(onClick = { showMenu = true }) {
+            IconButton(onClick = onToggleFavorite) {
                 Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = "Options",
-                    tint = TextMuted,
+                    imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                    contentDescription = "Favorite",
+                    tint = if (isFavorite) HeartRed else TextMuted,
                     modifier = Modifier.size(20.dp)
                 )
             }
-            DropdownMenu(
-                expanded = showMenu,
-                onDismissRequest = { showMenu = false }
-            ) {
-                DropdownMenuItem(
-                    text = { Text("Add to Playlist") },
-                    onClick = {
-                        showMenu = false
-                        onAddToPlaylist()
+
+            Box {
+                IconButton(onClick = { showMenu = true }) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "Options",
+                        tint = TextMuted,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false }
+                ) {
+                    if (onSwipeToQueue != null) {
+                        DropdownMenuItem(
+                            text = { Text("Add to Queue") },
+                            onClick = {
+                                showMenu = false
+                                onSwipeToQueue()
+                            }
+                        )
                     }
-                )
-                DropdownMenuItem(
-                    text = { Text("Download") },
-                    onClick = {
-                        showMenu = false
-                        onDownload()
-                    }
-                )
-                if (onArtistClick != null) {
                     DropdownMenuItem(
-                        text = { Text("Go to Artist") },
+                        text = { Text("Add to Playlist") },
                         onClick = {
                             showMenu = false
-                            onArtistClick(track.cleanArtist)
+                            onAddToPlaylist()
                         }
                     )
+                    DropdownMenuItem(
+                        text = { Text("Download") },
+                        onClick = {
+                            showMenu = false
+                            onDownload()
+                        }
+                    )
+                    if (onArtistClick != null) {
+                        DropdownMenuItem(
+                            text = { Text("Go to Artist") },
+                            onClick = {
+                                showMenu = false
+                                onArtistClick(track.cleanArtist)
+                            }
+                        )
+                    }
                 }
             }
         }
+    }
+
+    if (onSwipeToQueue != null) {
+        SwipeToQueueBox(
+            onSwipeToQueue = onSwipeToQueue,
+            modifier = modifier
+        ) {
+            itemContent()
+        }
+    } else {
+        itemContent()
     }
 }

@@ -49,12 +49,13 @@ fun AboutDialog(
     onDismiss: () -> Unit
 ) {
     val updates = listOf(
+        "Swipe-to-Queue (Spotify-Style)" to "Slide any song left to right to queue it up next in order. When queue finishes, playback returns to playlist in shuffle or regular order.",
+        "Smart Multi-Touch Loop" to "Single touch loops song continuously. Double touch loops 1 time. Triple touch loops 2 times. Turn OFF anytime with a single touch.",
         "1-Touch Instant Play" to "Tap any song text to play immediately without double-pressing the play button.",
         "Spinning Skull Buffering" to "Play button spins a 360-degree skull animation while resolving YouTube streams.",
         "Solid Now Playing Sheet" to "Decreased transparency to 100% solid opaque background; eliminated list bleed-through.",
-        "2-Color Notification Shading" to "Media notification card shaded by 2 vibrant & dominant colors extracted from song artwork.",
-        "Notification Shuffle Control" to "Toggle shuffle directly from the system notification shade and Quick Settings.",
-        "Decoupled Queue & Downloads" to "Background downloads track immutable ID, unaffected by user queue position shifts."
+        "2-Color Notification Shading" to "Media notification card shaded by 2 vibrant colors extracted from song artwork.",
+        "Notification Shuffle Control" to "Toggle shuffle directly from the system notification shade and Quick Settings."
     )
 
     Dialog(onDismissRequest = onDismiss) {
@@ -94,7 +95,7 @@ fun AboutDialog(
                                 color = TextBone
                             )
                             Text(
-                                text = "Version 1.1.0 (Build 2)",
+                                text = "Version 1.2.0 (Build 3)",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = ElectricBlue
                             )
