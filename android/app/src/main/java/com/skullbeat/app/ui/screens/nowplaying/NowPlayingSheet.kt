@@ -236,19 +236,19 @@ fun NowPlayingSheet(
             }
 
             if (isLandscape) {
-                // Landscape layout
+                // Landscape layout: Compact 180dp artwork on left, all controls visible without scrolling on right
                 Row(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     Box(
                         modifier = Modifier
-                            .fillMaxHeight()
-                            .aspectRatio(1f)
-                            .shadow(elevation = 24.dp, shape = RoundedCornerShape(20.dp), spotColor = ElectricBlue)
-                            .clip(RoundedCornerShape(20.dp))
+                            .size(180.dp)
+                            .shadow(elevation = 20.dp, shape = RoundedCornerShape(18.dp), spotColor = ElectricBlue)
+                            .clip(RoundedCornerShape(18.dp))
                             .background(SurfaceDark)
                             .clickable {
                                 onDismiss()
@@ -264,14 +264,15 @@ fun NowPlayingSheet(
                         )
                     }
 
-                    Spacer(modifier = Modifier.width(20.dp))
+                    Spacer(modifier = Modifier.width(16.dp))
 
                     Column(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
-                            .verticalScroll(rememberScrollState()),
-                        verticalArrangement = Arrangement.SpaceEvenly
+                            .padding(vertical = 4.dp),
+                        verticalArrangement = Arrangement.SpaceBetween,
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         TrackInfoRow(
                             track = track,
