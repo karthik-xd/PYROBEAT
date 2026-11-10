@@ -647,7 +647,34 @@ h2{font-size:20px;margin:32px 0 14px;font-weight:600}
 .bar-actions{display:flex;gap:12px;align-items:center}
 .bar button{color:var(--cyan);font-size:13px;min-height:36px}
 /* track table */
-.th,.tr{display:grid;grid-template-columns:36px minmax(0,3fr) minmax(0,2fr) 64px 48px;gap:14px;align-items:center;padding:8px 14px;border-radius:10px}
+
+/* Queue & Repeat Badges, Context Menu, Mobile Swipe */
+.rp{position:relative}
+.rep-badge{position:absolute;top:2px;right:2px;font-size:10px;font-weight:900;background:var(--cyan);color:#05070F;width:15px;height:15px;border-radius:50%;display:none;align-items:center;justify-content:center;line-height:1;box-shadow:0 0 6px rgba(0,212,255,.8)}
+.rep-badge.on{display:flex}
+.badge{display:inline-flex;padding:1px 6px;border-radius:10px;font-size:11px;background:var(--cyan);color:#05070F;font-weight:700;margin-left:5px}
+
+.th,.tr{display:grid;grid-template-columns:36px minmax(0,3fr) minmax(0,2fr) 64px 74px;gap:12px;align-items:center;padding:8px 14px;border-radius:10px;position:relative}
+.tr{touch-action:pan-y}
+.tr-acts{display:flex;align-items:center;justify-content:flex-end;gap:4px}
+.q-add-btn{color:var(--mu);display:flex;align-items:center;justify-content:center;padding:4px;border-radius:6px;transition:color .15s,opacity .15s;opacity:.5}
+.tr:hover .q-add-btn,.tr:focus-within .q-add-btn{opacity:1;color:var(--cyan)}
+.q-add-btn:hover{color:#fff;background:rgba(0,212,255,.2)}
+
+.tr.swiping{transition:none;background:rgba(0,212,255,.1)}
+.tr.swipe-ready{background:rgba(0,212,255,.22);border-left:3px solid var(--cyan)}
+
+.ctx-menu{position:fixed;background:#0E1426;border:1px solid rgba(61,139,255,.3);border-radius:10px;padding:6px;min-width:170px;z-index:9999;box-shadow:0 10px 30px rgba(0,0,0,.8);display:none;flex-direction:column;gap:2px}
+.ctx-menu.on{display:flex}
+.ctx-item{display:flex;align-items:center;gap:10px;padding:8px 12px;font-size:13px;color:var(--tx);border-radius:6px;cursor:pointer;background:transparent;border:0;width:100%;text-align:left;transition:background .15s}
+.ctx-item:hover{background:rgba(61,139,255,.25);color:#fff}
+
+.popover{position:fixed;bottom:80px;left:50%;transform:translateX(50px);background:#0E1426;border:1px solid rgba(61,139,255,.3);border-radius:10px;padding:10px;z-index:9999;display:none;flex-direction:column;gap:6px;box-shadow:0 10px 30px rgba(0,0,0,.8)}
+.popover.on{display:flex}
+
+.toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#172044;border:1px solid var(--cyan);color:#fff;padding:8px 20px;border-radius:20px;font-size:13px;font-weight:600;z-index:99999;box-shadow:0 8px 25px rgba(0,0,0,.7);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(-6px)}
+
 .th{font-size:12px;color:var(--mu);border-bottom:1px solid var(--s2);border-radius:0;padding-bottom:10px}
 .tr{width:100%;text-align:left;transition:background .15s;cursor:pointer}
 .tr:hover{background:var(--s2)}
@@ -756,7 +783,7 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border:0;border-radiu
   <p class="lab" id="from">PLAYING FROM PLAYLIST</p>
   <div class="art" id="rart"></div>
   <div class="meta"><div><h3 id="rt">Song title</h3><p class="a" id="ra" style="font-size:15px">Artist</p></div><button class="ib heart" id="rlike" aria-label="Like"><svg class="ic" viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg></button></div>
-  <div class="tabs"><button class="chip on" data-p="queue">Queue</button><button class="chip" data-p="lyrics">Lyrics</button></div>
+  <div class="tabs"><button class="chip on" data-p="queue">Queue <span id="q-cnt" class="badge"></span></button><button class="chip" data-p="lyrics">Lyrics</button></div>
   <div id="pq"></div>
 </aside>
 
@@ -768,7 +795,7 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border:0;border-radiu
       <button class="ib" id="prev" aria-label="Previous"><svg class="ic" viewBox="0 0 24 24"><path d="M19 5v14L8 12zM5 5v14"/></svg></button>
       <button class="play" id="pp" aria-label="Play"></button>
       <button class="ib" id="next" aria-label="Next"><svg class="ic" viewBox="0 0 24 24"><path d="M5 5v14l11-7zM19 5v14"/></svg></button>
-      <button class="ib rp" id="rep" aria-label="Repeat"><svg class="ic" viewBox="0 0 24 24"><path d="M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3"/></svg></button>
+      <button class="ib rp" id="rep" aria-label="Repeat" title="Repeat (1-tap: OFF, 2-tap: 1x, 3-tap: 2x)"><svg class="ic" viewBox="0 0 24 24"><path d="M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3"/></svg><span class="rep-badge" id="rep-badge"></span></button>
     </div>
     <div class="prog"><span id="tc">0:00</span><input type="range" id="seek" min="0" max="100" value="0" aria-label="Seek"><span id="td">0:00</span></div>
   </div>
@@ -791,7 +818,27 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border:0;border-radiu
   </div>
 </div>
 
+
+<!-- Context Menu -->
+<div class="ctx-menu" id="ctx-menu">
+  <button class="ctx-item" id="ctx-play"><svg class="ic" style="width:16px;height:16px" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>Play Now</button>
+  <button class="ctx-item" id="ctx-queue"><svg class="ic" style="width:16px;height:16px" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add to Queue (FIFO)</button>
+  <button class="ctx-item" id="ctx-like"><svg class="ic" style="width:16px;height:16px" viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>Like / Favorite</button>
+</div>
+
+<!-- Repeat Popover -->
+<div class="popover" id="rep-pop">
+  <p style="font-size:11px;font-weight:700;color:var(--mu);margin:0 0 4px">REPEAT MODE</p>
+  <button class="chip" data-set-rep="0">OFF</button>
+  <button class="chip" data-set-rep="1">REPEAT ONE (1 additional play)</button>
+  <button class="chip" data-set-rep="2">REPEAT TWO (2 additional plays)</button>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
 <audio id="audio" preload="auto"></audio>
+
 
 <script>
 var G=['#3D8BFF,#8B5CFF','#8B5CFF,#FF3B5C','#3D8BFF,#00D4FF','#172044,#3D8BFF'].map(function(g){return 'linear-gradient(135deg,'+g+')'});
@@ -812,25 +859,46 @@ document.addEventListener('pointerdown',function unlock(){
     document.removeEventListener('pointerdown',unlock);
   }
 },{once:true});
+
+/* Playback State */
 var S={
   cur:null,
   playing:false,
   loading:false,
   pos:0,
   shuf:false,
-  rep:false,
+  repeatMode:0,       // 0: OFF, 1: REPEAT ONE, 2: REPEAT TWO
+  repeatRemaining:0,  // additional plays remaining for active track
+  repeatTotalPlayed:0,
   panel:'queue',
   tab:'all',
   by:'all',
   selectedPlaylist:null,
-  queue:[],
+  queue:[],           // FIFO user queue
+  context:[],         // Active backing track list (playlist or library)
+  contextIdx:-1,      // Current index in active context
+  contextName:'Library',
+  isFromQueue:false,
+  playedHistory:[],   // Shuffle history to prevent repeated songs
   history:[],
   playlists:{},
   likedIds:new Set(),
   allTracks:[],
   searchTracks:[],
-  streamCache:{}
+  streamCache:{},
+  advancing:false
 };
+
+/* Toast Notification */
+var toastTimer=null;
+function showToast(msg){
+  var t=$('#toast');
+  if(!t)return;
+  t.textContent=msg;
+  t.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(function(){t.classList.remove('on')},2200);
+}
 
 function show(v){
   document.querySelectorAll('.view').forEach(function(e){e.classList.toggle('on',e.id==='v-'+v)});
@@ -846,11 +914,22 @@ function trackBg(t,i){return t&&t.thumbnail&&t.thumbnail!=='/logo.png'?'url("'+t
 
 function rows(list,empty){
   if(!list||!list.length)return'<p class="empty">'+empty+'</p>';
-  return'<div class="th"><span>#</span><span>Title</span><span>Album</span><span>Time</span><span></span></div>'+list.map(function(t,i){
+  return'<div class="th"><span>#</span><span>Title</span><span>Album</span><span>Time</span><span style="text-align:right"></span></div>'+list.map(function(t,i){
     var cur=S.cur&&((S.cur.videoId&&S.cur.videoId===t.videoId)||(S.cur.id===t.id)||(S.cur.t&&S.cur.t===t.t));
     var bg=trackBg(t,i);
     var liked=isLiked(t.videoId||t.id);
-    return'<div class="tr'+(cur?' cur':'')+'" role="button" tabindex="0" data-tid="'+esc(t.videoId||t.id)+'"><span class="n">'+(i+1)+'</span><div class="nm"><i style="background:'+bg+'"></i><div><p class="t">'+esc(t.t)+'</p><p class="a">'+esc(t.a)+'</p></div></div><p class="al2">'+esc(t.al||'Single')+'</p><span class="d">'+fmt(t.d)+'</span><button class="heart'+(liked?' on':'')+'" data-like="'+esc(t.videoId||t.id)+'" aria-label="Like">'+HEART+'</button></div>'}).join('');
+    var tid=esc(t.videoId||t.id);
+    return'<div class="tr'+(cur?' cur':'')+'" role="button" tabindex="0" data-tid="'+tid+'">'
+         +'<span class="n">'+(i+1)+'</span>'
+         +'<div class="nm"><i style="background:'+bg+'"></i><div><p class="t">'+esc(t.t)+'</p><p class="a">'+esc(t.a)+'</p></div></div>'
+         +'<p class="al2">'+esc(t.al||'Single')+'</p>'
+         +'<span class="d">'+fmt(t.d)+'</span>'
+         +'<div class="tr-acts">'
+         +'<button class="ib q-add-btn" data-act="queue-track" data-tid="'+tid+'" title="Add to Queue (FIFO)" aria-label="Add to Queue"><svg viewBox="0 0 24 24" class="ic" style="width:16px;height:16px"><path d="M12 5v14M5 12h14"/></svg></button>'
+         +'<button class="heart'+(liked?' on':'')+'" data-like="'+tid+'" aria-label="Like">'+HEART+'</button>'
+         +'</div>'
+         +'</div>';
+  }).join('');
 }
 
 function match(t,q,k){
@@ -885,7 +964,14 @@ function renderLib(){
       return match(t,q,S.by)&&t.d>=lo&&t.d<=hi;
     });
     $('#cnt').textContent=filtered.length+' tracks';
-    $('#lib').innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px"><div><h2 style="margin:0 0 4px 0">'+esc(S.selectedPlaylist)+'</h2><p class="a">'+list.length+' tracks in this playlist</p></div><div style="display:flex;gap:8px"><button class="chip on" data-act="play-all" data-pl="'+esc(S.selectedPlaylist)+'">▶ Play All</button><button class="chip" data-act="shuf-pl" data-pl="'+esc(S.selectedPlaylist)+'">🔀 Shuffle</button><button class="chip" data-act="back-playlists">← Back</button></div></div>'+rows(filtered,'No tracks match your filters');
+    $('#lib').innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">'
+                       +'<div><h2 style="margin:0 0 4px 0">'+esc(S.selectedPlaylist)+'</h2><p class="a">'+list.length+' tracks in this playlist</p></div>'
+                       +'<div style="display:flex;gap:8px">'
+                       +'<button class="chip on" data-act="play-all" data-pl="'+esc(S.selectedPlaylist)+'">▶ Play All</button>'
+                       +'<button class="chip" data-act="shuf-pl" data-pl="'+esc(S.selectedPlaylist)+'">🔀 Shuffle</button>'
+                       +'<button class="chip" data-act="back-playlists">← Back</button>'
+                       +'</div></div>'
+                       +rows(filtered,'No tracks match your filters');
     return;
   }
 
@@ -963,7 +1049,57 @@ function renderSearch(){
 }
 $('#sq').oninput=renderSearch;
 
-/* Player & Right Panel */
+/* Track Finder across all sets */
+function findTrackById(id){
+  if(!id)return null;
+  var all=[].concat(S.allTracks,S.searchTracks,S.history,S.queue);
+  if(S.cur)all.push(S.cur);
+  if(S.context&&S.context.length)all=all.concat(S.context);
+  if(S.selectedPlaylist&&S.playlists[S.selectedPlaylist]){
+    var pSongs=S.playlists[S.selectedPlaylist].songs||[];
+    all=all.concat(pSongs.map(function(item,i){
+      return{
+        id:item.videoId||item.title||('p_'+i),
+        videoId:item.videoId,
+        t:item.title,
+        a:item.channel||item.artist||'Unknown',
+        al:item.album||S.selectedPlaylist||'Single',
+        d:parseSec(item.duration),
+        thumbnail:item.thumbnail,
+        g:G[i%G.length]
+      };
+    }));
+  }
+  return all.find(function(x){
+    return(x.videoId&&x.videoId===id)||(x.id&&x.id===id)||(x.t&&x.t===id);
+  })||null;
+}
+
+/* Queue Operations (FIFO) */
+function addToQueue(track){
+  if(!track)return;
+  // Make independent copy
+  var copy=Object.assign({},track);
+  S.queue.push(copy);
+  paintPanel();
+  showToast('Added to Queue (#'+S.queue.length+'): '+track.t);
+}
+
+function removeFromQueue(idx){
+  if(idx>=0&&idx<S.queue.length){
+    var rm=S.queue.splice(idx,1)[0];
+    paintPanel();
+    showToast('Removed from Queue: '+rm.t);
+  }
+}
+
+function clearQueue(){
+  S.queue=[];
+  paintPanel();
+  showToast('Queue cleared');
+}
+
+/* Player & Right Panel Paint */
 function paintPlayer(){
   var t=S.cur;
   if(!t){
@@ -980,7 +1116,30 @@ function paintPlayer(){
   $('#rlike').classList.toggle('on',liked);
   $('#td').textContent=fmt(t.d);
   $('#pp').innerHTML=S.loading?SPIN:(S.playing?PAUSE:PLAY);
-  $('#shuf').classList.toggle('act',S.shuf);$('#rep').classList.toggle('act',S.rep);
+  
+  // Shuffle indicator
+  $('#shuf').classList.toggle('act',S.shuf);
+
+  // Repeat indicator & Counter badge
+  var repBtn=$('#rep');
+  var badge=$('#rep-badge');
+  repBtn.classList.toggle('act',S.repeatMode>0);
+  if(badge){
+    if(S.repeatMode===1){
+      badge.textContent='1';
+      badge.className='rep-badge on';
+      badge.title='Repeat One ('+S.repeatRemaining+' replay left)';
+    }else if(S.repeatMode===2){
+      badge.textContent=S.repeatRemaining>0?S.repeatRemaining:'2';
+      badge.className='rep-badge on';
+      badge.title='Repeat Two ('+S.repeatRemaining+' replays left)';
+    }else{
+      badge.textContent='';
+      badge.className='rep-badge';
+      badge.title='Repeat OFF';
+    }
+  }
+
   paintProg();
   paintPanel();
   document.querySelectorAll('.tr').forEach(function(r){
@@ -1008,13 +1167,51 @@ function paintProg(){
 
 function paintPanel(){
   document.querySelectorAll('.tabs .chip').forEach(function(c){c.classList.toggle('on',c.dataset.p===S.panel)});
+  
+  // Update Queue Count Badge in Tab
+  var qBadge=$('#q-cnt');
+  if(qBadge)qBadge.textContent=S.queue.length?'('+S.queue.length+')':'';
+
   if(S.panel==='queue'){
-    var q=S.queue.slice(0,8);
-    if(!q.length)$('#pq').innerHTML='<p class="a" style="padding:16px;text-align:center">Queue is empty</p>';
-    else $('#pq').innerHTML='<p class="a" style="margin-bottom:6px">NEXT UP</p>'+q.map(function(t,i){
-      var bg=trackBg(t,i);
-      return'<button class="q2" data-tid="'+esc(t.videoId||t.id)+'"><i style="background:'+bg+'"></i><div><p class="t">'+esc(t.t)+'</p><p class="a">'+esc(t.a)+'</p></div></button>';
-    }).join('');
+    var html='';
+    // 1. User Queue (FIFO)
+    if(S.queue.length){
+      html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+          +'<p class="a" style="margin:0;font-weight:700;color:var(--cyan)">USER QUEUE ('+S.queue.length+')</p>'
+          +'<button class="chip" data-act="clear-queue" style="font-size:11px;padding:3px 10px;min-height:auto">Clear</button>'
+          +'</div>';
+      html+=S.queue.map(function(t,i){
+        var bg=trackBg(t,i);
+        return'<div class="q2" style="position:relative;display:flex;align-items:center;padding-right:32px">'
+             +'<button class="q2-main" data-tid="'+esc(t.videoId||t.id)+'" style="display:flex;align-items:center;gap:10px;flex:1;background:none;border:0;color:inherit;text-align:left;cursor:pointer">'
+             +'<span style="font-size:11px;color:var(--cyan);width:16px">'+(i+1)+'</span>'
+             +'<i style="background:'+bg+'"></i>'
+             +'<div style="overflow:hidden"><p class="t">'+esc(t.t)+'</p><p class="a">'+esc(t.a)+'</p></div>'
+             +'</button>'
+             +'<button class="ib q-rm-btn" data-act="remove-q" data-idx="'+i+'" title="Remove from queue" style="position:absolute;right:4px;color:var(--mu);padding:4px"><svg class="ic" style="width:14px;height:14px" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>'
+             +'</div>';
+      }).join('');
+    }
+
+    // 2. Up Next from Active Context / Playlist
+    var ctx=(S.context&&S.context.length)?S.context:S.allTracks;
+    if(ctx&&ctx.length){
+      html+='<p class="a" style="margin:'+(S.queue.length?'16px':'0')+' 0 8px;font-weight:700">NEXT FROM '+esc((S.contextName||'LIBRARY').toUpperCase())+'</p>';
+      var upcoming=[];
+      var start=S.contextIdx>=0?S.contextIdx+1:0;
+      for(var k=0;k<Math.min(6,ctx.length);k++){
+        var idx=(start+k)%ctx.length;
+        if(ctx[idx]!==S.cur)upcoming.push(ctx[idx]);
+      }
+      html+=upcoming.map(function(t,i){
+        var bg=trackBg(t,i);
+        return'<button class="q2" data-tid="'+esc(t.videoId||t.id)+'"><i style="background:'+bg+'"></i><div><p class="t">'+esc(t.t)+'</p><p class="a">'+esc(t.a)+'</p></div></button>';
+      }).join('');
+    }else if(!S.queue.length){
+      html='<p class="a" style="padding:16px;text-align:center">Queue is empty</p>';
+    }
+    $('#pq').className='';
+    $('#pq').innerHTML=html;
   }else{
     $('#pq').className='ly';
     if(S.lyricsList&&S.lyricsList.length){
@@ -1023,18 +1220,21 @@ function paintPanel(){
       var L=['Neon on the bone, we drift','Through the static and the haze','Hearts keep time in the dark','Pulse of a thousand days','Skull beat, skull beat','Don’t let the signal fade'];
       $('#pq').innerHTML=L.map(function(l){return'<p>'+l+'</p>'}).join('');
     }
-    return;
   }
-  $('#pq').className='';
 }
 
-/* Audio Playback Engine - Synchronous Direct Stream */
+/* Audio Playback Engine */
 function playTrack(track,origin){
   if(!track)return;
   S.cur=track;
   S.pos=0;
   S.playing=true;
   S.loading=true;
+  
+  // Reset repeat counter for newly started track
+  S.repeatRemaining=S.repeatMode;
+  S.repeatTotalPlayed=0;
+
   if(origin)$('#from').textContent='PLAYING FROM '+(origin.toUpperCase());
   paintPlayer();
 
@@ -1042,7 +1242,6 @@ function playTrack(track,origin){
   var q=(track.t+' '+(track.a||'')).trim();
   var directUrl='/api/stream/'+encodeURIComponent(vid)+'?redirect=1&q='+encodeURIComponent(q);
 
-  // Set audio source synchronously and play immediately within trusted user event
   audio.src=directUrl;
   var p=audio.play();
   if(p!==undefined){
@@ -1051,8 +1250,7 @@ function playTrack(track,origin){
       S.loading=false;
       paintPlayer();
     }).catch(function(err){
-      console.warn('Playback notice:',err);
-      // Fallback: If autoplay policy tripped, user clicking play button will trigger
+      console.warn('Playback error:',err);
       S.playing=false;
       S.loading=false;
       paintPlayer();
@@ -1115,24 +1313,129 @@ audio.ontimeupdate=function(){
   S.pos=Math.round(audio.currentTime);
   paintProg();
 };
+
+/* Audio Finished: Spotify-Grade Priority Engine */
 audio.onended=function(){
-  if(S.rep){audio.currentTime=0;audio.play()}
-  else{step(1)}
+  // Priority 1: Finish active song and its repeat count
+  if(S.repeatRemaining>0){
+    S.repeatRemaining--;
+    S.repeatTotalPlayed++;
+    audio.currentTime=0;
+    audio.play().catch(function(){});
+    paintPlayer();
+    showToast('Replaying track ('+S.repeatRemaining+' replay remaining)');
+    return;
+  }
+  
+  // Repeat cycle complete: advance to next song (FIFO Queue -> Context)
+  step(1);
 };
 
+/* Master Next / Prev Step Function */
 function step(d){
-  if(!S.queue.length&&S.allTracks.length){S.queue=S.allTracks.slice()}
-  if(!S.queue.length)return;
+  if(S.advancing)return;
+  S.advancing=true;
+  setTimeout(function(){S.advancing=false},400);
+
+  // Priority 2: Play queued songs in FIFO order
+  if(d>0&&S.queue.length>0){
+    var nextFromQueue=S.queue.shift(); // FIFO: First In, First Out
+    S.isFromQueue=true;
+    playTrack(nextFromQueue,'Queue');
+    paintPanel();
+    return;
+  }
+
+  // Priority 3: When queue is empty, automatically resume playlist playback
+  var ctx=(S.context&&S.context.length)?S.context:S.allTracks;
+  if(!ctx||!ctx.length)return;
+
   var nextIdx=0;
-  if(S.shuf){nextIdx=Math.floor(Math.random()*S.queue.length)}
-  var t=S.queue.splice(nextIdx,1)[0];
-  playTrack(t,'Queue');
+  if(S.shuf){
+    // Shuffle ON: Pick random song avoiding same song and recent songs
+    var pool=ctx.map(function(t,i){return i}).filter(function(i){return i!==S.contextIdx});
+    var unplayed=pool.filter(function(i){return S.playedHistory.indexOf(i)===-1});
+    if(!unplayed.length){
+      S.playedHistory=[];
+      unplayed=pool;
+    }
+    var choices=unplayed.length?unplayed:pool;
+    nextIdx=choices[Math.floor(Math.random()*choices.length)];
+    S.playedHistory.push(nextIdx);
+    if(S.playedHistory.length>Math.min(25,Math.floor(ctx.length/2)))S.playedHistory.shift();
+  }else{
+    // Shuffle OFF: Play next song in playlist order
+    if(S.contextIdx===-1)nextIdx=0;
+    else nextIdx=(S.contextIdx+d+ctx.length)%ctx.length;
+  }
+
+  S.contextIdx=nextIdx;
+  S.isFromQueue=false;
+  var track=ctx[nextIdx];
+  playTrack(track,S.contextName||'Playlist');
+  paintPanel();
 }
 
-/* Controls */
+/* Repeat Setting & Multi-Tap Controller */
+function setRepeatMode(mode){
+  S.repeatMode=mode;
+  S.repeatRemaining=mode;
+  S.repeatTotalPlayed=0;
+  paintPlayer();
+  var labels=['Repeat: OFF','Repeat: ONE (1 additional play)','Repeat: TWO (2 additional plays)'];
+  showToast(labels[mode]);
+}
+
+var repTapTimer=null;
+var repTapCount=0;
+
+$('#rep').onclick=function(e){
+  e.preventDefault();
+  repTapCount++;
+  clearTimeout(repTapTimer);
+  repTapTimer=setTimeout(function(){
+    if(repTapCount===1){
+      // Single tap: Turn repeat OFF (or cycle to 1 if already OFF)
+      if(S.repeatMode!==0)setRepeatMode(0);
+      else setRepeatMode(1);
+    }else if(repTapCount===2){
+      // Double tap: Enable REPEAT ONE
+      setRepeatMode(1);
+    }else if(repTapCount>=3){
+      // Triple tap: Enable REPEAT TWO
+      setRepeatMode(2);
+    }
+    repTapCount=0;
+  },320);
+};
+
+// Desktop accessible repeat controls: Right-click / contextmenu on repeat button
+$('#rep').oncontextmenu=function(e){
+  e.preventDefault();
+  var pop=$('#rep-pop');
+  pop.classList.toggle('on');
+};
+
+document.querySelectorAll('#rep-pop button').forEach(function(btn){
+  btn.onclick=function(){
+    var m=+btn.dataset.setRep;
+    setRepeatMode(m);
+    $('#rep-pop').classList.remove('on');
+  };
+});
+
+/* Shuffle Toggle */
+$('#shuf').onclick=function(){
+  S.shuf=!S.shuf;
+  paintPlayer();
+  showToast(S.shuf?'Shuffle: ON':'Shuffle: OFF');
+};
+
+/* Play / Pause */
 $('#pp').onclick=function(){
   if(!S.cur){
-    if(S.allTracks.length)playTrack(S.allTracks[0],'Library');
+    var ctx=(S.context&&S.context.length)?S.context:S.allTracks;
+    if(ctx.length)playTrack(ctx[0],S.contextName||'Library');
     return;
   }
   if(audio.paused){
@@ -1148,10 +1451,16 @@ $('#pp').onclick=function(){
     audio.pause();
   }
 };
+
 $('#next').onclick=function(){step(1)};
-$('#prev').onclick=function(){if(audio.currentTime>4){audio.currentTime=0}else step(-1)};
-$('#shuf').onclick=function(){S.shuf=!S.shuf;paintPlayer()};
-$('#rep').onclick=function(){S.rep=!S.rep;paintPlayer()};
+$('#prev').onclick=function(){
+  if(audio.currentTime>4){
+    audio.currentTime=0;
+  }else{
+    step(-1);
+  }
+};
+
 $('#seek').oninput=function(){
   var val=+this.value;
   S.pos=val;
@@ -1160,15 +1469,19 @@ $('#seek').oninput=function(){
   }
   paintProg();
 };
+
 $('#vol').oninput=function(){
-  var v=+this.value/100;audio.volume=v;
+  var v=+this.value/100;
+  audio.volume=v;
   this.style.setProperty('--p',this.value+'%');
 };
 $('#vol').style.setProperty('--p','80%');
+
 $('#mute-btn').onclick=function(){
   audio.muted=!audio.muted;
   $('#vol-ic').style.opacity=audio.muted?'.3':'1';
 };
+
 $('#dl').onclick=function(){
   if(!S.cur)return;
   var vid=S.cur.videoId;
@@ -1176,13 +1489,11 @@ $('#dl').onclick=function(){
   window.open('/api/download/'+vid,'_blank');
 };
 
-/* Playlist Operations */
+/* Playlist Navigation & Context Setting */
 function openPlaylist(name){
   S.selectedPlaylist=name;
   S.tab='playlist';
-  document.querySelectorAll('#tabs .chip').forEach(function(c){
-    c.classList.toggle('on',false);
-  });
+  document.querySelectorAll('#tabs .chip').forEach(function(c){c.classList.toggle('on',false)});
   show('library');
   renderLib();
 }
@@ -1203,13 +1514,135 @@ function playPlaylist(name,startIdx){
       g:G[i%G.length]
     };
   });
+  
+  // Set as backing context
+  S.context=mapped;
+  S.contextName=name;
   var s=startIdx||0;
-  S.queue=mapped.slice(s+1);
+  S.contextIdx=s;
+  S.isFromQueue=false;
+  
   playTrack(mapped[s],name);
 }
 
+/* Desktop Context Menu Manager */
+var ctxTargetTrack=null;
+var ctxMenu=$('#ctx-menu');
+
+document.addEventListener('contextmenu',function(e){
+  var r=e.target.closest('[data-tid]');
+  if(r){
+    e.preventDefault();
+    var tid=r.dataset.tid;
+    ctxTargetTrack=findTrackById(tid);
+    if(ctxTargetTrack){
+      ctxMenu.style.left=Math.min(e.clientX,window.innerWidth-180)+'px';
+      ctxMenu.style.top=Math.min(e.clientY,window.innerHeight-130)+'px';
+      ctxMenu.classList.add('on');
+    }
+  }else if(!e.target.closest('#rep')){
+    ctxMenu.classList.remove('on');
+    $('#rep-pop').classList.remove('on');
+  }
+});
+
+$('#ctx-play').onclick=function(){
+  ctxMenu.classList.remove('on');
+  if(ctxTargetTrack)playTrack(ctxTargetTrack,'Selection');
+};
+$('#ctx-queue').onclick=function(){
+  ctxMenu.classList.remove('on');
+  if(ctxTargetTrack)addToQueue(ctxTargetTrack);
+};
+$('#ctx-like').onclick=function(){
+  ctxMenu.classList.remove('on');
+  if(ctxTargetTrack){
+    var id=ctxTargetTrack.videoId||ctxTargetTrack.id;
+    if(S.likedIds.has(id))S.likedIds.delete(id);else S.likedIds.add(id);
+    paintPlayer();
+  }
+};
+
+/* Mobile Touch Swipe: Left-to-Right adds to Queue */
+var touchRow=null,touchStartX=0,touchStartY=0,touchDx=0,isSwiping=false;
+
+document.addEventListener('touchstart',function(e){
+  var r=e.target.closest('.tr');
+  if(!r)return;
+  touchRow=r;
+  touchStartX=e.touches[0].clientX;
+  touchStartY=e.touches[0].clientY;
+  touchDx=0;
+  isSwiping=false;
+},{passive:true});
+
+document.addEventListener('touchmove',function(e){
+  if(!touchRow)return;
+  var curX=e.touches[0].clientX;
+  var curY=e.touches[0].clientY;
+  var dx=curX-touchStartX;
+  var dy=curY-touchStartY;
+
+  // Horizontal swipe left-to-right
+  if(dx>10&&Math.abs(dx)>Math.abs(dy)*1.4){
+    isSwiping=true;
+    touchDx=dx;
+    var moveX=Math.min(dx,100);
+    touchRow.style.transform='translateX('+moveX+'px)';
+    touchRow.style.transition='none';
+    touchRow.classList.add('swiping');
+    touchRow.classList.toggle('swipe-ready',dx>65);
+  }
+},{passive:true});
+
+document.addEventListener('touchend',function(){
+  if(!touchRow)return;
+  var r=touchRow;
+  var dx=touchDx;
+  touchRow=null;
+  isSwiping=false;
+
+  r.style.transition='transform .2s ease';
+  r.style.transform='translateX(0)';
+  r.classList.remove('swiping');
+  r.classList.remove('swipe-ready');
+
+  if(dx>65){
+    var tid=r.dataset.tid;
+    var t=findTrackById(tid);
+    if(t){
+      addToQueue(t);
+      if(navigator.vibrate)try{navigator.vibrate(35)}catch(err){}
+    }
+  }
+});
+
 /* Master Click Router */
 document.addEventListener('click',function(e){
+  // Close popovers if clicked outside
+  if(!e.target.closest('#ctx-menu'))ctxMenu.classList.remove('on');
+  if(!e.target.closest('#rep')&&!e.target.closest('#rep-pop'))$('#rep-pop').classList.remove('on');
+
+  // Queue actions in right panel
+  if(e.target.closest('[data-act="remove-q"]')){
+    var btn=e.target.closest('[data-act="remove-q"]');
+    removeFromQueue(+btn.dataset.idx);
+    return;
+  }
+  if(e.target.closest('[data-act="clear-queue"]')){
+    clearQueue();
+    return;
+  }
+
+  // Direct "+ Queue" button on track row
+  if(e.target.closest('[data-act="queue-track"]')){
+    e.stopPropagation();
+    var qBtn=e.target.closest('[data-act="queue-track"]');
+    var qTrack=findTrackById(qBtn.dataset.tid);
+    if(qTrack)addToQueue(qTrack);
+    return;
+  }
+
   // Back to playlists button
   var backBtn=e.target.closest('[data-act="back-playlists"]');
   if(backBtn){
@@ -1254,31 +1687,42 @@ document.addEventListener('click',function(e){
     return;
   }
 
-  // Track row / card
+  // Track row / card click
   var r=e.target.closest('[data-tid]');
   if(r){
     var id=r.dataset.tid;
-    var all=[].concat(S.allTracks,S.searchTracks,S.history,S.queue);
-    if(S.cur)all.push(S.cur);
-    if(S.selectedPlaylist&&S.playlists[S.selectedPlaylist]){
-      var pSongs=S.playlists[S.selectedPlaylist].songs||[];
-      all=all.concat(pSongs.map(function(item,i){
-        return{
-          id:item.videoId||item.title||('p_'+i),
-          videoId:item.videoId,
-          t:item.title,
-          a:item.channel||item.artist||'Unknown',
-          al:item.album||S.selectedPlaylist||'Single',
-          d:parseSec(item.duration),
-          thumbnail:item.thumbnail,
-          g:G[i%G.length]
-        };
-      }));
+    var t=findTrackById(id);
+    if(t){
+      // Set context depending on current view
+      if(S.tab==='playlist'&&S.selectedPlaylist){
+        var val=S.playlists[S.selectedPlaylist];
+        var sList=Array.isArray(val)?val:(val&&val.songs?val.songs:[]);
+        S.context=sList.map(function(item,i){
+          return{
+            id:item.videoId||item.title||('p_'+i),
+            videoId:item.videoId,
+            t:item.title,
+            a:item.channel||item.artist||'Unknown',
+            al:item.album||S.selectedPlaylist||'Single',
+            d:parseSec(item.duration),
+            thumbnail:item.thumbnail,
+            g:G[i%G.length]
+          };
+        });
+        S.contextName=S.selectedPlaylist;
+        S.contextIdx=S.context.findIndex(function(x){return(x.videoId&&x.videoId===id)||(x.id&&x.id===id)});
+      }else if(S.tab==='all'){
+        S.context=S.allTracks;
+        S.contextName='Library';
+        S.contextIdx=S.allTracks.findIndex(function(x){return(x.videoId&&x.videoId===id)||(x.id&&x.id===id)});
+      }else if(S.searchTracks&&S.searchTracks.length){
+        S.context=S.searchTracks;
+        S.contextName='Search';
+        S.contextIdx=S.searchTracks.findIndex(function(x){return(x.videoId&&x.videoId===id)||(x.id&&x.id===id)});
+      }
+      S.isFromQueue=false;
+      playTrack(t,S.contextName||'Selection');
     }
-    var t=all.find(function(x){
-      return (x.videoId&&x.videoId===id)||(x.id&&x.id===id)||(x.t&&x.t===id);
-    });
-    if(t)playTrack(t,S.selectedPlaylist||'Selection');
     return;
   }
 
@@ -1422,6 +1866,8 @@ async function loadLibrary(){
         });
       });
       S.allTracks=Object.values(map);
+      S.context=S.allTracks;
+      S.contextName='Library';
       
       // Made for you
       $('#made').innerHTML=S.allTracks.slice(0,10).map(function(t){
