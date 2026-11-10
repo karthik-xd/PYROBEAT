@@ -211,7 +211,8 @@ fun SkullBeatNavHost(
                         onTrackClick = { track, list -> playerManager.playTrack(track, list) },
                         onArtistClick = { artist -> navController.navigate(Screen.Artist.createRoute(artist)) },
                         onAddToPlaylist = { track -> selectedTrackForPlaylist = track },
-                        onDownload = { track -> enqueueDownload(track) }
+                        onDownload = { track -> enqueueDownload(track) },
+                        onPlaylistClick = { id -> navController.navigate(Screen.PlaylistDetail.createRoute(id)) }
                     )
                 }
 
@@ -280,7 +281,8 @@ fun SkullBeatNavHost(
                 onDismiss = { isNowPlayingOpen = false },
                 onArtistClick = { artist -> navController.navigate(Screen.Artist.createRoute(artist)) },
                 onDownload = { track -> enqueueDownload(track) },
-                onOpenLyrics = { track -> selectedTrackForLyrics = track }
+                onOpenLyrics = { track -> selectedTrackForLyrics = track },
+                onAddToPlaylist = { track -> selectedTrackForPlaylist = track }
             )
         }
 

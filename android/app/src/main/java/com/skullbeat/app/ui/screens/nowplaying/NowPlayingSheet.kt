@@ -27,15 +27,16 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Lyrics
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.RepeatOne
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
-import androidx.compose.material.icons.filled.VolumeDown
-import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -43,6 +44,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -58,6 +60,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
@@ -86,6 +89,7 @@ fun NowPlayingSheet(
     onArtistClick: (String) -> Unit,
     onDownload: (Track) -> Unit,
     onOpenLyrics: (Track) -> Unit,
+    onAddToPlaylist: (Track) -> Unit = {},
     viewModel: NowPlayingViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
@@ -97,6 +101,7 @@ fun NowPlayingSheet(
     var isSeeking by remember { mutableStateOf(false) }
     var seekPosition by remember { mutableFloatStateOf(0f) }
     var showQueueSheet by remember { mutableStateOf(false) }
+    var showMenu by remember { mutableStateOf(false) }
 
     val currentMs = if (isSeeking) seekPosition.toLong() else playbackState.currentPositionMs
     val totalMs = if (playbackState.durationMs > 0) playbackState.durationMs else (track.durationSec * 1000L)
@@ -110,15 +115,15 @@ fun NowPlayingSheet(
         val topC = Color(pColor)
         val midC = Color(sColor)
         val solidTop = Color(
-            red = (topC.red * 0.45f + 0.055f * 0.55f),
-            green = (topC.green * 0.45f + 0.055f * 0.55f),
-            blue = (topC.blue * 0.45f + 0.078f * 0.55f),
+            red = (topC.red * 0.45f + 0.02f * 0.55f),
+            green = (topC.green * 0.45f + 0.027f * 0.55f),
+            blue = (topC.blue * 0.45f + 0.059f * 0.55f),
             alpha = 1.0f
         )
         val solidMid = Color(
-            red = (midC.red * 0.28f + 0.055f * 0.72f),
-            green = (midC.green * 0.28f + 0.055f * 0.72f),
-            blue = (midC.blue * 0.28f + 0.078f * 0.72f),
+            red = (midC.red * 0.28f + 0.02f * 0.72f),
+            green = (midC.green * 0.28f + 0.027f * 0.72f),
+            blue = (midC.blue * 0.28f + 0.059f * 0.72f),
             alpha = 1.0f
         )
         Brush.verticalGradient(
@@ -132,104 +137,216 @@ fun NowPlayingSheet(
         Brush.verticalGradient(listOf(BgDark, BgDark))
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(BgDark)
-            .background(gradientBrush)
-            .padding(horizontal = if (isLandscape) 16.dp else 24.dp)
+    Surface(
+        modifier = modifier.fillMaxSize(),
+        color = BgDark
     ) {
-        Spacer(modifier = Modifier.height(if (isLandscape) 8.dp else 16.dp))
-
-        // Top Row: Dismiss down chevron & Queue icon
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(gradientBrush)
+                .padding(horizontal = if (isLandscape) 16.dp else 24.dp)
         ) {
-            IconButton(
-                onClick = onDismiss,
-                modifier = Modifier
-                    .size(if (isLandscape) 34.dp else 40.dp)
-                    .clip(CircleShape)
-                    .background(RaisedDark)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.KeyboardArrowDown,
-                    contentDescription = "Collapse",
-                    tint = TextBone,
-                    modifier = Modifier.size(if (isLandscape) 22.dp else 26.dp)
-                )
-            }
+            Spacer(modifier = Modifier.height(if (isLandscape) 8.dp else 16.dp))
 
-            Text(
-                text = "NOW PLAYING",
-                style = MaterialTheme.typography.displayLarge.copy(fontSize = 13.sp, letterSpacing = 2.sp),
-                color = TextMuted
-            )
-
-            IconButton(
-                onClick = { showQueueSheet = true },
-                modifier = Modifier
-                    .size(if (isLandscape) 34.dp else 40.dp)
-                    .clip(CircleShape)
-                    .background(RaisedDark)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.QueueMusic,
-                    contentDescription = "Queue",
-                    tint = TextBone,
-                    modifier = Modifier.size(if (isLandscape) 18.dp else 20.dp)
-                )
-            }
-        }
-
-        if (isLandscape) {
-            // Landscape layout: Album Art on Left, Full Controls on Right
+            // Top Bar: Down chevron, PLAYING FROM PLAYLIST, 3-dot overflow menu
             Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(vertical = 8.dp),
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Album Art fitting vertical screen
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .aspectRatio(1f)
-                        .shadow(elevation = 16.dp, shape = RoundedCornerShape(16.dp), spotColor = ElectricBlue)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(SurfaceDark)
-                        .clickable {
-                            onDismiss()
-                            onArtistClick(track.cleanArtist)
-                        },
-                    contentAlignment = Alignment.Center
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.size(40.dp)
                 ) {
-                    AsyncImage(
-                        model = track.thumbnailUrl,
-                        contentDescription = track.title,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowDown,
+                        contentDescription = "Collapse",
+                        tint = TextBone,
+                        modifier = Modifier.size(28.dp)
                     )
                 }
 
-                Spacer(modifier = Modifier.width(20.dp))
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "PLAYING FROM PLAYLIST",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 11.sp,
+                            letterSpacing = 1.5.sp,
+                            color = TextMuted
+                        )
+                    )
+                    Text(
+                        text = playbackState.contextId ?: "Playlist name",
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextBone
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
 
-                // Scrollable Controls Column
+                Box {
+                    IconButton(
+                        onClick = { showMenu = true },
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "Menu",
+                            tint = TextBone,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false },
+                        modifier = Modifier.background(SurfaceDark)
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("View Artist", color = TextBone) },
+                            onClick = {
+                                showMenu = false
+                                onDismiss()
+                                onArtistClick(track.cleanArtist)
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Add to Playlist", color = TextBone) },
+                            onClick = {
+                                showMenu = false
+                                onAddToPlaylist(track)
+                            }
+                        )
+                    }
+                }
+            }
+
+            if (isLandscape) {
+                // Landscape layout
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .aspectRatio(1f)
+                            .shadow(elevation = 24.dp, shape = RoundedCornerShape(20.dp), spotColor = ElectricBlue)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(SurfaceDark)
+                            .clickable {
+                                onDismiss()
+                                onArtistClick(track.cleanArtist)
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AsyncImage(
+                            model = track.thumbnailUrl,
+                            contentDescription = track.title,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(20.dp))
+
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        TrackInfoRow(
+                            track = track,
+                            isFavorite = isFavorite,
+                            onFavoriteClick = { viewModel.toggleFavorite() },
+                            onArtistClick = {
+                                onDismiss()
+                                onArtistClick(track.cleanArtist)
+                            },
+                            onTitleClick = { viewModel.togglePlayPause() }
+                        )
+
+                        SeekBarControl(
+                            currentMs = currentMs,
+                            totalMs = totalMs,
+                            onSeekChange = {
+                                isSeeking = true
+                                seekPosition = it
+                            },
+                            onSeekFinished = {
+                                viewModel.seekTo(seekPosition.toLong())
+                                isSeeking = false
+                            }
+                        )
+
+                        PlaybackButtonsRow(
+                            isPlaying = playbackState.isPlaying,
+                            isLoading = playbackState.isLoading,
+                            isShuffle = playbackState.isShuffle,
+                            repeatMode = playbackState.repeatMode,
+                            onShuffleClick = { viewModel.toggleShuffle() },
+                            onPrevClick = { viewModel.previous() },
+                            onPlayPauseClick = { viewModel.togglePlayPause() },
+                            onNextClick = { viewModel.next() },
+                            onRepeatClick = { viewModel.toggleRepeat() },
+                            isCompact = true
+                        )
+
+                        BottomActionsRow(
+                            onDownload = { onDownload(track) },
+                            onOpenLyrics = { onOpenLyrics(track) },
+                            onOpenQueue = { showQueueSheet = true }
+                        )
+                    }
+                }
+            } else {
+                // Portrait layout: 310dp artwork, TrackInfo, Seekbar, Controls, Bottom Actions
                 Column(
                     modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.SpaceEvenly
+                        .fillMaxSize()
+                        .padding(vertical = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.SpaceBetween
                 ) {
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Large 310x310 Artwork with electric blue glow
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.92f)
+                            .aspectRatio(1f)
+                            .shadow(elevation = 28.dp, shape = RoundedCornerShape(20.dp), spotColor = ElectricBlue)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(SurfaceDark)
+                            .clickable {
+                                onDismiss()
+                                onArtistClick(track.cleanArtist)
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AsyncImage(
+                            model = track.thumbnailUrl,
+                            contentDescription = track.title,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Song Title, Artist, Heart Toggle
                     TrackInfoRow(
                         track = track,
                         isFavorite = isFavorite,
                         onFavoriteClick = { viewModel.toggleFavorite() },
-                        onLyricsClick = { onOpenLyrics(track) },
-                        onDownloadClick = { onDownload(track) },
                         onArtistClick = {
                             onDismiss()
                             onArtistClick(track.cleanArtist)
@@ -237,6 +354,7 @@ fun NowPlayingSheet(
                         onTitleClick = { viewModel.togglePlayPause() }
                     )
 
+                    // Sleek Seek Bar with 4dp track & current/total time
                     SeekBarControl(
                         currentMs = currentMs,
                         totalMs = totalMs,
@@ -250,6 +368,7 @@ fun NowPlayingSheet(
                         }
                     )
 
+                    // Controls Row: Shuffle | Prev | Skull Play (76dp) | Next | Repeat
                     PlaybackButtonsRow(
                         isPlaying = playbackState.isPlaying,
                         isLoading = playbackState.isLoading,
@@ -260,100 +379,18 @@ fun NowPlayingSheet(
                         onPlayPauseClick = { viewModel.togglePlayPause() },
                         onNextClick = { viewModel.next() },
                         onRepeatClick = { viewModel.toggleRepeat() },
-                        isCompact = true
+                        isCompact = false
                     )
 
-                    VolumeControlRow(
-                        volume = playbackState.volume,
-                        onVolumeChange = { viewModel.setVolume(it) }
+                    // Bottom Action Row: Download | Lyrics | Queue
+                    BottomActionsRow(
+                        onDownload = { onDownload(track) },
+                        onOpenLyrics = { onOpenLyrics(track) },
+                        onOpenQueue = { showQueueSheet = true }
                     )
+
+                    Spacer(modifier = Modifier.height(12.dp))
                 }
-            }
-        } else {
-            // Portrait layout: Artwork on top, Controls below, scrollable if height constrained
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // Large Artwork with Glow
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(1f)
-                        .shadow(elevation = 20.dp, shape = RoundedCornerShape(16.dp), spotColor = ElectricBlue)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(SurfaceDark)
-                        .clickable {
-                            onDismiss()
-                            onArtistClick(track.cleanArtist)
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    AsyncImage(
-                        model = track.thumbnailUrl,
-                        contentDescription = track.title,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                TrackInfoRow(
-                    track = track,
-                    isFavorite = isFavorite,
-                    onFavoriteClick = { viewModel.toggleFavorite() },
-                    onLyricsClick = { onOpenLyrics(track) },
-                    onDownloadClick = { onDownload(track) },
-                    onArtistClick = {
-                        onDismiss()
-                        onArtistClick(track.cleanArtist)
-                    },
-                    onTitleClick = { viewModel.togglePlayPause() }
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                SeekBarControl(
-                    currentMs = currentMs,
-                    totalMs = totalMs,
-                    onSeekChange = {
-                        isSeeking = true
-                        seekPosition = it
-                    },
-                    onSeekFinished = {
-                        viewModel.seekTo(seekPosition.toLong())
-                        isSeeking = false
-                    }
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                PlaybackButtonsRow(
-                    isPlaying = playbackState.isPlaying,
-                    isLoading = playbackState.isLoading,
-                    isShuffle = playbackState.isShuffle,
-                    repeatMode = playbackState.repeatMode,
-                    onShuffleClick = { viewModel.toggleShuffle() },
-                    onPrevClick = { viewModel.previous() },
-                    onPlayPauseClick = { viewModel.togglePlayPause() },
-                    onNextClick = { viewModel.next() },
-                    onRepeatClick = { viewModel.toggleRepeat() },
-                    isCompact = false
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                VolumeControlRow(
-                    volume = playbackState.volume,
-                    onVolumeChange = { viewModel.setVolume(it) }
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
             }
         }
     }
@@ -372,14 +409,17 @@ fun NowPlayingSheet(
             ) {
                 Text(
                     text = "Playing Queue (${playbackState.tracks.size} tracks)",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = TextBone
                 )
                 Spacer(modifier = Modifier.height(12.dp))
 
                 LazyColumn(
-                    modifier = Modifier.fillMaxWidth().height(360.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(380.dp)
                 ) {
-                    itemsIndexed(playbackState.tracks, key = { idx, item -> "queue_${idx}_${item.videoId}" }) { _, item ->
+                    itemsIndexed(playbackState.tracks) { idx, item ->
                         TrackListItem(
                             track = item,
                             isCurrentTrack = item.videoId == track.videoId,
@@ -405,8 +445,6 @@ private fun TrackInfoRow(
     track: Track,
     isFavorite: Boolean,
     onFavoriteClick: () -> Unit,
-    onLyricsClick: () -> Unit,
-    onDownloadClick: () -> Unit,
     onArtistClick: () -> Unit,
     onTitleClick: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -418,44 +456,37 @@ private fun TrackInfoRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = track.title,
-                style = MaterialTheme.typography.titleLarge.copy(fontSize = 19.sp, fontWeight = FontWeight.Bold),
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold
+                ),
+                color = TextBone,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.clickable { onTitleClick() }
             )
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = track.artist,
-                style = MaterialTheme.typography.titleMedium.copy(fontSize = 14.sp, color = TextMuted),
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = 15.sp,
+                    color = TextMuted
+                ),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.clickable { onArtistClick() }
             )
         }
 
-        IconButton(onClick = onFavoriteClick) {
+        IconButton(
+            onClick = onFavoriteClick,
+            modifier = Modifier.size(48.dp)
+        ) {
             Icon(
                 imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                 contentDescription = "Favorite",
                 tint = if (isFavorite) HeartRed else TextMuted,
-                modifier = Modifier.size(24.dp)
-            )
-        }
-
-        IconButton(onClick = onLyricsClick) {
-            Icon(
-                imageVector = Icons.Default.Lyrics,
-                contentDescription = "Lyrics",
-                tint = TextMuted,
-                modifier = Modifier.size(22.dp)
-            )
-        }
-
-        IconButton(onClick = onDownloadClick) {
-            Icon(
-                imageVector = Icons.Default.Download,
-                contentDescription = "Download",
-                tint = TextMuted,
-                modifier = Modifier.size(22.dp)
+                modifier = Modifier.size(26.dp)
             )
         }
     }
@@ -489,11 +520,17 @@ private fun SeekBarControl(
         ) {
             Text(
                 text = TimeUtils.formatDuration(currentMs / 1000),
-                style = MaterialTheme.typography.labelSmall
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 12.sp,
+                    color = TextMuted
+                )
             )
             Text(
                 text = TimeUtils.formatDuration(totalMs / 1000),
-                style = MaterialTheme.typography.labelSmall
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 12.sp,
+                    color = TextMuted
+                )
             )
         }
     }
@@ -518,41 +555,61 @@ private fun PlaybackButtonsRow(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconButton(onClick = onShuffleClick) {
+        IconButton(
+            onClick = onShuffleClick,
+            modifier = Modifier.size(48.dp)
+        ) {
             Icon(
                 imageVector = Icons.Default.Shuffle,
                 contentDescription = "Shuffle",
                 tint = if (isShuffle) ElectricBlue else TextMuted,
-                modifier = Modifier.size(if (isCompact) 20.dp else 24.dp)
+                modifier = Modifier.size(24.dp)
             )
         }
 
-        IconButton(onClick = onPrevClick) {
+        IconButton(
+            onClick = onPrevClick,
+            modifier = Modifier.size(48.dp)
+        ) {
             Icon(
                 imageVector = Icons.Default.SkipPrevious,
                 contentDescription = "Previous",
                 tint = TextBone,
-                modifier = Modifier.size(if (isCompact) 28.dp else 34.dp)
+                modifier = Modifier.size(34.dp)
             )
         }
 
-        SkullPlayButton(
-            isPlaying = isPlaying,
-            isLoading = isLoading,
-            onClick = onPlayPauseClick,
-            size = if (isCompact) 50.dp else 64.dp
-        )
+        Box(
+            modifier = Modifier.shadow(
+                elevation = 24.dp,
+                shape = CircleShape,
+                spotColor = ElectricBlue
+            )
+        ) {
+            SkullPlayButton(
+                isPlaying = isPlaying,
+                isLoading = isLoading,
+                onClick = onPlayPauseClick,
+                size = if (isCompact) 56.dp else 76.dp
+            )
+        }
 
-        IconButton(onClick = onNextClick) {
+        IconButton(
+            onClick = onNextClick,
+            modifier = Modifier.size(48.dp)
+        ) {
             Icon(
                 imageVector = Icons.Default.SkipNext,
                 contentDescription = "Next",
                 tint = TextBone,
-                modifier = Modifier.size(if (isCompact) 28.dp else 34.dp)
+                modifier = Modifier.size(34.dp)
             )
         }
 
-        IconButton(onClick = onRepeatClick) {
+        IconButton(
+            onClick = onRepeatClick,
+            modifier = Modifier.size(48.dp)
+        ) {
             Icon(
                 imageVector = when (repeatMode) {
                     RepeatState.ONE -> Icons.Default.RepeatOne
@@ -563,44 +620,68 @@ private fun PlaybackButtonsRow(
                     RepeatState.OFF -> TextMuted
                     else -> ElectricBlue
                 },
-                modifier = Modifier.size(if (isCompact) 20.dp else 24.dp)
+                modifier = Modifier.size(24.dp)
             )
         }
     }
 }
 
 @Composable
-private fun VolumeControlRow(
-    volume: Float,
-    onVolumeChange: (Float) -> Unit,
+private fun BottomActionsRow(
+    onDownload: () -> Unit,
+    onOpenLyrics: () -> Unit,
+    onOpenQueue: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = Icons.Default.VolumeDown,
-            contentDescription = "Volume Down",
-            tint = TextMuted,
-            modifier = Modifier.size(20.dp)
+        ActionTextButton(
+            icon = Icons.Default.Download,
+            label = "Download",
+            onClick = onDownload
         )
-        Slider(
-            value = volume,
-            onValueChange = onVolumeChange,
-            valueRange = 0f..1f,
-            colors = SliderDefaults.colors(
-                thumbColor = TextBone,
-                activeTrackColor = ElectricBlue,
-                inactiveTrackColor = RaisedDark
-            ),
-            modifier = Modifier.weight(1f).padding(horizontal = 10.dp)
+        ActionTextButton(
+            icon = Icons.Default.Lyrics,
+            label = "Lyrics",
+            onClick = onOpenLyrics
         )
+        ActionTextButton(
+            icon = Icons.Default.QueueMusic,
+            label = "Queue",
+            onClick = onOpenQueue
+        )
+    }
+}
+
+@Composable
+private fun ActionTextButton(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
         Icon(
-            imageVector = Icons.Default.VolumeUp,
-            contentDescription = "Volume Up",
+            imageVector = icon,
+            contentDescription = label,
             tint = TextMuted,
-            modifier = Modifier.size(20.dp)
+            modifier = Modifier.size(22.dp)
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+            color = TextMuted
         )
     }
 }
