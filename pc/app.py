@@ -895,7 +895,7 @@ var fmt=function(s){s=Math.round(s||0);return Math.floor(s/60)+':'+('0'+(s%60)).
 var esc=function(s){return String(s||'').replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})};
 var parseSec=function(d){if(typeof d==='number')return Math.round(d);if(!d)return 180;var s=String(d).trim();if(s.indexOf(':')>-1){var p=s.split(':').map(Number);if(p.length===2)return p[0]*60+p[1];if(p.length===3)return p[0]*3600+p[1]*60+p[2]}var n=Number(s);return isNaN(n)?180:Math.round(n)};
 
-var PLAY='<svg viewBox="0 0 100 100" width="32" height="32"><path d="M28 14 L72 14 L86 28 L86 64 L72 72 L72 88 L60 88 L60 78 L54 78 L54 88 L46 88 L46 78 L40 78 L40 88 L28 88 L28 72 L14 64 L14 28 Z" fill="#F2F5FF"/><circle cx="37" cy="46" r="13" fill="#181B2C"/><circle cx="63" cy="46" r="13" fill="#181B2C"/><polygon points="50,56 44,66 56,66" fill="#181B2C"/><rect x="36" y="80" width="8" height="10" fill="#05070F"/><rect x="56" y="80" width="8" height="10" fill="#05070F"/></svg>';
+var PLAY='<svg viewBox="0 0 24 24" width="30" height="30"><path d="M12 3a8 8 0 0 0-8 8c0 2.6 1.2 4.3 3 5.4V20h2v-2h2v2h2v-2h2v2h2v-3.6c1.8-1.1 3-2.8 3-5.4a8 8 0 0 0-8-8z" fill="#F2F5FF"/><circle cx="9" cy="11" r="2" fill="#05070F"/><circle cx="15" cy="11" r="2" fill="#05070F"/></svg>';
 var PAUSE='<svg class="ic" viewBox="0 0 24 24" style="width:26px;height:26px"><path d="M7 5v14M17 5v14" stroke-width="3"/></svg>';
 var SPIN='<svg class="ic spin" viewBox="0 0 24 24" style="width:26px;height:26px"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-dasharray="28" stroke-dashoffset="10" stroke-width="2.5" fill="none"/></svg>';
 var HEART='<svg class="ic" viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>';
