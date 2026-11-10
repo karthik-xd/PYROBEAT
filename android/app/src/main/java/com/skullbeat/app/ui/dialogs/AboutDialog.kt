@@ -53,6 +53,7 @@ fun AboutDialog(
         "Smart Multi-Touch Loop" to "Single touch loops song continuously. Double touch loops 1 time. Triple touch loops 2 times. Turn OFF anytime with a single touch.",
         "1-Touch Instant Play" to "Tap any song text to play immediately without double-pressing the play button.",
         "Spinning Skull Buffering" to "Play button spins a 360-degree skull animation while resolving YouTube streams.",
+        "Landscape Rotation Layout" to "Rotating phone neatly displays 180dp artwork and all playback controls on screen without scrolling.",
         "Solid Now Playing Sheet" to "Decreased transparency to 100% solid opaque background; eliminated list bleed-through.",
         "2-Color Notification Shading" to "Media notification card shaded by 2 vibrant colors extracted from song artwork.",
         "Notification Shuffle Control" to "Toggle shuffle directly from the system notification shade and Quick Settings."
@@ -95,7 +96,7 @@ fun AboutDialog(
                                 color = TextBone
                             )
                             Text(
-                                text = "Version 1.2.0 (Build 3)",
+                                text = "Version 1.2.1 (Build 4)",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = ElectricBlue
                             )
