@@ -347,12 +347,12 @@ class PlaybackService : MediaSessionService() {
             }
             canvas.drawRoundRect(0f, 0f, size.toFloat(), size.toFloat(), 48f, 48f, gradientPaint)
 
-            val inset = 24f
+            val inset = 44f
             val artRect = RectF(inset, inset, size - inset, size - inset)
             val scaledArt = Bitmap.createScaledBitmap(original, (size - inset * 2).toInt(), (size - inset * 2).toInt(), true)
 
             val clipPath = android.graphics.Path().apply {
-                addRoundRect(artRect, 40f, 40f, android.graphics.Path.Direction.CW)
+                addRoundRect(artRect, 32f, 32f, android.graphics.Path.Direction.CW)
             }
             canvas.save()
             canvas.clipPath(clipPath)
