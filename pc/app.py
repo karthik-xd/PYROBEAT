@@ -341,87 +341,6 @@ def api_stream_url(video_id: str, q: Optional[str] = None, redirect: bool = Fals
     }
 
 
-@app.get("/api/stream_proxy/{video_id}")
-async def api_stream_proxy(video_id: str, request: Request, q: Optional[str] = None):
-    """Direct same-origin streaming proxy with HTTP Range support for seamless Web Audio API volume normalization."""
-    target_vid = (video_id or "").strip()
-    if not target_vid or target_vid.startswith("pending") or target_vid in ("undefined", "null", "none"):
-        if q and q.strip():
-            try:
-                results = search_music(q.strip(), limit=1)
-                if results and results[0].get("videoId"):
-                    target_vid = results[0]["videoId"]
-                else:
-                    raise HTTPException(status_code=404, detail="Track audio not found")
-            except HTTPException:
-                raise
-            except Exception as e:
-                raise HTTPException(status_code=500, detail=f"Resolve failed: {e}")
-        else:
-            raise HTTPException(status_code=400, detail="Missing video ID or search query")
-
-    stream_url = STREAM_URL_CACHE.get(target_vid)
-    if not stream_url:
-        ydl_opts = {
-            "format": "bestaudio/best",
-            "quiet": True,
-            "skip_download": True,
-            "js_runtimes": {"node": {}},
-        }
-        try:
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(target_vid, download=False)
-                stream_url = info.get("url")
-                if not stream_url:
-                    raise HTTPException(status_code=404, detail="Audio stream not found")
-                STREAM_URL_CACHE[target_vid] = stream_url
-        except HTTPException:
-            raise
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
-
-    req_headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    }
-    client_range = request.headers.get("range")
-    if client_range:
-        req_headers["range"] = client_range
-
-    client = httpx.AsyncClient(timeout=45.0, follow_redirects=True)
-    try:
-        req = client.build_request("GET", stream_url, headers=req_headers)
-        upstream = await client.send(req, stream=True)
-    except Exception:
-        await client.aclose()
-        return RedirectResponse(url=stream_url, status_code=307)
-
-    resp_headers = {
-        "Accept-Ranges": "bytes",
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Range, Accept-Ranges, Content-Type",
-        "Access-Control-Expose-Headers": "Content-Range, Content-Length, Accept-Ranges",
-        "Cache-Control": "public, max-age=3600",
-    }
-    for h in ["content-type", "content-length", "content-range"]:
-        if h in upstream.headers:
-            resp_headers[h] = upstream.headers[h]
-
-    async def stream_body():
-        try:
-            async for chunk in upstream.aiter_bytes(chunk_size=65536):
-                yield chunk
-        finally:
-            await upstream.aclose()
-            await client.aclose()
-
-    return StreamingResponse(
-        stream_body(),
-        status_code=upstream.status_code,
-        headers=resp_headers,
-        media_type=upstream.headers.get("content-type", "audio/webm")
-    )
-
-
 @app.get("/api/download/{video_id}")
 def api_download(video_id: str, q: Optional[str] = None):
     """Downloads audio-only track as MP3 and streams to browser as attachment."""
@@ -722,13 +641,14 @@ HTML_CONTENT = r"""<!DOCTYPE html>
 <style>
 :root{color-scheme:dark;--bg:#05070F;--s1:#0E1426;--s2:#172044;--tx:#F2F5FF;--mu:#8E99BC;--blue:#3D8BFF;--cyan:#00D4FF;--vio:#8B5CFF;--red:#FF3B5C;--grad:linear-gradient(135deg,#3D8BFF,#8B5CFF);--grad2:linear-gradient(135deg,#3D8BFF,#00D4FF)}
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%}
-body{background:var(--bg);color:var(--tx);font:14px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;overflow:hidden}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--tx);font:14px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 button:focus-visible,input:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
 .ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
-.app{height:100%;display:grid;grid-template-columns:232px 1fr 320px;grid-template-rows:1fr 88px;gap:8px;padding:8px;padding-top:calc(8px + env(safe-area-inset-top,0px));padding-bottom:calc(8px + env(safe-area-inset-bottom,0px))}
-.card{background:var(--s1);border-radius:16px;overflow:hidden}
+.app{height:100vh;height:100dvh;display:grid;grid-template-columns:232px 1fr 320px;grid-template-rows:minmax(0,1fr) 88px;gap:8px;padding:8px;padding-top:calc(8px + env(safe-area-inset-top,0px));padding-bottom:calc(8px + env(safe-area-inset-bottom,0px));overflow:hidden}
+.card{background:var(--s1);border-radius:16px;overflow:hidden;min-height:0}
+.side,.main,.right{min-height:0}
 /* sidebar */
 .side{padding:20px 12px;display:flex;flex-direction:column;gap:4px;overflow-y:auto}
 .logo{position:relative;display:flex;align-items:center;height:44px;margin:0 0 20px 6px;flex:none;cursor:pointer}
@@ -831,7 +751,7 @@ h2{font-size:20px;margin:32px 0 14px;font-weight:600}
 .ly p{color:var(--mu);font-size:15px;font-weight:600;margin:10px 0;transition:color .2s}
 .ly p.hi{color:var(--cyan);transform:scale(1.02)}
 /* player */
-.player{grid-column:1/-1;display:grid;grid-template-columns:1fr minmax(320px,560px) 1fr;align-items:center;gap:16px;padding:0 20px;background:var(--s2)}
+.player{grid-column:1/-1;display:grid;grid-template-columns:1fr minmax(320px,560px) 1fr;align-items:center;gap:16px;padding:0 20px;background:var(--s2);min-height:88px;flex:none;z-index:10}
 .np{display:flex;align-items:center;gap:12px;min-width:0}.np i{width:56px;height:56px;border-radius:10px;flex:none;background-size:cover;background-position:center}
 .np div{min-width:0}.np p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ctr{display:flex;flex-direction:column;gap:6px}
@@ -866,7 +786,7 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border:0;border-radiu
 /* responsive */
 @media (max-width:1180px){.app{grid-template-columns:232px 1fr}.right{display:none}}
 @media (max-width:820px){
- .app{grid-template-columns:1fr;grid-template-rows:1fr 76px 64px}
+ .app{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) 76px 64px}
  .side{order:3;flex-direction:row;padding:6px;gap:6px}.side .logo,.side h3,.side .pl-list{display:none}.nb{flex:1;flex-direction:column;gap:2px;font-size:11px;padding:6px 0;justify-content:center}
  .main{padding:20px 16px}.player{order:2;grid-template-columns:1fr auto;padding:0 12px}.ctr .prog,.vol,.ctr .sh,.ctr .rp{display:none}
  .th,.tr{grid-template-columns:minmax(0,1fr) 48px}.th span:nth-child(1),.th span:nth-child(3),.th span:nth-child(4),.tr .n,.tr .al2,.tr .d{display:none}
@@ -974,7 +894,7 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border:0;border-radiu
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
-<audio id="audio" preload="auto" crossorigin="anonymous"></audio>
+<audio id="audio" preload="auto"></audio>
 
 
 <script>
@@ -991,89 +911,65 @@ var HEART='<svg class="ic" viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0
 
 var audio=document.getElementById('audio');
 
-/* Studio-Grade Loudness Normalizer (Spotify -14 LUFS Standard) */
-var audioCtx=null;
-var audioSource=null;
-var normalizer=null;
-var makeupGain=null;
-var limiter=null;
-var syncVolumeEnabled=true;
+/* Smart Volume Sync & Smooth Flow Normalizer */
+var masterVolume = 0.8;
+var syncVolumeEnabled = true;
+var fadeTimer = null;
 
-function initAudioNormalizer(){
-  if(audioCtx)return;
-  try{
-    var AC=window.AudioContext||window.webkitAudioContext;
-    if(!AC)return;
-    audioCtx=new AC();
-    audioSource=audioCtx.createMediaElementSource(audio);
-
-    // 1. Studio-grade RMS/LUFS dynamic leveler (Spotify -14 LUFS standard)
-    // Multi-stage compression: transparently lifts quiet tracks while softly containing peaks
-    normalizer=audioCtx.createDynamicsCompressor();
-    normalizer.threshold.setValueAtTime(-22,audioCtx.currentTime); // -22 dBFS threshold
-    normalizer.knee.setValueAtTime(14,audioCtx.currentTime);        // 14 dB soft knee = totally inaudible transition
-    normalizer.ratio.setValueAtTime(3.2,audioCtx.currentTime);      // 3.2:1 musical ratio = retains punch & dynamic feel
-    normalizer.attack.setValueAtTime(0.003,audioCtx.currentTime);   // 3ms attack = catches instant transient spikes
-    normalizer.release.setValueAtTime(0.24,audioCtx.currentTime);   // 240ms release = musical breath, zero pumping
-
-    // 2. Headroom compensation / Smooth volume gain
-    makeupGain=audioCtx.createGain();
-    makeupGain.gain.setValueAtTime(1.15,audioCtx.currentTime);
-
-    // 3. Transparent Brickwall Peak Limiter (prevents digital clipping / distortion)
-    limiter=audioCtx.createDynamicsCompressor();
-    limiter.threshold.setValueAtTime(-0.8,audioCtx.currentTime);
-    limiter.knee.setValueAtTime(0,audioCtx.currentTime);
-    limiter.ratio.setValueAtTime(20,audioCtx.currentTime);
-    limiter.attack.setValueAtTime(0.001,audioCtx.currentTime);
-    limiter.release.setValueAtTime(0.05,audioCtx.currentTime);
-
-    // Connect graph: audio -> normalizer -> makeupGain -> limiter -> destination
-    audioSource.connect(normalizer);
-    normalizer.connect(makeupGain);
-    makeupGain.connect(limiter);
-    limiter.connect(audioCtx.destination);
-  }catch(e){
-    console.warn('Audio normalizer init error:',e);
+function getTrackLoudnessMultiplier(track){
+  if(!track||!syncVolumeEnabled)return 1.0;
+  var str=((track.t||'')+' '+(track.a||'')+' '+(track.al||'')).toLowerCase();
+  // Loud/heavy masters (Phonk, MTG, Hardcore, Metal, Rock, Bass boost) -> scale down to standard level
+  if(/phonk|mtg|funk|bass|metal|rock|hard|drill|trap|edm|club|remix/i.test(str)){
+    return 0.76;
   }
+  // Soft masters (Slowed, reverb, acoustic, lofi, ambient, ballad) -> full headroom
+  if(/slowed|reverb|acoustic|piano|ambient|lofi|ballad|chill|sleep|instrumental/i.test(str)){
+    return 1.0;
+  }
+  // Standard pop / radio master
+  return 0.88;
 }
 
-function applySmoothFlow(){
-  if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume();
-  if(!audioCtx||!makeupGain)return;
-  try{
-    var t=audioCtx.currentTime;
-    var target=syncVolumeEnabled?1.15:1.0;
-    makeupGain.gain.cancelScheduledValues(t);
-    makeupGain.gain.setValueAtTime(0.05,t);
-    makeupGain.gain.exponentialRampToValueAtTime(target,t+0.22);
-  }catch(e){
-    try{makeupGain.gain.setValueAtTime(syncVolumeEnabled?1.15:1.0,audioCtx.currentTime)}catch(err){}
+function applySyncedVolume(fadeDurationMs){
+  if(!audio)return;
+  if(audio.muted){
+    audio.volume=0;
+    return;
+  }
+  var mult=getTrackLoudnessMultiplier(S.cur);
+  var targetVol=Math.max(0.01,Math.min(1.0,masterVolume*mult));
+
+  if(fadeDurationMs&&fadeDurationMs>0){
+    if(fadeTimer)clearInterval(fadeTimer);
+    var startVol=0.08;
+    audio.volume=startVol;
+    var stepCount=10;
+    var stepInterval=fadeDurationMs/stepCount;
+    var stepIdx=0;
+    fadeTimer=setInterval(function(){
+      stepIdx++;
+      var progress=stepIdx/stepCount;
+      audio.volume=Math.min(1.0,startVol+(targetVol-startVol)*progress);
+      if(stepIdx>=stepCount){
+        clearInterval(fadeTimer);
+        fadeTimer=null;
+        audio.volume=targetVol;
+      }
+    },stepInterval);
+  }else{
+    audio.volume=targetVol;
   }
 }
 
 function toggleSyncVolume(){
   syncVolumeEnabled=!syncVolumeEnabled;
-  if(normalizer&&makeupGain&&audioCtx){
-    var t=audioCtx.currentTime;
-    if(syncVolumeEnabled){
-      normalizer.threshold.setValueAtTime(-22,t);
-      normalizer.ratio.setValueAtTime(3.2,t);
-      makeupGain.gain.setValueAtTime(1.15,t);
-      showToast('Volume Sync: ON (-14 LUFS Normalized)');
-    }else{
-      normalizer.threshold.setValueAtTime(0,t);
-      normalizer.ratio.setValueAtTime(1,t);
-      makeupGain.gain.setValueAtTime(1.0,t);
-      showToast('Volume Sync: OFF (Raw Dynamic Range)');
-    }
-  }
+  applySyncedVolume(180);
+  showToast(syncVolumeEnabled?'Volume Sync: ON (Balanced Loudness)':'Volume Sync: OFF (Raw Volume)');
   $('#sync-vol-btn').classList.toggle('on',syncVolumeEnabled);
 }
 
 document.addEventListener('pointerdown',function unlock(){
-  initAudioNormalizer();
-  if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume();
   if(audio&&!audio.unlocked){
     audio.play().then(function(){audio.pause();audio.currentTime=0;audio.unlocked=true}).catch(function(){});
     document.removeEventListener('pointerdown',unlock);
@@ -1460,11 +1356,10 @@ function playTrack(track,origin){
 
   var vid=track.videoId||track.id||'';
   var q=(track.t+' '+(track.a||'')).trim();
-  var directUrl='/api/stream_proxy/'+encodeURIComponent(vid)+'?q='+encodeURIComponent(q);
+  var directUrl='/api/stream/'+encodeURIComponent(vid)+'?redirect=1&q='+encodeURIComponent(q);
 
-  initAudioNormalizer();
   audio.src=directUrl;
-  applySmoothFlow();
+  applySyncedVolume(220);
   var p=audio.play();
   if(p!==undefined){
     p.then(function(){
@@ -1529,13 +1424,6 @@ audio.onplay=function(){S.loading=false;S.playing=true;paintPlayer()};
 audio.onpause=function(){S.playing=false;paintPlayer()};
 audio.onerror=function(){
   console.error('Audio load error:',audio.error);
-  if(audio.src&&audio.src.indexOf('/api/stream_proxy/')>-1){
-    var fallbackUrl=audio.src.replace('/api/stream_proxy/','/api/stream/')+'&redirect=1';
-    console.log('Falling back to direct redirect stream:',fallbackUrl);
-    audio.src=fallbackUrl;
-    audio.play().catch(function(){});
-    return;
-  }
   S.loading=false;S.playing=false;paintPlayer();
 };
 audio.ontimeupdate=function(){
@@ -1700,8 +1588,8 @@ $('#seek').oninput=function(){
 };
 
 $('#vol').oninput=function(){
-  var v=+this.value/100;
-  audio.volume=v;
+  masterVolume=+this.value/100;
+  applySyncedVolume(0);
   this.style.setProperty('--p',this.value+'%');
 };
 $('#vol').style.setProperty('--p','80%');
