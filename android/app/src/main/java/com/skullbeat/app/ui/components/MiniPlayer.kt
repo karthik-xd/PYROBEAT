@@ -131,7 +131,7 @@ fun MiniPlayer(
                     isPlaying = isPlaying,
                     isLoading = isLoading,
                     onClick = onTogglePlayPause,
-                    size = 40.dp
+                    size = 44.dp
                 )
 
                 Spacer(modifier = Modifier.width(6.dp))

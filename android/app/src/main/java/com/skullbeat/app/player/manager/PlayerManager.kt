@@ -93,7 +93,7 @@ class PlayerManager @Inject constructor(
             _playbackState.update {
                 it.copy(
                     isPlaying = isPlaying,
-                    isLoading = if (isPlaying) false else (it.isLoading && (exoPlayer.playbackState == Player.STATE_BUFFERING || exoPlayer.playbackState == Player.STATE_IDLE))
+                    isLoading = if (isPlaying) false else (it.isLoading && (exoPlayer.playbackState == Player.STATE_BUFFERING || exoPlayer.playbackState == Player.STATE_IDLE || exoPlayer.playWhenReady))
                 )
             }
         }
@@ -225,8 +225,8 @@ class PlayerManager @Inject constructor(
                     exoPlayer.setMediaItem(mediaItem)
                     exoPlayer.prepare()
                 }
+                _playbackState.update { it.copy(isPlaying = true, isLoading = true) }
                 exoPlayer.play()
-                _playbackState.update { it.copy(isPlaying = true, isLoading = exoPlayer.playbackState == Player.STATE_BUFFERING) }
                 try {
                     val serviceIntent = Intent(context, PlaybackService::class.java)
                     context.startService(serviceIntent)

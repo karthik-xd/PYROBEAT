@@ -128,22 +128,54 @@ fun SkullPlayButton(
                     cornerRadius = CornerRadius(2f, 2f)
                 )
             } else {
-                // Pause bars (bone white rounded pillars)
-                val barWidth = w * 0.22f
-                val barHeight = h * 0.75f
-                val corner = CornerRadius(w * 0.06f, w * 0.06f)
+                // Skull Pause State: skull cranium with two vertical pause bars replacing jaw
+                val skullCraniumPath = Path().apply {
+                    moveTo(w * 0.2f, h * 0.45f)
+                    cubicTo(w * 0.15f, h * 0.15f, w * 0.85f, h * 0.15f, w * 0.8f, h * 0.45f)
+                    cubicTo(w * 0.85f, h * 0.62f, w * 0.72f, h * 0.66f, w * 0.68f, h * 0.70f)
+                    lineTo(w * 0.32f, h * 0.70f)
+                    cubicTo(w * 0.28f, h * 0.66f, w * 0.15f, h * 0.62f, w * 0.2f, h * 0.45f)
+                    close()
+                }
+                drawPath(path = skullCraniumPath, color = TextBone)
+
+                // Eye sockets
+                drawCircle(
+                    color = BgDark,
+                    radius = w * 0.09f,
+                    center = Offset(w * 0.38f, h * 0.45f)
+                )
+                drawCircle(
+                    color = BgDark,
+                    radius = w * 0.09f,
+                    center = Offset(w * 0.62f, h * 0.45f)
+                )
+
+                // Inverted nose
+                val nosePath = Path().apply {
+                    moveTo(w * 0.5f, h * 0.53f)
+                    lineTo(w * 0.45f, h * 0.61f)
+                    lineTo(w * 0.55f, h * 0.61f)
+                    close()
+                }
+                drawPath(path = nosePath, color = BgDark)
+
+                // Two vertical pause bars replacing jaw
+                val barW = w * 0.11f
+                val barH = h * 0.24f
+                val barCorner = CornerRadius(barW * 0.45f, barW * 0.45f)
 
                 drawRoundRect(
                     color = TextBone,
-                    topLeft = Offset(w * 0.2f, (h - barHeight) / 2f),
-                    size = Size(barWidth, barHeight),
-                    cornerRadius = corner
+                    topLeft = Offset(w * 0.35f, h * 0.73f),
+                    size = Size(barW, barH),
+                    cornerRadius = barCorner
                 )
                 drawRoundRect(
                     color = TextBone,
-                    topLeft = Offset(w * 0.58f, (h - barHeight) / 2f),
-                    size = Size(barWidth, barHeight),
-                    cornerRadius = corner
+                    topLeft = Offset(w * 0.54f, h * 0.73f),
+                    size = Size(barW, barH),
+                    cornerRadius = barCorner
                 )
             }
         }

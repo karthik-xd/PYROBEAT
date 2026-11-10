@@ -24,7 +24,7 @@ abstract class AppModule {
         @Singleton
         fun provideOkHttpClient(): OkHttpClient {
             return OkHttpClient.Builder()
-                .connectTimeout(15, TimeUnit.SECONDS)
+                .connectTimeout(6, TimeUnit.SECONDS)
                 .readTimeout(15, TimeUnit.SECONDS)
                 .build()
         }
