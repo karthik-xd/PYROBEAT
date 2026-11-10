@@ -93,7 +93,7 @@ class PlayerManager @Inject constructor(
             _playbackState.update {
                 it.copy(
                     isPlaying = isPlaying,
-                    isLoading = if (isPlaying) false else it.isLoading
+                    isLoading = if (isPlaying) false else (it.isLoading && (exoPlayer.playbackState == Player.STATE_BUFFERING || exoPlayer.playbackState == Player.STATE_IDLE))
                 )
             }
         }
@@ -110,7 +110,7 @@ class PlayerManager @Inject constructor(
                         it.copy(
                             durationMs = duration,
                             isLoading = false,
-                            isPlaying = exoPlayer.playWhenReady,
+                            isPlaying = exoPlayer.isPlaying || exoPlayer.playWhenReady,
                             error = null
                         )
                     }
@@ -120,7 +120,9 @@ class PlayerManager @Inject constructor(
                     handleTrackEnded()
                 }
                 Player.STATE_IDLE -> {
-                    _playbackState.update { it.copy(isLoading = false) }
+                    if (_playbackState.value.currentTrack == null || !exoPlayer.playWhenReady) {
+                        _playbackState.update { it.copy(isLoading = false) }
+                    }
                 }
                 else -> Unit
             }
@@ -214,6 +216,25 @@ class PlayerManager @Inject constructor(
         contextType: PlaybackContextType = PlaybackContextType.QUEUE,
         contextId: String? = null
     ) {
+        val current = _playbackState.value.currentTrack
+        if (current?.videoId == track.videoId) {
+            if (!exoPlayer.isPlaying) {
+                if (exoPlayer.playbackState == Player.STATE_IDLE) {
+                    val mediaItem = buildMediaItem(track)
+                    exoPlayer.setMediaItem(mediaItem)
+                    exoPlayer.prepare()
+                }
+                exoPlayer.play()
+                _playbackState.update { it.copy(isPlaying = true, isLoading = exoPlayer.playbackState == Player.STATE_BUFFERING) }
+                try {
+                    val serviceIntent = Intent(context, PlaybackService::class.java)
+                    context.startService(serviceIntent)
+                } catch (_: Exception) {
+                }
+            }
+            return
+        }
+
         val tracks = if (contextTracks.isEmpty()) listOf(track) else contextTracks
         val index = tracks.indexOfFirst { it.videoId == track.videoId }.let { if (it >= 0) it else 0 }
 
@@ -407,6 +428,20 @@ class PlayerManager @Inject constructor(
 
     fun updateColors(primary: Long, secondary: Long) {
         _playbackState.update { it.copy(primaryColor = primary, secondaryColor = secondary) }
+    }
+
+    fun updateArtworkData(artworkBytes: ByteArray) {
+        try {
+            val currentMediaItem = exoPlayer.currentMediaItem ?: return
+            val updatedMetadata = currentMediaItem.mediaMetadata.buildUpon()
+                .setArtworkData(artworkBytes, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
+                .build()
+            val updatedMediaItem = currentMediaItem.buildUpon()
+                .setMediaMetadata(updatedMetadata)
+                .build()
+            exoPlayer.replaceMediaItem(exoPlayer.currentMediaItemIndex, updatedMediaItem)
+        } catch (_: Exception) {
+        }
     }
 
     fun setVolume(volume: Float) {

@@ -84,9 +84,7 @@ fun TrackListItem(
         Spacer(modifier = Modifier.width(12.dp))
 
         Column(
-            modifier = Modifier
-                .weight(1f)
-                .clickable(onClick = onClick)
+            modifier = Modifier.weight(1f)
         ) {
             Text(
                 text = track.title,
