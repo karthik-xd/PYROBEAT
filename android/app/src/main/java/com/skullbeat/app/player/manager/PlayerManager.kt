@@ -20,6 +20,7 @@ import com.skullbeat.app.data.storage.PlayerSettings
 import com.skullbeat.app.data.storage.RepeatState
 import com.skullbeat.app.domain.models.Track
 import com.skullbeat.app.domain.repository.MusicRepository
+import com.skullbeat.app.player.audio.AudioNormalizer
 import com.skullbeat.app.player.service.PlaybackService
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -51,6 +52,7 @@ class PlayerManager @Inject constructor(
 
     private var retryCount = 0
     private var lastSavedSec = 0L
+    private val audioNormalizer = AudioNormalizer()
 
     val exoPlayer: ExoPlayer by lazy {
         val httpDataSourceFactory = OkHttpDataSource.Factory(okHttpClient)
@@ -85,10 +87,17 @@ class PlayerManager @Inject constructor(
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .build().apply {
                 addListener(playerListener)
+                if (audioSessionId != 0 && audioSessionId != C.AUDIO_SESSION_ID_UNSET) {
+                    audioNormalizer.attach(audioSessionId)
+                }
             }
     }
 
     private val playerListener = object : Player.Listener {
+        override fun onAudioSessionIdChanged(audioSessionId: Int) {
+            audioNormalizer.attach(audioSessionId)
+        }
+
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             _playbackState.update {
                 it.copy(
@@ -105,6 +114,9 @@ class PlayerManager @Inject constructor(
                 }
                 Player.STATE_READY -> {
                     retryCount = 0
+                    if (exoPlayer.audioSessionId != 0 && exoPlayer.audioSessionId != C.AUDIO_SESSION_ID_UNSET) {
+                        audioNormalizer.attach(exoPlayer.audioSessionId)
+                    }
                     val duration = if (exoPlayer.duration > 0) exoPlayer.duration else 0L
                     _playbackState.update {
                         it.copy(
@@ -269,6 +281,9 @@ class PlayerManager @Inject constructor(
         exoPlayer.setMediaItem(mediaItem)
         exoPlayer.prepare()
         exoPlayer.play()
+        if (exoPlayer.audioSessionId != 0 && exoPlayer.audioSessionId != C.AUDIO_SESSION_ID_UNSET) {
+            audioNormalizer.attach(exoPlayer.audioSessionId)
+        }
 
         try {
             val serviceIntent = Intent(context, PlaybackService::class.java)
@@ -589,5 +604,13 @@ class PlayerManager @Inject constructor(
                     .build()
             )
             .build()
+    }
+
+    fun release() {
+        try {
+            audioNormalizer.release()
+        } catch (_: Exception) {
+        }
+        exoPlayer.release()
     }
 }

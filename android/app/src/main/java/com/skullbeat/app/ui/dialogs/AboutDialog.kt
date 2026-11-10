@@ -49,6 +49,7 @@ fun AboutDialog(
     onDismiss: () -> Unit
 ) {
     val updates = listOf(
+        "Audio Flow Volume Sync" to "Automatic broadcast-grade loudness normalization syncs volume across all songs without sacrificing dynamic quality.",
         "Swipe-to-Queue (Spotify-Style)" to "Slide any song left to right to queue it up next in order. When queue finishes, playback returns to playlist in shuffle or regular order.",
         "Smart Multi-Touch Loop" to "Single touch loops song continuously. Double touch loops 1 time. Triple touch loops 2 times. Turn OFF anytime with a single touch.",
         "1-Touch Instant Play" to "Tap any song text to play immediately without double-pressing the play button.",
