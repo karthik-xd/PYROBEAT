@@ -12,7 +12,7 @@ import subprocess
 from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
 from pydantic import BaseModel
 import uvicorn
 from ytmusicapi import YTMusic
@@ -273,34 +273,73 @@ def api_get_playlist(url_or_id: str = Query(..., description="Spotify or YouTube
         return extract_youtube_playlist(clean)
 
 
+STREAM_URL_CACHE: Dict[str, str] = {}
+
+
 @app.get("/api/stream/{video_id}")
-def api_stream_url(video_id: str):
+def api_stream_url(video_id: str, q: Optional[str] = None, redirect: bool = False):
     """Extracts raw, ad-free audio stream URL without downloading video."""
-    ydl_opts = {
-        "format": "bestaudio/best",
-        "quiet": True,
-        "skip_download": True,
-        "js_runtimes": {"node": {}},
+    target_vid = (video_id or "").strip()
+    
+    # Auto-resolve if pending or placeholder
+    if not target_vid or target_vid.startswith("pending") or target_vid in ("undefined", "null", "none"):
+        if q and q.strip():
+            try:
+                results = search_music(q.strip(), limit=1)
+                if results and results[0].get("videoId"):
+                    target_vid = results[0]["videoId"]
+                else:
+                    raise HTTPException(status_code=404, detail="Track audio not found")
+            except HTTPException:
+                raise
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Resolve failed: {e}")
+        else:
+            raise HTTPException(status_code=400, detail="Missing video ID or search query")
+
+    # Fast in-memory cache
+    stream_url = STREAM_URL_CACHE.get(target_vid)
+    title = target_vid
+    channel = ""
+    abr = None
+    fmt_note = "webm"
+
+    if not stream_url:
+        ydl_opts = {
+            "format": "bestaudio/best",
+            "quiet": True,
+            "skip_download": True,
+            "js_runtimes": {"node": {}},
+        }
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(target_vid, download=False)
+                stream_url = info.get("url")
+                if not stream_url:
+                    raise HTTPException(status_code=404, detail="Audio stream not found")
+                title = info.get("title") or target_vid
+                channel = info.get("uploader") or info.get("channel") or ""
+                fmt_note = info.get("format_note") or info.get("ext") or "webm"
+                abr = info.get("abr")
+                STREAM_URL_CACHE[target_vid] = stream_url
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+    if redirect:
+        return RedirectResponse(url=stream_url, status_code=307)
+
+    return {
+        "videoId": target_vid,
+        "title": title,
+        "channel": channel,
+        "stream_url": stream_url,
+        "format": fmt_note,
+        "bitrate": abr
     }
-    try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(video_id, download=False)
-            stream_url = info.get("url")
-            if not stream_url:
-                raise HTTPException(status_code=404, detail="Audio stream not found")
-            return {
-                "videoId": video_id,
-                "title": info.get("title"),
-                "channel": info.get("uploader") or info.get("channel"),
-                "stream_url": stream_url,
-                "format": info.get("format_note") or info.get("ext"),
-                "bitrate": info.get("abr")
-            }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/download/{video_id}")
 def api_download(video_id: str):
     """Downloads audio-only track to user's Downloads folder if requested."""
     out_template = str(DOWNLOADS_DIR / "%(title)s.%(ext)s")
@@ -767,38 +806,89 @@ var SPIN='<svg class="ic spin" viewBox="0 0 24 24" style="width:26px;height:26px
 var HEART='<svg class="ic" viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>';
 
 var audio=document.getElementById('audio');
-var S={cur:null,playing:false,pos:0,shuf:false,rep:false,panel:'queue',tab:'all',by:'all',queue:[],history:[],playlists:{},likedIds:new Set(),allTracks:[],searchTracks:[],streamCache:{}};
+document.addEventListener('pointerdown',function unlock(){
+  if(audio&&!audio.unlocked){
+    audio.play().then(function(){audio.pause();audio.currentTime=0;audio.unlocked=true}).catch(function(){});
+    document.removeEventListener('pointerdown',unlock);
+  }
+},{once:true});
+var S={
+  cur:null,
+  playing:false,
+  loading:false,
+  pos:0,
+  shuf:false,
+  rep:false,
+  panel:'queue',
+  tab:'all',
+  by:'all',
+  selectedPlaylist:null,
+  queue:[],
+  history:[],
+  playlists:{},
+  likedIds:new Set(),
+  allTracks:[],
+  searchTracks:[],
+  streamCache:{}
+};
 
 function show(v){
   document.querySelectorAll('.view').forEach(function(e){e.classList.toggle('on',e.id==='v-'+v)});
   document.querySelectorAll('.nb').forEach(function(b){b.classList.toggle('on',b.dataset.v===v)});
-  $('#main').scrollTop=0; if(location.hash!=='#'+v)history.replaceState(null,'','#'+v);
-  if(v==='search')setTimeout(function(){$('#sq').focus()},0);
+  $('#main').scrollTop=0;
+  if(location.hash!=='#'+v)history.replaceState(null,'','#'+v);
+  if(v==='search')setTimeout(function(){$('#sq').focus()},50);
 }
 document.querySelectorAll('.nb').forEach(function(b){b.onclick=function(){show(b.dataset.v)}});
 
 function isLiked(id){return S.likedIds.has(id)}
-function trackBg(t,i){return t&&t.thumbnail?'url("'+t.thumbnail+'") center/cover no-repeat':(t&&t.g?t.g:G[(i||0)%G.length])}
+function trackBg(t,i){return t&&t.thumbnail&&t.thumbnail!=='/logo.png'?'url("'+t.thumbnail+'") center/cover no-repeat, '+(t.g||G[(i||0)%G.length]):(t&&t.g?t.g:G[(i||0)%G.length])}
 
 function rows(list,empty){
   if(!list||!list.length)return'<p class="empty">'+empty+'</p>';
   return'<div class="th"><span>#</span><span>Title</span><span>Album</span><span>Time</span><span></span></div>'+list.map(function(t,i){
-    var cur=S.cur&&((S.cur.videoId&&S.cur.videoId===t.videoId)||(S.cur.id===t.id));
+    var cur=S.cur&&((S.cur.videoId&&S.cur.videoId===t.videoId)||(S.cur.id===t.id)||(S.cur.t&&S.cur.t===t.t));
     var bg=trackBg(t,i);
     var liked=isLiked(t.videoId||t.id);
     return'<div class="tr'+(cur?' cur':'')+'" role="button" tabindex="0" data-tid="'+esc(t.videoId||t.id)+'"><span class="n">'+(i+1)+'</span><div class="nm"><i style="background:'+bg+'"></i><div><p class="t">'+esc(t.t)+'</p><p class="a">'+esc(t.a)+'</p></div></div><p class="al2">'+esc(t.al||'Single')+'</p><span class="d">'+fmt(t.d)+'</span><button class="heart'+(liked?' on':'')+'" data-like="'+esc(t.videoId||t.id)+'" aria-label="Like">'+HEART+'</button></div>'}).join('');
 }
 
 function match(t,q,k){
-  if(!q)return true;q=q.toLowerCase();
-  var f={artist:t.a,title:t.t,album:t.al,all:(t.t+' '+t.a+' '+(t.al||''))}[k];
+  if(!q)return true;
+  q=q.toLowerCase();
+  var f={artist:t.a||'',title:t.t||'',album:t.al||'',all:(t.t+' '+(t.a||'')+' '+(t.al||''))}[k]||'';
   return f.toLowerCase().indexOf(q)>-1;
 }
 
 function renderLib(){
-  var lo=+$('#dmin').value,hi=+$('#dmax').value;if(lo>hi){var x=lo;lo=hi;hi=x}
+  var lo=+$('#dmin').value,hi=+$('#dmax').value;
+  if(lo>hi){var x=lo;lo=hi;hi=x}
   $('#dlab').textContent=fmt(lo)+' – '+fmt(hi);
   
+  if(S.tab==='playlist'&&S.selectedPlaylist){
+    var val=S.playlists[S.selectedPlaylist];
+    var list=Array.isArray(val)?val:(val&&val.songs?val.songs:[]);
+    var plTracks=list.map(function(item,i){
+      return{
+        id:item.videoId||item.title||('p_'+i),
+        videoId:item.videoId,
+        t:item.title,
+        a:item.channel||item.artist||'Unknown',
+        al:item.album||S.selectedPlaylist||'Single',
+        d:parseSec(item.duration),
+        thumbnail:item.thumbnail,
+        g:G[i%G.length]
+      };
+    });
+    var q=$('#lq').value.trim();
+    var filtered=plTracks.filter(function(t){
+      return match(t,q,S.by)&&t.d>=lo&&t.d<=hi;
+    });
+    $('#cnt').textContent=filtered.length+' tracks';
+    $('#lib').innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px"><div><h2 style="margin:0 0 4px 0">'+esc(S.selectedPlaylist)+'</h2><p class="a">'+list.length+' tracks in this playlist</p></div><div style="display:flex;gap:8px"><button class="chip on" data-act="play-all" data-pl="'+esc(S.selectedPlaylist)+'">▶ Play All</button><button class="chip" data-act="shuf-pl" data-pl="'+esc(S.selectedPlaylist)+'">🔀 Shuffle</button><button class="chip" data-act="back-playlists">← Back</button></div></div>'+rows(filtered,'No tracks match your filters');
+    return;
+  }
+
   if(S.tab==='playlists'){
     var plKeys=Object.keys(S.playlists);
     if(!plKeys.length){$('#cnt').textContent='0 playlists';$('#lib').innerHTML='<p class="empty">No playlists yet. Click "+ Import" to add one.</p>';return}
@@ -824,8 +914,21 @@ function renderLib(){
   $('#lib').innerHTML=rows(filtered,'No tracks match your filters');
 }
 
-$('#tabs').onclick=function(e){var b=e.target.closest('.chip');if(!b)return;S.tab=b.dataset.t;this.querySelectorAll('.chip').forEach(function(c){c.classList.toggle('on',c===b)});renderLib()};
-$('#by').onclick=function(e){var b=e.target.closest('.chip');if(!b)return;S.by=b.dataset.k;this.querySelectorAll('.chip').forEach(function(c){c.classList.toggle('on',c===b)});renderLib()};
+$('#tabs').onclick=function(e){
+  var b=e.target.closest('.chip');
+  if(!b)return;
+  S.tab=b.dataset.t;
+  S.selectedPlaylist=null;
+  this.querySelectorAll('.chip').forEach(function(c){c.classList.toggle('on',c===b)});
+  renderLib();
+};
+$('#by').onclick=function(e){
+  var b=e.target.closest('.chip');
+  if(!b)return;
+  S.by=b.dataset.k;
+  this.querySelectorAll('.chip').forEach(function(c){c.classList.toggle('on',c===b)});
+  renderLib();
+};
 ['#lq','#dmin','#dmax'].forEach(function(s){$(s).oninput=renderLib});
 
 /* Search */
@@ -925,66 +1028,59 @@ function paintPanel(){
   $('#pq').className='';
 }
 
-/* Audio Playback Engine */
-async function playTrack(track,origin){
+/* Audio Playback Engine - Synchronous Direct Stream */
+function playTrack(track,origin){
   if(!track)return;
-  S.cur=track;S.pos=0;S.playing=false;S.loading=true;
+  S.cur=track;
+  S.pos=0;
+  S.playing=true;
+  S.loading=true;
   if(origin)$('#from').textContent='PLAYING FROM '+(origin.toUpperCase());
   paintPlayer();
 
-  if(!track.videoId||track.videoId.startsWith('pending_')){
-    try{
-      var q=(track.t+' '+(track.a||'')).trim();
-      var rRes=await fetch('/api/resolve_track?q='+encodeURIComponent(q));
-      if(rRes.ok){
-        var matched=await rRes.json();
-        if(matched&&matched.videoId){
-          track.videoId=matched.videoId;
-          track.thumbnail=matched.thumbnail||track.thumbnail;
-          track.d=parseSec(matched.duration)||track.d;
-        }
-      }
-    }catch(e){console.warn('Resolve error:',e)}
-  }
+  var vid=track.videoId||track.id||'';
+  var q=(track.t+' '+(track.a||'')).trim();
+  var directUrl='/api/stream/'+encodeURIComponent(vid)+'?redirect=1&q='+encodeURIComponent(q);
 
-  if(!track.videoId||track.videoId.startsWith('pending_')){
-    S.loading=false;paintPlayer();
-    alert('Could not find stream for: '+track.t);
-    return;
-  }
-
-  if('mediaSession' in navigator){
-    navigator.mediaSession.metadata=new MediaMetadata({
-      title:track.t,artist:track.a,album:track.al||'SKULLBEAT',
-      artwork:[{src:track.thumbnail||'/logo.png',sizes:'512x512',type:'image/jpeg'}]
+  // Set audio source synchronously and play immediately within trusted user event
+  audio.src=directUrl;
+  var p=audio.play();
+  if(p!==undefined){
+    p.then(function(){
+      S.playing=true;
+      S.loading=false;
+      paintPlayer();
+    }).catch(function(err){
+      console.warn('Playback notice:',err);
+      // Fallback: If autoplay policy tripped, user clicking play button will trigger
+      S.playing=false;
+      S.loading=false;
+      paintPlayer();
     });
   }
 
-  try{fetch('/api/history',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({videoId:track.videoId,title:track.t,channel:track.a,thumbnail:track.thumbnail,duration:fmt(track.d)})})}catch(e){}
+  if('mediaSession' in navigator){
+    try{
+      navigator.mediaSession.metadata=new MediaMetadata({
+        title:track.t,artist:track.a,album:track.al||'SKULLBEAT',
+        artwork:[{src:track.thumbnail||'/logo.png',sizes:'512x512',type:'image/jpeg'}]
+      });
+    }catch(e){}
+  }
 
   try{
-    var streamUrl=S.streamCache[track.videoId];
-    if(!streamUrl){
-      var res=await fetch('/api/stream/'+track.videoId);
-      var data=await res.json();
-      streamUrl=data.stream_url;
-      if(streamUrl)S.streamCache[track.videoId]=streamUrl;
-    }
-    if(streamUrl){
-      audio.src=streamUrl;
-      audio.play().then(function(){
-        S.playing=true;S.loading=false;paintPlayer();
-      }).catch(function(err){
-        console.warn('Play error:',err);
-        S.playing=false;S.loading=false;paintPlayer();
-      });
-    }else{
-      S.loading=false;paintPlayer();
-    }
-  }catch(err){
-    console.error('Stream fetch error:',err);
-    S.loading=false;paintPlayer();
-  }
+    fetch('/api/history',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        videoId:vid,
+        title:track.t,
+        channel:track.a,
+        thumbnail:track.thumbnail,
+        duration:fmt(track.d)
+      })
+    });
+  }catch(e){}
 
   fetchLyrics(track);
 }
@@ -1005,13 +1101,24 @@ async function fetchLyrics(track){
   if(S.panel==='lyrics')paintPanel();
 }
 
+/* Audio Events */
+audio.onloadstart=function(){S.loading=true;paintPlayer()};
+audio.onwaiting=function(){S.loading=true;paintPlayer()};
+audio.onplaying=function(){S.loading=false;S.playing=true;paintPlayer()};
+audio.onplay=function(){S.loading=false;S.playing=true;paintPlayer()};
+audio.onpause=function(){S.playing=false;paintPlayer()};
+audio.onerror=function(){
+  console.error('Audio load error:',audio.error);
+  S.loading=false;S.playing=false;paintPlayer();
+};
 audio.ontimeupdate=function(){
   S.pos=Math.round(audio.currentTime);
   paintProg();
 };
-audio.onplay=function(){S.playing=true;S.loading=false;paintPlayer()};
-audio.onpause=function(){S.playing=false;paintPlayer()};
-audio.onended=function(){if(S.rep){audio.currentTime=0;audio.play()}else{step(1)}};
+audio.onended=function(){
+  if(S.rep){audio.currentTime=0;audio.play()}
+  else{step(1)}
+};
 
 function step(d){
   if(!S.queue.length&&S.allTracks.length){S.queue=S.allTracks.slice()}
@@ -1024,14 +1131,35 @@ function step(d){
 
 /* Controls */
 $('#pp').onclick=function(){
-  if(!S.cur){if(S.allTracks.length)playTrack(S.allTracks[0],'Library');return}
-  if(audio.paused)audio.play();else audio.pause();
+  if(!S.cur){
+    if(S.allTracks.length)playTrack(S.allTracks[0],'Library');
+    return;
+  }
+  if(audio.paused){
+    if(!audio.src){
+      playTrack(S.cur);
+    }else{
+      audio.play().catch(function(e){
+        console.warn('Play error:',e);
+        playTrack(S.cur);
+      });
+    }
+  }else{
+    audio.pause();
+  }
 };
 $('#next').onclick=function(){step(1)};
 $('#prev').onclick=function(){if(audio.currentTime>4){audio.currentTime=0}else step(-1)};
 $('#shuf').onclick=function(){S.shuf=!S.shuf;paintPlayer()};
 $('#rep').onclick=function(){S.rep=!S.rep;paintPlayer()};
-$('#seek').oninput=function(){audio.currentTime=+this.value;S.pos=+this.value;paintProg()};
+$('#seek').oninput=function(){
+  var val=+this.value;
+  S.pos=val;
+  if(audio.duration&&!isNaN(audio.duration)&&audio.readyState>=1){
+    audio.currentTime=val;
+  }
+  paintProg();
+};
 $('#vol').oninput=function(){
   var v=+this.value/100;audio.volume=v;
   this.style.setProperty('--p',this.value+'%');
@@ -1042,12 +1170,80 @@ $('#mute-btn').onclick=function(){
   $('#vol-ic').style.opacity=audio.muted?'.3':'1';
 };
 $('#dl').onclick=function(){
-  if(!S.cur||!S.cur.videoId)return;
-  window.open('/api/download/'+S.cur.videoId,'_blank');
+  if(!S.cur)return;
+  var vid=S.cur.videoId;
+  if(!vid||vid.startsWith('pending_'))return;
+  window.open('/api/download/'+vid,'_blank');
 };
 
-/* Clicks */
+/* Playlist Operations */
+function openPlaylist(name){
+  S.selectedPlaylist=name;
+  S.tab='playlist';
+  document.querySelectorAll('#tabs .chip').forEach(function(c){
+    c.classList.toggle('on',false);
+  });
+  show('library');
+  renderLib();
+}
+
+function playPlaylist(name,startIdx){
+  var val=S.playlists[name];
+  var list=Array.isArray(val)?val:(val&&val.songs?val.songs:[]);
+  if(!list||!list.length)return;
+  var mapped=list.map(function(item,i){
+    return{
+      id:item.videoId||item.title||('p_'+i),
+      videoId:item.videoId,
+      t:item.title,
+      a:item.channel||item.artist||'Unknown',
+      al:item.album||name||'Single',
+      d:parseSec(item.duration),
+      thumbnail:item.thumbnail,
+      g:G[i%G.length]
+    };
+  });
+  var s=startIdx||0;
+  S.queue=mapped.slice(s+1);
+  playTrack(mapped[s],name);
+}
+
+/* Master Click Router */
 document.addEventListener('click',function(e){
+  // Back to playlists button
+  var backBtn=e.target.closest('[data-act="back-playlists"]');
+  if(backBtn){
+    S.tab='playlists';
+    document.querySelectorAll('#tabs .chip').forEach(function(c){
+      c.classList.toggle('on',c.dataset.t==='playlists');
+    });
+    renderLib();
+    return;
+  }
+
+  // Play All playlist button
+  var playAllBtn=e.target.closest('[data-act="play-all"]');
+  if(playAllBtn){
+    var plName=playAllBtn.dataset.pl||S.selectedPlaylist;
+    if(plName)playPlaylist(plName,0);
+    return;
+  }
+
+  // Shuffle playlist button
+  var shufBtn=e.target.closest('[data-act="shuf-pl"]');
+  if(shufBtn){
+    var plName=shufBtn.dataset.pl||S.selectedPlaylist;
+    var val=S.playlists[plName];
+    var list=Array.isArray(val)?val:(val&&val.songs?val.songs:[]);
+    if(list.length){
+      var rIdx=Math.floor(Math.random()*list.length);
+      S.shuf=true;
+      playPlaylist(plName,rIdx);
+    }
+    return;
+  }
+
+  // Like heart
   var l=e.target.closest('[data-like]');
   if(l){
     e.stopPropagation();
@@ -1057,18 +1253,61 @@ document.addEventListener('click',function(e){
     paintPlayer();
     return;
   }
+
+  // Track row / card
   var r=e.target.closest('[data-tid]');
   if(r){
     var id=r.dataset.tid;
-    var t=[].concat(S.allTracks,S.searchTracks,S.history).find(function(x){return(x.videoId||x.id)===id});
-    if(t)playTrack(t,'Selection');
+    var all=[].concat(S.allTracks,S.searchTracks,S.history,S.queue);
+    if(S.cur)all.push(S.cur);
+    if(S.selectedPlaylist&&S.playlists[S.selectedPlaylist]){
+      var pSongs=S.playlists[S.selectedPlaylist].songs||[];
+      all=all.concat(pSongs.map(function(item,i){
+        return{
+          id:item.videoId||item.title||('p_'+i),
+          videoId:item.videoId,
+          t:item.title,
+          a:item.channel||item.artist||'Unknown',
+          al:item.album||S.selectedPlaylist||'Single',
+          d:parseSec(item.duration),
+          thumbnail:item.thumbnail,
+          g:G[i%G.length]
+        };
+      }));
+    }
+    var t=all.find(function(x){
+      return (x.videoId&&x.videoId===id)||(x.id&&x.id===id)||(x.t&&x.t===id);
+    });
+    if(t)playTrack(t,S.selectedPlaylist||'Selection');
     return;
   }
+
+  // Playlist card or sidebar playlist button
   var qb=e.target.closest('[data-pl]');
   if(qb){
     var plName=qb.dataset.pl;
-    playPlaylist(plName);
+    if(qb.classList.contains('pl')||qb.closest('#lib')){
+      openPlaylist(plName);
+    }else{
+      playPlaylist(plName,0);
+    }
+    return;
   }
+
+  // Logo click
+  var logo=e.target.closest('.logo');
+  if(logo){
+    show('home');
+    return;
+  }
+});
+
+/* Keyboard shortcuts */
+document.addEventListener('keydown',function(e){
+  if(e.target.matches('input'))return;
+  if(e.code==='Space'){e.preventDefault();$('#pp').click()}
+  if(e.key==='ArrowRight'&&e.shiftKey)step(1);
+  if(e.key==='ArrowLeft'&&e.shiftKey)step(-1);
 });
 
 $('#rlike').onclick=function(){
@@ -1099,62 +1338,45 @@ async function doImportUrl(){
   var url=$('#import-url').value.trim();
   if(!url)return;
   closeImport();
-  alert('Importing playlist...');
+  alert('Importing '+url+' ...');
   try{
     var res=await fetch('/api/playlist?url='+encodeURIComponent(url));
-    if(res.ok){
-      var data=await res.json();
-      await loadLibrary();
-      alert('Imported playlist with '+(data.tracks?data.tracks.length:0)+' songs!');
+    var data=await res.json();
+    if(data.success){
+      alert('Imported '+data.total+' tracks successfully!');
+      loadLibrary();
+    }else{
+      alert('Import failed: '+(data.detail||data.message||'Unknown error'));
     }
-  }catch(e){alert('Import failed: '+e)}
+  }catch(e){
+    alert('Import error: '+e.message);
+  }
 }
 
-$('#csv-in').onchange=function(e){
+$('#csv-in').onchange=async function(e){
   var file=e.target.files[0];
   if(!file)return;
+  var name=file.name.replace(/\.[^/.]+$/,'');
+  var content=await file.text();
   closeImport();
-  var reader=new FileReader();
-  reader.onload=async function(evt){
-    try{
-      var res=await fetch('/api/import_csv',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          filename:file.name,
-          content:evt.target.result,
-          playlist_name:file.name.replace(/\.csv$/i,'').replace(/_/g,' ')
-        })
-      });
-      if(res.ok){
-        var data=await res.json();
-        await loadLibrary();
-        alert('Imported '+data.count+' tracks into '+data.playlist_name);
-      }
-    }catch(err){alert('CSV import error: '+err)}
-  };
-  reader.readAsText(file);
+  alert('Importing '+file.name+' ...');
+  try{
+    var res=await fetch('/api/import_csv',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name:name,content:content})
+    });
+    var data=await res.json();
+    if(data.success){
+      alert('Imported '+data.count+' tracks into "'+data.playlist+'"!');
+      loadLibrary();
+    }else{
+      alert('Import error: '+(data.detail||'Failed'));
+    }
+  }catch(err){
+    alert('Import failed: '+err.message);
+  }
 };
-
-function playPlaylist(name){
-  var val=S.playlists[name];
-  var list=Array.isArray(val)?val:(val&&val.songs?val.songs:[]);
-  if(!list||!list.length)return;
-  var mapped=list.map(function(item,i){
-    return{
-      id:item.videoId||('pl_'+i),
-      videoId:item.videoId,
-      t:item.title,
-      a:item.channel||item.artist||'Unknown',
-      al:item.album||name,
-      d:parseSec(item.duration),
-      thumbnail:item.thumbnail,
-      g:G[i%G.length]
-    };
-  });
-  S.queue=mapped.slice(1);
-  playTrack(mapped[0],name);
-}
 
 /* Init / Data Loading */
 async function loadLibrary(){
