@@ -26,13 +26,16 @@ interface MusicRepository {
     suspend fun toggleFavorite(track: Track)
     fun getFavorites(): Flow<List<Track>>
 
-    suspend fun createPlaylist(name: String, emoji: String, colorHex: String): Long
-    suspend fun updatePlaylist(playlistId: Long, name: String, emoji: String, colorHex: String)
+    suspend fun createPlaylist(name: String, emoji: String = "🎵", colorHex: String = "#3D8BFF", coverPath: String? = null): Long
+    suspend fun updatePlaylist(playlistId: Long, name: String, emoji: String = "🎵", colorHex: String = "#3D8BFF", coverPath: String? = null)
+    suspend fun updatePlaylistCover(playlistId: Long, coverPath: String?)
+    suspend fun updatePlaylistName(playlistId: Long, name: String)
+    suspend fun isTrackInPlaylist(playlistId: Long, videoId: String): Boolean
     suspend fun deletePlaylist(playlistId: Long)
     fun getPlaylists(): Flow<List<Playlist>>
     fun getPlaylist(playlistId: Long): Flow<Playlist?>
     fun getPlaylistTracks(playlistId: Long): Flow<List<Track>>
-    suspend fun addTrackToPlaylist(playlistId: Long, track: Track)
+    suspend fun addTrackToPlaylist(playlistId: Long, track: Track): Boolean
     suspend fun removeTrackFromPlaylist(playlistId: Long, videoId: String)
 
     suspend fun recordPlay(track: Track)

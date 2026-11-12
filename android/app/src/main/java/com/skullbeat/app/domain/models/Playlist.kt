@@ -9,5 +9,6 @@ data class Playlist(
     val name: String,
     val emoji: String = "🎵",
     val colorHex: String = "#3D8BFF",
+    val coverPath: String? = null,
     val createdAt: Long = System.currentTimeMillis()
 )

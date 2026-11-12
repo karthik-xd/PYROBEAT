@@ -133,8 +133,8 @@ class MusicRepositoryImpl @Inject constructor(
         return db.favoriteDao().getFavoriteTracksFlow()
     }
 
-    override suspend fun createPlaylist(name: String, emoji: String, colorHex: String): Long {
-        val playlist = Playlist(name = name, emoji = emoji, colorHex = colorHex)
+    override suspend fun createPlaylist(name: String, emoji: String, colorHex: String, coverPath: String?): Long {
+        val playlist = Playlist(name = name, emoji = emoji, colorHex = colorHex, coverPath = coverPath)
         return db.playlistDao().insertPlaylist(playlist)
     }
 
@@ -142,12 +142,35 @@ class MusicRepositoryImpl @Inject constructor(
         playlistId: Long,
         name: String,
         emoji: String,
-        colorHex: String
+        colorHex: String,
+        coverPath: String?
     ) {
-        db.playlistDao().updatePlaylist(playlistId, name, emoji, colorHex)
+        val oldCover = db.playlistDao().getCoverPath(playlistId)
+        if (oldCover != null && oldCover != coverPath) {
+            com.skullbeat.app.domain.util.ImageUtils.deleteCoverFile(oldCover)
+        }
+        db.playlistDao().updatePlaylistFull(playlistId, name, emoji, colorHex, coverPath)
+    }
+
+    override suspend fun updatePlaylistCover(playlistId: Long, coverPath: String?) {
+        val oldCover = db.playlistDao().getCoverPath(playlistId)
+        if (oldCover != null && oldCover != coverPath) {
+            com.skullbeat.app.domain.util.ImageUtils.deleteCoverFile(oldCover)
+        }
+        db.playlistDao().updatePlaylistCover(playlistId, coverPath)
+    }
+
+    override suspend fun updatePlaylistName(playlistId: Long, name: String) {
+        db.playlistDao().updatePlaylistName(playlistId, name)
+    }
+
+    override suspend fun isTrackInPlaylist(playlistId: Long, videoId: String): Boolean {
+        return db.playlistDao().isTrackInPlaylist(playlistId, videoId) > 0
     }
 
     override suspend fun deletePlaylist(playlistId: Long) {
+        val oldCover = db.playlistDao().getCoverPath(playlistId)
+        com.skullbeat.app.domain.util.ImageUtils.deleteCoverFile(oldCover)
         db.playlistDao().deletePlaylist(playlistId)
     }
 
@@ -163,9 +186,13 @@ class MusicRepositoryImpl @Inject constructor(
         return db.playlistDao().getPlaylistTracksFlow(playlistId)
     }
 
-    override suspend fun addTrackToPlaylist(playlistId: Long, track: Track) {
+    override suspend fun addTrackToPlaylist(playlistId: Long, track: Track): Boolean {
+        if (isTrackInPlaylist(playlistId, track.videoId)) {
+            return false
+        }
         db.trackDao().insertTrack(track)
         db.playlistDao().addTrackToPlaylist(playlistId, track.videoId)
+        return true
     }
 
     override suspend fun removeTrackFromPlaylist(playlistId: Long, videoId: String) {

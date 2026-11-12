@@ -26,7 +26,9 @@ object DatabaseModule {
             context,
             AppDatabase::class.java,
             "skullbeat.db"
-        ).fallbackToDestructiveMigration().build()
+        ).addMigrations(AppDatabase.MIGRATION_1_2)
+            .fallbackToDestructiveMigration()
+            .build()
     }
 
     @Provides
