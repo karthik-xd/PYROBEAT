@@ -79,4 +79,24 @@ class PlaylistViewModel @Inject constructor(
             repository.toggleFavorite(track)
         }
     }
+
+    fun addTrack(track: Track) {
+        viewModelScope.launch {
+            try {
+                repository.addTrackToPlaylist(playlistId, track)
+            } catch (e: Exception) {
+                android.util.Log.e("PlaylistViewModel", "Failed to add track", e)
+            }
+        }
+    }
+
+    suspend fun searchTracks(query: String): List<Track> {
+        val clean = query.trim()
+        if (clean.isBlank()) return emptyList()
+        return try {
+            repository.search(clean)
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
 }

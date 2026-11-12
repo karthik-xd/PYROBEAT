@@ -71,7 +71,6 @@ fun AddToPlaylistDialog(
                         .clip(RoundedCornerShape(8.dp))
                         .background(RaisedDark)
                         .clickable {
-                            onDismiss()
                             onCreateNewPlaylist()
                         }
                         .padding(12.dp),
@@ -109,7 +108,6 @@ fun AddToPlaylistDialog(
                                     .background(RaisedDark)
                                     .clickable {
                                         onSelectPlaylist(pl.id)
-                                        onDismiss()
                                     }
                                     .padding(10.dp),
                                 verticalAlignment = Alignment.CenterVertically

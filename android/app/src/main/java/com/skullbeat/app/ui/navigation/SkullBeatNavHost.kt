@@ -1,5 +1,7 @@
 package com.skullbeat.app.ui.navigation
 
+import android.util.Log
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -32,6 +34,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -77,6 +80,7 @@ import com.skullbeat.app.ui.theme.TextMuted
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun SkullBeatNavHost(
@@ -85,6 +89,7 @@ fun SkullBeatNavHost(
     navController: NavHostController = rememberNavController()
 ) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val playbackState by playerManager.playbackState.collectAsState()
     val playlists by repository.getPlaylists().collectAsState(initial = emptyList())
 
@@ -287,13 +292,21 @@ fun SkullBeatNavHost(
         }
 
         // Add to Playlist Dialog
-        if (selectedTrackForPlaylist != null) {
+        val trackForPlaylist = selectedTrackForPlaylist
+        if (trackForPlaylist != null) {
             AddToPlaylistDialog(
-                track = selectedTrackForPlaylist!!,
+                track = trackForPlaylist,
                 playlists = playlists,
                 onSelectPlaylist = { playlistId ->
-                    CoroutineScope(Dispatchers.IO).launch {
-                        repository.addTrackToPlaylist(playlistId, selectedTrackForPlaylist!!)
+                    coroutineScope.launch(Dispatchers.IO) {
+                        try {
+                            repository.addTrackToPlaylist(playlistId, trackForPlaylist)
+                            withContext(Dispatchers.Main) {
+                                Toast.makeText(context, "Added to playlist: ${trackForPlaylist.title}", Toast.LENGTH_SHORT).show()
+                            }
+                        } catch (e: Exception) {
+                            Log.e("NavHost", "Failed to add track to playlist", e)
+                        }
                     }
                     selectedTrackForPlaylist = null
                 },
@@ -306,33 +319,53 @@ fun SkullBeatNavHost(
 
         // Create Playlist Dialog
         if (showCreatePlaylistDialog) {
+            val pendingTrack = selectedTrackForPlaylist
             CreateEditPlaylistDialog(
                 onConfirm = { name, emoji, colorHex ->
-                    CoroutineScope(Dispatchers.IO).launch {
-                        val newId = repository.createPlaylist(name, emoji, colorHex)
-                        val track = selectedTrackForPlaylist
-                        if (track != null) {
-                            repository.addTrackToPlaylist(newId, track)
+                    coroutineScope.launch(Dispatchers.IO) {
+                        try {
+                            val newId = repository.createPlaylist(name, emoji, colorHex)
+                            if (pendingTrack != null) {
+                                repository.addTrackToPlaylist(newId, pendingTrack)
+                            }
+                            withContext(Dispatchers.Main) {
+                                val msg = if (pendingTrack != null) {
+                                    "Created \"$name\" and added ${pendingTrack.title}"
+                                } else {
+                                    "Playlist \"$name\" created"
+                                }
+                                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                            }
+                        } catch (e: Exception) {
+                            Log.e("NavHost", "Failed to create playlist", e)
                         }
                     }
                     selectedTrackForPlaylist = null
                     showCreatePlaylistDialog = false
                 },
-                onDismiss = { showCreatePlaylistDialog = false }
+                onDismiss = {
+                    selectedTrackForPlaylist = null
+                    showCreatePlaylistDialog = false
+                }
             )
         }
 
         // Edit Playlist Dialog
-        if (editingPlaylistInfo != null) {
-            val (id, initialName, emojiAndColor) = editingPlaylistInfo!!
+        val editingInfo = editingPlaylistInfo
+        if (editingInfo != null) {
+            val (id, initialName, emojiAndColor) = editingInfo
             CreateEditPlaylistDialog(
                 initialName = initialName,
                 initialEmoji = emojiAndColor.first,
                 initialColorHex = emojiAndColor.second,
                 isEdit = true,
                 onConfirm = { name, emoji, colorHex ->
-                    CoroutineScope(Dispatchers.IO).launch {
-                        repository.updatePlaylist(id, name, emoji, colorHex)
+                    coroutineScope.launch(Dispatchers.IO) {
+                        try {
+                            repository.updatePlaylist(id, name, emoji, colorHex)
+                        } catch (e: Exception) {
+                            Log.e("NavHost", "Failed to update playlist", e)
+                        }
                     }
                     editingPlaylistInfo = null
                 },
@@ -355,9 +388,10 @@ fun SkullBeatNavHost(
         }
 
         // Lyrics Dialog
-        if (selectedTrackForLyrics != null) {
+        val lyricsTrack = selectedTrackForLyrics
+        if (lyricsTrack != null) {
             LyricsDialog(
-                track = selectedTrackForLyrics!!,
+                track = lyricsTrack,
                 onDismiss = { selectedTrackForLyrics = null }
             )
         }
