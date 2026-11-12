@@ -109,4 +109,8 @@ class SearchViewModel @Inject constructor(
             repository.toggleFavorite(track)
         }
     }
+
+    fun addToQueue(track: Track) {
+        playerManager.addToUserQueue(track)
+    }
 }

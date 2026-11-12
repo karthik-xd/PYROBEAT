@@ -56,9 +56,10 @@ fun TrackListItem(
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
+    val rowModifier = if (onSwipeToQueue != null) Modifier else modifier
     val itemContent = @Composable {
         Row(
-            modifier = modifier
+            modifier = rowModifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(8.dp))
                 .background(if (isCurrentTrack) RaisedDark else androidx.compose.ui.graphics.Color.Transparent)

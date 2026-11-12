@@ -1,5 +1,6 @@
 package com.skullbeat.app.ui.screens.artist
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -59,6 +61,7 @@ fun ArtistScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val favorites by viewModel.favorites.collectAsState()
     val playbackState by viewModel.playbackState.collectAsState()
+    val context = LocalContext.current
 
     val favIds = remember(favorites) { favorites.map { it.videoId }.toSet() }
     val avatarUrl = songs.firstOrNull()?.thumbnailUrl.orEmpty()
@@ -160,7 +163,11 @@ fun ArtistScreen(
                         onToggleFavorite = { viewModel.toggleFavorite(track) },
                         onAddToPlaylist = { onAddToPlaylist(track) },
                         onDownload = { onDownload(track) },
-                        onArtistClick = onArtistClick
+                        onArtistClick = onArtistClick,
+                        onSwipeToQueue = {
+                            viewModel.addToQueue(track)
+                            Toast.makeText(context, "Added to queue: ${track.title}", Toast.LENGTH_SHORT).show()
+                        }
                     )
                 }
             }

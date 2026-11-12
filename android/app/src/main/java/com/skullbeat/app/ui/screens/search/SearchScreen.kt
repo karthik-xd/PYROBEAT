@@ -1,5 +1,6 @@
 package com.skullbeat.app.ui.screens.search
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -36,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -66,6 +68,7 @@ fun SearchScreen(
     val importLinkDetected by viewModel.importLinkDetected.collectAsState()
     val favorites by viewModel.favorites.collectAsState()
     val playbackState by viewModel.playbackState.collectAsState()
+    val context = LocalContext.current
 
     val favIds = remember(favorites) { favorites.map { it.videoId }.toSet() }
 
@@ -129,13 +132,14 @@ fun SearchScreen(
         Spacer(modifier = Modifier.height(12.dp))
 
         // Import link detected banner
-        if (importLinkDetected != null) {
+        val detectedLink = importLinkDetected
+        if (detectedLink != null) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(8.dp))
                     .background(RaisedDark)
-                    .clickable { onOpenImport(importLinkDetected!!) }
+                    .clickable { onOpenImport(detectedLink) }
                     .padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -193,7 +197,11 @@ fun SearchScreen(
                         onToggleFavorite = { viewModel.toggleFavorite(track) },
                         onAddToPlaylist = { onAddToPlaylist(track) },
                         onDownload = { onDownload(track) },
-                        onArtistClick = onArtistClick
+                        onArtistClick = onArtistClick,
+                        onSwipeToQueue = {
+                            viewModel.addToQueue(track)
+                            Toast.makeText(context, "Added to queue: ${track.title}", Toast.LENGTH_SHORT).show()
+                        }
                     )
                 }
             }

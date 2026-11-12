@@ -563,7 +563,7 @@ fun NowPlayingSheet(
                         remainingIndices.mapNotNull { if (it in playbackState.tracks.indices) playbackState.tracks[it] else null }
                     } else {
                         val nextIdx = playbackState.currentIndex + 1
-                        if (nextIdx in playbackState.tracks.indices) playbackState.tracks.subList(nextIdx, playbackState.tracks.size)
+                        if (nextIdx in playbackState.tracks.indices) playbackState.tracks.drop(nextIdx)
                         else emptyList()
                     }
 
