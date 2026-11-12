@@ -129,11 +129,11 @@ fun HomeScreen(
             )
 
             val displayPlaylists = remember(playlists) {
-                val list = mutableListOf<Pair<String, Long?>>()
-                playlists.take(4).forEach { list.add(it.name to it.id) }
+                val list = mutableListOf<Triple<String, Long?, Playlist?>>()
+                playlists.take(4).forEach { list.add(Triple(it.name, it.id, it)) }
                 val defaults = listOf("Synthwave Run", "Night Drive", "Phonk Gym", "Cyber Chill")
                 while (list.size < 4) {
-                    list.add(defaults[list.size] to null)
+                    list.add(Triple(defaults[list.size], null, null))
                 }
                 list
             }
@@ -147,12 +147,14 @@ fun HomeScreen(
                     PlaylistGridTile(
                         title = displayPlaylists[0].first,
                         gradient = tileGradients[0],
+                        playlist = displayPlaylists[0].third,
                         modifier = Modifier.weight(1f),
                         onClick = { displayPlaylists[0].second?.let(onPlaylistClick) }
                     )
                     PlaylistGridTile(
                         title = displayPlaylists[1].first,
                         gradient = tileGradients[1],
+                        playlist = displayPlaylists[1].third,
                         modifier = Modifier.weight(1f),
                         onClick = { displayPlaylists[1].second?.let(onPlaylistClick) }
                     )
@@ -166,12 +168,14 @@ fun HomeScreen(
                     PlaylistGridTile(
                         title = displayPlaylists[2].first,
                         gradient = tileGradients[2],
+                        playlist = displayPlaylists[2].third,
                         modifier = Modifier.weight(1f),
                         onClick = { displayPlaylists[2].second?.let(onPlaylistClick) }
                     )
                     PlaylistGridTile(
                         title = displayPlaylists[3].first,
                         gradient = tileGradients[3],
+                        playlist = displayPlaylists[3].third,
                         modifier = Modifier.weight(1f),
                         onClick = { displayPlaylists[3].second?.let(onPlaylistClick) }
                     )
@@ -253,6 +257,7 @@ fun HomeScreen(
 private fun PlaylistGridTile(
     title: String,
     gradient: Brush,
+    playlist: Playlist?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -264,11 +269,20 @@ private fun PlaylistGridTile(
             .clickable(onClick = onClick),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(54.dp)
-                .background(gradient)
-        )
+        if (playlist != null) {
+            com.skullbeat.app.ui.components.PlaylistCover(
+                playlist = playlist,
+                size = 54.dp,
+                shape = RoundedCornerShape(topStart = 10.dp, bottomStart = 10.dp),
+                emojiSizeSp = 22
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(54.dp)
+                    .background(gradient)
+            )
+        }
         Text(
             text = title,
             style = MaterialTheme.typography.titleSmall.copy(

@@ -76,7 +76,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun PlaylistDetailScreen(
     onBack: () -> Unit,
-    onEditPlaylist: (Long, String, String, String) -> Unit,
+    onEditPlaylist: (com.skullbeat.app.domain.models.Playlist) -> Unit,
     onOpenImport: () -> Unit,
     onArtistClick: (String) -> Unit,
     onAddToPlaylist: (Track) -> Unit,
@@ -133,9 +133,7 @@ fun PlaylistDetailScreen(
                 // Edit Playlist button
                 IconButton(
                     onClick = {
-                        playlist?.let {
-                            onEditPlaylist(it.id, it.name, it.emoji, it.colorHex)
-                        }
+                        playlist?.let { onEditPlaylist(it) }
                     },
                     modifier = Modifier
                         .size(36.dp)
@@ -179,15 +177,14 @@ fun PlaylistDetailScreen(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(90.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(bgColor),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(text = playlist?.emoji ?: "🎵", fontSize = 42.sp)
-            }
+            com.skullbeat.app.ui.components.PlaylistCover(
+                playlist = playlist,
+                size = 96.dp,
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.clickable {
+                    playlist?.let { onEditPlaylist(it) }
+                }
+            )
 
             Spacer(modifier = Modifier.width(16.dp))
 
@@ -319,6 +316,21 @@ fun PlaylistDetailScreen(
                         onSwipeToQueue = {
                             viewModel.addToQueue(track)
                             Toast.makeText(context, "Added to queue: ${track.title}", Toast.LENGTH_SHORT).show()
+                        },
+                        onSwipeAction = { action ->
+                            when (action) {
+                                com.skullbeat.app.ui.components.SwipeAction.ADD_TO_QUEUE -> {
+                                    viewModel.addToQueue(track)
+                                    Toast.makeText(context, "Added to queue: ${track.title}", Toast.LENGTH_SHORT).show()
+                                }
+                                com.skullbeat.app.ui.components.SwipeAction.PLAY_NEXT -> {
+                                    viewModel.addToQueue(track)
+                                    Toast.makeText(context, "Playing next: ${track.title}", Toast.LENGTH_SHORT).show()
+                                }
+                                com.skullbeat.app.ui.components.SwipeAction.ADD_TO_PLAYLIST -> {
+                                    onAddToPlaylist(track)
+                                }
+                            }
                         }
                     )
                 }

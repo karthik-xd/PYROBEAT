@@ -53,6 +53,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.work.Data
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import com.skullbeat.app.domain.models.Playlist
 import com.skullbeat.app.domain.models.Track
 import com.skullbeat.app.domain.repository.MusicRepository
 import com.skullbeat.app.download.DownloadWorker
@@ -98,7 +99,7 @@ fun SkullBeatNavHost(
 
     var selectedTrackForPlaylist by remember { mutableStateOf<Track?>(null) }
     var showCreatePlaylistDialog by remember { mutableStateOf(false) }
-    var editingPlaylistInfo by remember { mutableStateOf<Triple<Long, String, Pair<String, String>>?>(null) }
+    var editingPlaylist by remember { mutableStateOf<Playlist?>(null) }
     var importUrlToOpen by remember { mutableStateOf<String?>(null) }
     var importTabToOpen by remember { mutableStateOf(ImportTab.LINK) }
     var selectedTrackForLyrics by remember { mutableStateOf<Track?>(null) }
@@ -261,8 +262,8 @@ fun SkullBeatNavHost(
                 composable(Screen.PlaylistDetail.route) {
                     PlaylistDetailScreen(
                         onBack = { navController.popBackStack() },
-                        onEditPlaylist = { id, name, emoji, colorHex ->
-                            editingPlaylistInfo = Triple(id, name, Pair(emoji, colorHex))
+                        onEditPlaylist = { pl ->
+                            editingPlaylist = pl
                         },
                         onOpenImport = {
                             importTabToOpen = ImportTab.LINK
@@ -297,12 +298,16 @@ fun SkullBeatNavHost(
             AddToPlaylistDialog(
                 track = trackForPlaylist,
                 playlists = playlists,
-                onSelectPlaylist = { playlistId ->
+                onSelectPlaylist = { pl ->
                     coroutineScope.launch(Dispatchers.IO) {
                         try {
-                            repository.addTrackToPlaylist(playlistId, trackForPlaylist)
+                            val added = repository.addTrackToPlaylist(pl.id, trackForPlaylist)
                             withContext(Dispatchers.Main) {
-                                Toast.makeText(context, "Added to playlist: ${trackForPlaylist.title}", Toast.LENGTH_SHORT).show()
+                                if (added) {
+                                    Toast.makeText(context, "Added to ${pl.name}", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    Toast.makeText(context, "Already in ${pl.name}", Toast.LENGTH_SHORT).show()
+                                }
                             }
                         } catch (e: Exception) {
                             Log.e("NavHost", "Failed to add track to playlist", e)
@@ -321,10 +326,21 @@ fun SkullBeatNavHost(
         if (showCreatePlaylistDialog) {
             val pendingTrack = selectedTrackForPlaylist
             CreateEditPlaylistDialog(
-                onConfirm = { name, emoji, colorHex ->
+                onConfirm = { name, emoji, colorHex, coverUri, _ ->
                     coroutineScope.launch(Dispatchers.IO) {
                         try {
                             val newId = repository.createPlaylist(name, emoji, colorHex)
+                            var finalCoverPath: String? = null
+                            if (coverUri != null) {
+                                finalCoverPath = com.skullbeat.app.domain.util.ImageUtils.processAndSavePlaylistCover(
+                                    context = context,
+                                    sourceUri = coverUri,
+                                    playlistId = newId
+                                )
+                                if (finalCoverPath != null) {
+                                    repository.updatePlaylistCover(newId, finalCoverPath)
+                                }
+                            }
                             if (pendingTrack != null) {
                                 repository.addTrackToPlaylist(newId, pendingTrack)
                             }
@@ -351,25 +367,43 @@ fun SkullBeatNavHost(
         }
 
         // Edit Playlist Dialog
-        val editingInfo = editingPlaylistInfo
-        if (editingInfo != null) {
-            val (id, initialName, emojiAndColor) = editingInfo
+        val currentEditing = editingPlaylist
+        if (currentEditing != null) {
             CreateEditPlaylistDialog(
-                initialName = initialName,
-                initialEmoji = emojiAndColor.first,
-                initialColorHex = emojiAndColor.second,
+                initialPlaylist = currentEditing,
                 isEdit = true,
-                onConfirm = { name, emoji, colorHex ->
+                onConfirm = { name, emoji, colorHex, coverUri, removeCover ->
                     coroutineScope.launch(Dispatchers.IO) {
                         try {
-                            repository.updatePlaylist(id, name, emoji, colorHex)
+                            var newCoverPath = currentEditing.coverPath
+                            if (removeCover) {
+                                com.skullbeat.app.domain.util.ImageUtils.deleteCoverFile(currentEditing.coverPath)
+                                newCoverPath = null
+                            } else if (coverUri != null) {
+                                newCoverPath = com.skullbeat.app.domain.util.ImageUtils.processAndSavePlaylistCover(
+                                    context = context,
+                                    sourceUri = coverUri,
+                                    playlistId = currentEditing.id,
+                                    oldCoverPath = currentEditing.coverPath
+                                )
+                            }
+                            repository.updatePlaylist(
+                                playlistId = currentEditing.id,
+                                name = name,
+                                emoji = emoji,
+                                colorHex = colorHex,
+                                coverPath = newCoverPath
+                            )
+                            withContext(Dispatchers.Main) {
+                                Toast.makeText(context, "Playlist updated", Toast.LENGTH_SHORT).show()
+                            }
                         } catch (e: Exception) {
                             Log.e("NavHost", "Failed to update playlist", e)
                         }
                     }
-                    editingPlaylistInfo = null
+                    editingPlaylist = null
                 },
-                onDismiss = { editingPlaylistInfo = null }
+                onDismiss = { editingPlaylist = null }
             )
         }
 
