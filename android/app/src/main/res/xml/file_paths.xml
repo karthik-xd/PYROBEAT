@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
     <cache-path name="exports" path="exports/" />
+    <files-path name="playlist_covers" path="playlist_covers/" />
+    <cache-path name="camera_temp" path="camera_temp/" />
 </paths>
