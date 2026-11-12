@@ -82,6 +82,10 @@ class LibraryViewModel @Inject constructor(
         playerManager.addToUserQueue(track)
     }
 
+    fun removeFromQueue(track: Track) {
+        playerManager.removeTrackFromUserQueue(track)
+    }
+
     fun playTrack(track: Track, list: List<Track>) {
         val contextType = when (_selectedTab.value) {
             LibraryTab.LIKED -> PlaybackContextType.PLAYLIST

@@ -113,4 +113,8 @@ class SearchViewModel @Inject constructor(
     fun addToQueue(track: Track) {
         playerManager.addToUserQueue(track)
     }
+
+    fun removeFromQueue(track: Track) {
+        playerManager.removeTrackFromUserQueue(track)
+    }
 }

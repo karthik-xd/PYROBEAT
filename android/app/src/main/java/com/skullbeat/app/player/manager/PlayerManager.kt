@@ -345,6 +345,27 @@ class PlayerManager @Inject constructor(
         }
     }
 
+    fun removeTrackFromUserQueue(track: Track) {
+        _playbackState.update { state ->
+            val list = state.userQueue.toMutableList()
+            val idx = list.indexOfLast { it.videoId == track.videoId }
+            if (idx != -1) {
+                list.removeAt(idx)
+            }
+            state.copy(userQueue = list)
+        }
+    }
+
+    fun removeLastFromUserQueue() {
+        _playbackState.update { state ->
+            val list = state.userQueue.toMutableList()
+            if (list.isNotEmpty()) {
+                list.removeAt(list.lastIndex)
+            }
+            state.copy(userQueue = list)
+        }
+    }
+
     fun clearUserQueue() {
         _playbackState.update { it.copy(userQueue = emptyList()) }
     }

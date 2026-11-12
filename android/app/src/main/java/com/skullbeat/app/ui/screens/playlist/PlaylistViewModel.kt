@@ -51,6 +51,10 @@ class PlaylistViewModel @Inject constructor(
         playerManager.addToUserQueue(track)
     }
 
+    fun removeFromQueue(track: Track) {
+        playerManager.removeTrackFromUserQueue(track)
+    }
+
     fun playTrack(track: Track) {
         playerManager.playTrack(track, tracks.value, PlaybackContextType.PLAYLIST, playlistId.toString())
     }
@@ -68,9 +72,32 @@ class PlaylistViewModel @Inject constructor(
         }
     }
 
-    fun updatePlaylist(name: String, emoji: String, colorHex: String) {
+    fun updatePlaylist(name: String, emoji: String, colorHex: String, coverPath: String? = null) {
         viewModelScope.launch {
-            repository.updatePlaylist(playlistId, name, emoji, colorHex)
+            repository.updatePlaylist(playlistId, name, emoji, colorHex, coverPath)
+        }
+    }
+
+    fun updateCoverPhoto(context: android.content.Context, uri: android.net.Uri) {
+        viewModelScope.launch {
+            val oldCover = playlist.value?.coverPath
+            val newPath = com.skullbeat.app.domain.util.ImageUtils.processAndSavePlaylistCover(
+                context = context,
+                sourceUri = uri,
+                playlistId = playlistId,
+                oldCoverPath = oldCover
+            )
+            if (newPath != null) {
+                repository.updatePlaylistCover(playlistId, newPath)
+            }
+        }
+    }
+
+    fun removeCoverPhoto() {
+        viewModelScope.launch {
+            val oldCover = playlist.value?.coverPath
+            com.skullbeat.app.domain.util.ImageUtils.deleteCoverFile(oldCover)
+            repository.updatePlaylistCover(playlistId, null)
         }
     }
 
