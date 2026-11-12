@@ -201,6 +201,21 @@ fun SearchScreen(
                         onSwipeToQueue = {
                             viewModel.addToQueue(track)
                             Toast.makeText(context, "Added to queue: ${track.title}", Toast.LENGTH_SHORT).show()
+                        },
+                        onSwipeAction = { action ->
+                            when (action) {
+                                com.skullbeat.app.ui.components.SwipeAction.ADD_TO_QUEUE -> {
+                                    viewModel.addToQueue(track)
+                                    Toast.makeText(context, "Added to queue: ${track.title}", Toast.LENGTH_SHORT).show()
+                                }
+                                com.skullbeat.app.ui.components.SwipeAction.PLAY_NEXT -> {
+                                    viewModel.addToQueue(track)
+                                    Toast.makeText(context, "Playing next: ${track.title}", Toast.LENGTH_SHORT).show()
+                                }
+                                com.skullbeat.app.ui.components.SwipeAction.ADD_TO_PLAYLIST -> {
+                                    onAddToPlaylist(track)
+                                }
+                            }
                         }
                     )
                 }

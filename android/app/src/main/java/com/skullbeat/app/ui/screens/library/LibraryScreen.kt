@@ -512,7 +512,7 @@ private fun LibraryTrackRow(
             .fillMaxWidth()
             .height(60.dp)
             .clip(RoundedCornerShape(10.dp))
-            .background(if (isCurrentTrack) RaisedDark else Color.Transparent)
+            .background(if (isCurrentTrack) RaisedDark else SurfaceDark)
             .clickable(onClick = onClick)
             .padding(horizontal = 8.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -618,14 +618,6 @@ private fun PlaylistCard(
     playlist: Playlist,
     onClick: () -> Unit
 ) {
-    val bgColor = remember(playlist.colorHex) {
-        try {
-            Color(android.graphics.Color.parseColor(playlist.colorHex))
-        } catch (_: Exception) {
-            Color(0xFF3D8BFF)
-        }
-    }
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -634,16 +626,14 @@ private fun PlaylistCard(
             .clickable(onClick = onClick)
             .padding(10.dp)
     ) {
-        Box(
+        com.skullbeat.app.ui.components.PlaylistCover(
+            playlist = playlist,
+            size = 110.dp,
+            shape = RoundedCornerShape(8.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(110.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(bgColor),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(text = playlist.emoji, fontSize = 40.sp)
-        }
+        )
 
         Spacer(modifier = Modifier.height(8.dp))
 

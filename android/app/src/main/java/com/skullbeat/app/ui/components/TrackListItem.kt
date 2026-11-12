@@ -38,6 +38,7 @@ import com.skullbeat.app.domain.models.Track
 import com.skullbeat.app.ui.theme.ElectricBlue
 import com.skullbeat.app.ui.theme.HeartRed
 import com.skullbeat.app.ui.theme.RaisedDark
+import com.skullbeat.app.ui.theme.SurfaceDark
 import com.skullbeat.app.ui.theme.TextBone
 import com.skullbeat.app.ui.theme.TextMuted
 
@@ -52,17 +53,19 @@ fun TrackListItem(
     onDownload: () -> Unit = {},
     onArtistClick: ((String) -> Unit)? = null,
     onSwipeToQueue: (() -> Unit)? = null,
+    onSwipeAction: ((SwipeAction) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
-    val rowModifier = if (onSwipeToQueue != null) Modifier else modifier
+    val hasSwipe = onSwipeToQueue != null || onSwipeAction != null
+    val rowModifier = if (hasSwipe) Modifier else modifier
     val itemContent = @Composable {
         Row(
             modifier = rowModifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(8.dp))
-                .background(if (isCurrentTrack) RaisedDark else androidx.compose.ui.graphics.Color.Transparent)
+                .background(if (isCurrentTrack) RaisedDark else SurfaceDark)
                 .clickable(onClick = onClick)
                 .padding(horizontal = 8.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -173,9 +176,10 @@ fun TrackListItem(
         }
     }
 
-    if (onSwipeToQueue != null) {
+    if (hasSwipe) {
         SwipeToQueueBox(
-            onSwipeToQueue = onSwipeToQueue,
+            onSwipeToQueue = onSwipeToQueue ?: {},
+            onTriggerAction = onSwipeAction,
             modifier = modifier
         ) {
             itemContent()
