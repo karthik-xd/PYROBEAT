@@ -70,7 +70,9 @@ class AudioNormalizer {
                 val config = builder.build()
 
                 val dp = DynamicsProcessing(0, audioSessionId, config)
-                dp.setEnabled(isEnabled)
+                try {
+                    dp.setEnabled(isEnabled)
+                } catch (_: Throwable) {}
                 dynamicsProcessing = dp
                 Log.d("AudioNormalizer", "DynamicsProcessing attached to session $audioSessionId (enabled=$isEnabled)")
                 return
@@ -83,7 +85,9 @@ class AudioNormalizer {
         try {
             val le = LoudnessEnhancer(audioSessionId).apply {
                 setTargetGain(250) // +2.5 dB transparent gain
-                setEnabled(isEnabled)
+                try {
+                    setEnabled(isEnabled)
+                } catch (_: Throwable) {}
             }
             loudnessEnhancer = le
             Log.d("AudioNormalizer", "LoudnessEnhancer attached to session $audioSessionId (enabled=$isEnabled)")
@@ -94,24 +98,36 @@ class AudioNormalizer {
 
     private fun applyEnabled(enabled: Boolean) {
         try {
-            dynamicsProcessing?.setEnabled(enabled)
-        } catch (_: Exception) {}
+            dynamicsProcessing?.let {
+                if (it.hasControl()) it.setEnabled(enabled)
+            }
+        } catch (_: Throwable) {}
         try {
-            loudnessEnhancer?.setEnabled(enabled)
-        } catch (_: Exception) {}
+            loudnessEnhancer?.let {
+                if (it.hasControl()) it.setEnabled(enabled)
+            }
+        } catch (_: Throwable) {}
     }
 
     fun release() {
         try {
-            dynamicsProcessing?.setEnabled(false)
-            dynamicsProcessing?.release()
-        } catch (_: Exception) {}
+            dynamicsProcessing?.let {
+                if (it.hasControl()) {
+                    it.setEnabled(false)
+                }
+                it.release()
+            }
+        } catch (_: Throwable) {}
         dynamicsProcessing = null
 
         try {
-            loudnessEnhancer?.setEnabled(false)
-            loudnessEnhancer?.release()
-        } catch (_: Exception) {}
+            loudnessEnhancer?.let {
+                if (it.hasControl()) {
+                    it.setEnabled(false)
+                }
+                it.release()
+            }
+        } catch (_: Throwable) {}
         loudnessEnhancer = null
         currentSessionId = 0
     }
