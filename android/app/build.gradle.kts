@@ -13,8 +13,8 @@ android {
         applicationId = "com.skullbeat.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 5
-        versionName = "1.2.2"
+        versionCode = 6
+        versionName = "1.2.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -98,6 +98,7 @@ dependencies {
     implementation(libs.androidx.media3.datasource.okhttp)
     implementation("androidx.media:media:1.7.0")
     implementation("androidx.palette:palette-ktx:1.0.0")
+    implementation("androidx.exifinterface:exifinterface:1.3.7")
 
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
