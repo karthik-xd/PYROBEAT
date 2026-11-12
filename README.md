@@ -14,6 +14,8 @@
 
 ## 📁 Repository Structure
 
+> 📖 **Full Architecture & Component Tree:** See [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) for the complete parent-child code tree for both PC and Android.
+
 ```
 SkullBeat/
 ├── android/             # Android native app (Kotlin, Jetpack Compose, Media3/ExoPlayer, Room)
@@ -31,7 +33,7 @@ SkullBeat/
 │   └── history/         # Persistent playback history & cached user library
 │
 ├── download_apk/        # Ready-to-install Android package
-│   └── SkullBeat.apk    # Latest pre-built release APK
+│   └── SkullBeat.apk    # Latest pre-built release APK (v1.2.2 Build 5)
 │
 ├── pictures/            # Visual branding & verified app screenshots
 │   ├── logo.png         # Official SkullBeat emblem
@@ -41,6 +43,7 @@ SkullBeat/
 │   ├── screen_artist.png# Artist discography & track browser
 │   └── screen_splash.png# Pulsing skull launch animation
 │
+├── PROJECT_STRUCTURE.md # Complete parent-child file & function tree index (PC & Android)
 ├── README.md            # Repository overview & setup guide
 └── LICENSE              # MIT License
 ```
