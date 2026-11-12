@@ -49,15 +49,16 @@ fun AboutDialog(
     onDismiss: () -> Unit
 ) {
     val updates = listOf(
+        "Crash-Proof Stability" to "Eliminated background thread null-pointer and concurrent modification exceptions when adding tracks or browsing queues.",
+        "Smooth Swipe-to-Queue Everywhere" to "Instant 0-latency left-to-right slide to queue with tactile haptics across Library, Search, Artist, and Playlist screens.",
+        "Add Songs Direct to Playlist" to "Search and add songs directly into any playlist with one-tap instant feedback.",
+        "Audio Normalizer Safety Guard" to "Hardened hardware dynamics processor with safe control checks and zero distortion.",
         "Audio Flow Volume Sync" to "Automatic broadcast-grade loudness normalization syncs volume across all songs without sacrificing dynamic quality.",
-        "Swipe-to-Queue (Spotify-Style)" to "Slide any song left to right to queue it up next in order. When queue finishes, playback returns to playlist in shuffle or regular order.",
         "Smart Multi-Touch Loop" to "Single touch loops song continuously. Double touch loops 1 time. Triple touch loops 2 times. Turn OFF anytime with a single touch.",
         "1-Touch Instant Play" to "Tap any song text to play immediately without double-pressing the play button.",
         "Spinning Skull Buffering" to "Play button spins a 360-degree skull animation while resolving YouTube streams.",
-        "Landscape Rotation Layout" to "Rotating phone neatly displays 180dp artwork and all playback controls on screen without scrolling.",
         "Solid Now Playing Sheet" to "Decreased transparency to 100% solid opaque background; eliminated list bleed-through.",
-        "2-Color Notification Shading" to "Media notification card shaded by 2 vibrant colors extracted from song artwork.",
-        "Notification Shuffle Control" to "Toggle shuffle directly from the system notification shade and Quick Settings."
+        "2-Color Notification Shading" to "Media notification card shaded by 2 vibrant colors extracted from song artwork."
     )
 
     Dialog(onDismissRequest = onDismiss) {
@@ -97,7 +98,7 @@ fun AboutDialog(
                                 color = TextBone
                             )
                             Text(
-                                text = "Version 1.2.1 (Build 4)",
+                                text = "Version 1.2.2 (Build 5)",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = ElectricBlue
                             )
